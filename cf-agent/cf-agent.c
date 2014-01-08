@@ -225,6 +225,9 @@ static const char *const HINTS[] =
 
 int main(int argc, char *argv[])
 {
+
+    fprintf(stderr, "this is my first and initial change");
+
     int ret = 0;
 
     EvalContext *ctx = EvalContextNew();
