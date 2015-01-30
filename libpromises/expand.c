@@ -918,11 +918,15 @@ void BundleResolve(EvalContext *ctx, const Bundle *bundle)
     Log(LOG_LEVEL_DEBUG, "Resolving variables in bundle '%s' '%s'",
         bundle->type, bundle->name);
 
+    /* Use normal ordering also in pre-evaluation for common bundles */
+    BundleResolvePromiseType(ctx, bundle, "vars", (PromiseActuator*)VerifyVarPromise);
+    
+    /* Set global classes ONLY for common bundles; classes in other types
+     * of bundles are supposed to be local ones.*/
     if (strcmp(bundle->type, "common") == 0)
     {
         BundleResolvePromiseType(ctx, bundle, "classes", VerifyClassPromise);
     }
-    BundleResolvePromiseType(ctx, bundle, "vars", (PromiseActuator*)VerifyVarPromise);
 }
 
 ProtocolVersion ProtocolVersionParse(const char *s)
