@@ -68,8 +68,8 @@ static const BodySyntax package_method_body = BodySyntaxNew("package_method", pa
 
 static const ConstraintSyntax package_manager_constraints[] =
 {
-    ConstraintSyntaxNewString("query_installed_ifelapsed", CF_INTRANGE, "The ifelapsed locking time in between updates of the installed package list", SYNTAX_STATUS_NORMAL),
-    ConstraintSyntaxNewString("query_updates_ifelapsed", CF_INTRANGE, "The ifelapsed locking time in between updates of the available updates list", SYNTAX_STATUS_NORMAL),
+    ConstraintSyntaxNewInt("query_installed_ifelapsed", CF_INTRANGE, "The ifelapsed locking time in between updates of the installed package list", SYNTAX_STATUS_NORMAL),
+    ConstraintSyntaxNewInt("query_updates_ifelapsed", CF_INTRANGE, "The ifelapsed locking time in between updates of the available updates list", SYNTAX_STATUS_NORMAL),
     ConstraintSyntaxNewNull()
 };
 
@@ -82,12 +82,12 @@ static const ConstraintSyntax packages_constraints[] =
     ConstraintSyntaxNewOption("package_policy", "add,delete,reinstall,update,addupdate,patch,verify", "Criteria for package installation/upgrade on the current system. Default value: verify", SYNTAX_STATUS_NORMAL),
     ConstraintSyntaxNewOption("package_select", ">,<,==,!=,>=,<=", "A criterion for first acceptable match relative to \"package_version\"", SYNTAX_STATUS_NORMAL),
     ConstraintSyntaxNewString("package_version", "", "Version reference point for determining promised version", SYNTAX_STATUS_NORMAL),
-    ConstraintSyntaxNewString("policy", "absent,present", "Criteria for package installation/upgrade on the current system", SYNTAX_STATUS_NORMAL),
+    ConstraintSyntaxNewOption("policy", "absent,present", "Criteria for package installation/upgrade on the current system", SYNTAX_STATUS_NORMAL),
     ConstraintSyntaxNewBody("package_manager", &package_manager_body, "Package manager used for package related operations", SYNTAX_STATUS_NORMAL),
     ConstraintSyntaxNewString("version", "", "Version reference point for determining promised version", SYNTAX_STATUS_NORMAL),
     ConstraintSyntaxNewString("architecture", "", "Architecture type of package", SYNTAX_STATUS_NORMAL),
-    ConstraintSyntaxNewString("options", "", "Additional options passed to package manager", SYNTAX_STATUS_NORMAL),
-    ConstraintSyntaxNewString("additional_packages", "", "Additional packages processed with given package promiser", SYNTAX_STATUS_NORMAL),
+    ConstraintSyntaxNewStringList("options", "", "Additional options passed to package manager", SYNTAX_STATUS_NORMAL),
+    ConstraintSyntaxNewStringList("additional_packages", "", "Additional packages processed with given package promiser", SYNTAX_STATUS_NORMAL),
     ConstraintSyntaxNewNull()
 };
 
