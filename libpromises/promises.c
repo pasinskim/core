@@ -74,7 +74,6 @@ Promise *DeRefCopyPromise(EvalContext *ctx, const Promise *pp)
     pcopy->parent_promise_type = pp->parent_promise_type;
     pcopy->offset.line = pp->offset.line;
     pcopy->comment = pp->comment ? xstrdup(pp->comment) : NULL;
-    pcopy->has_subbundles = pp->has_subbundles;
     pcopy->conlist = SeqNew(10, ConstraintDestroy);
     pcopy->org_pp = pp->org_pp;
     pcopy->offset = pp->offset;
@@ -131,8 +130,7 @@ Promise *DeRefCopyPromise(EvalContext *ctx, const Promise *pp)
 
             if (IsDefinedClass(ctx, cp->classes))
             {
-                Constraint *cp_copy = PromiseAppendConstraint(pcopy, cp->lval, (Rval) {xstrdup("true"), RVAL_TYPE_SCALAR }, false);
-                cp_copy->offset = cp->offset;
+                PromiseAppendConstraint(pcopy, cp->lval, (Rval) {xstrdup("true"), RVAL_TYPE_SCALAR }, false);
             }
 
             if (bp->args)
@@ -155,8 +153,7 @@ Promise *DeRefCopyPromise(EvalContext *ctx, const Promise *pp)
                     if (IsDefinedClass(ctx, scp->classes))
                     {
                         Rval returnval = ExpandPrivateRval(ctx, NULL, "body", scp->rval.item, scp->rval.type);
-                        Constraint *scp_copy = PromiseAppendConstraint(pcopy, scp->lval, returnval, false);
-                        scp_copy->offset = scp->offset;
+                        PromiseAppendConstraint(pcopy, scp->lval, returnval, false);
                     }
                 }
             }
@@ -189,8 +186,7 @@ Promise *DeRefCopyPromise(EvalContext *ctx, const Promise *pp)
                                 newrv.item = new_list;
                             }
 
-                            Constraint *scp_copy = PromiseAppendConstraint(pcopy, scp->lval, newrv, false);
-                            scp_copy->offset = scp->offset;
+                            PromiseAppendConstraint(pcopy, scp->lval, newrv, false);
                         }
                     }
                 }
@@ -238,8 +234,7 @@ Promise *DeRefCopyPromise(EvalContext *ctx, const Promise *pp)
                     newrv.item = new_list;
                 }
 
-                Constraint *cp_copy = PromiseAppendConstraint(pcopy, cp->lval, newrv, false);
-                cp_copy->offset = cp->offset;
+                PromiseAppendConstraint(pcopy, cp->lval, newrv, false);
             }
         }
     }
@@ -294,8 +289,7 @@ static bool IsVarClassDefined(const EvalContext *ctx, const Constraint *cp, Prom
     }
 
     char *classes = NULL;
-    Constraint *cp_copy = PromiseAppendConstraint(pcopy, cp->lval, final, false);
-    cp_copy->offset = cp->offset;
+    PromiseAppendConstraint(pcopy, cp->lval, final, false);
     switch (final.type)
     {
     case RVAL_TYPE_SCALAR:
@@ -417,8 +411,7 @@ Promise *ExpandDeRefPromise(EvalContext *ctx, const Promise *pp, bool *excluded)
             Rval final;
             if (EvaluateConstraintIteration(ctx, depends_on, &final))
             {
-                Constraint *cp_copy = PromiseAppendConstraint(pcopy, depends_on->lval, final, false);
-                cp_copy->offset = depends_on->offset;
+                PromiseAppendConstraint(pcopy, depends_on->lval, final, false);
 
                 if (MissingDependencies(ctx, pcopy))
                 {
@@ -449,8 +442,7 @@ Promise *ExpandDeRefPromise(EvalContext *ctx, const Promise *pp, bool *excluded)
             continue;
         }
 
-        Constraint *cp_copy = PromiseAppendConstraint(pcopy, cp->lval, final, false);
-        cp_copy->offset = cp->offset;
+        PromiseAppendConstraint(pcopy, cp->lval, final, false);
 
         if (strcmp(cp->lval, "comment") == 0)
         {
