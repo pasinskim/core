@@ -172,6 +172,15 @@ PromiseResult VerifyPackagesPromise(EvalContext *ctx, const Promise *pp)
 
     Attributes a = GetPackageAttributes(ctx, pp);
 
+    if (!PromiseBundleConstraintExists(ctx, "package_method", pp))
+    {
+        Log(LOG_LEVEL_VERBOSE, 
+            "Package promise %s failed sanity check due to lack of 'package_method' attribute", 
+            pp->promiser);
+        result = PROMISE_RESULT_FAIL;
+        goto end;
+    }
+    
 #ifdef __MINGW32__
 
     if(!a.packages.package_list_command)
