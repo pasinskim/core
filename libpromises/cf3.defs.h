@@ -754,6 +754,13 @@ typedef enum
 
 typedef enum
 {
+    NEW_PACKAGE_ACTION_ABSENT,
+    NEW_PACKAGE_ACTION_PRESENT,
+    NEW_PACKAGE_ACTION_NONE
+} NewPackageAction;
+
+typedef enum
+{
     PACKAGE_VERSION_COMPARATOR_EQ,
     PACKAGE_VERSION_COMPARATOR_NEQ,
     PACKAGE_VERSION_COMPARATOR_GT,
@@ -1244,7 +1251,6 @@ typedef struct
 typedef struct
 {
     PackageAction package_policy;
-    int have_package_methods;
     char *package_version;
     Rlist *package_architectures;
     PackageVersionComparator package_select;
@@ -1289,7 +1295,26 @@ typedef struct
     char *package_version_equal_command;
 
     int package_noverify_returncode;
+    
+    bool is_empty;
 } Packages;
+
+/*************************************************************************/
+
+typedef struct
+{
+    NewPackageAction package_policy;
+    char *package_manager;
+    char *package_version;
+    char *package_architecture;
+    Rlist *package_options;
+    Rlist *package_additional_packages;
+    
+    int package_updates_ifelapsed;
+    int package_installed_ifelapsed;
+    
+    bool is_empty;
+} NewPackages;
 
 /*************************************************************************/
 
@@ -1452,6 +1477,7 @@ typedef struct
     FileLink link;
     EditDefaults edits;
     Packages packages;
+    NewPackages new_packages;
     ContextConstraint context;
     Measurement measure;
     Acl acl;

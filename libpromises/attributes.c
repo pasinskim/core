@@ -149,10 +149,11 @@ Attributes GetServicesAttributes(const EvalContext *ctx, const Promise *pp)
 Attributes GetPackageAttributes(const EvalContext *ctx, const Promise *pp)
 {
     Attributes attr = { {0} };
-
+    
     attr.transaction = GetTransactionConstraints(ctx, pp);
     attr.classes = GetClassDefinitionConstraints(ctx, pp);
     attr.packages = GetPackageConstraints(ctx, pp);
+    attr.new_packages = GetNewPackageConstraints(ctx, pp);
     return attr;
 }
 
@@ -1037,28 +1038,15 @@ ContextConstraint GetContextConstraints(const EvalContext *ctx, const Promise *p
 
 Packages GetPackageConstraints(const EvalContext *ctx, const Promise *pp)
 {
-    Packages p;
+    Packages p = {0};
+    Packages empty = {0};
+    
     PackageAction action;
     PackageVersionComparator operator;
     PackageActionPolicy change_policy;
 
-    p.have_package_methods = PromiseGetConstraintAsBoolean(ctx, "havepackage_method", pp);
     p.package_version = PromiseGetConstraintAsRval(pp, "package_version", RVAL_TYPE_SCALAR);
     p.package_architectures = PromiseGetConstraintAsList(ctx, "package_architectures", pp);
-
-    action = PackageActionFromString(PromiseGetConstraintAsRval(pp, "package_policy", RVAL_TYPE_SCALAR));
-    p.package_policy = action;
-
-    if (p.package_policy == PACKAGE_ACTION_NONE)        // Default action => package add
-    {
-        p.package_policy = PACKAGE_ACTION_ADD;
-    }
-
-    operator = PackageVersionComparatorFromString(PromiseGetConstraintAsRval(pp, "package_select", RVAL_TYPE_SCALAR));
-
-    p.package_select = operator;
-    change_policy = PackageActionPolicyFromString(PromiseGetConstraintAsRval(pp, "package_changes", RVAL_TYPE_SCALAR));
-    p.package_changes = change_policy;
 
     p.package_file_repositories = PromiseGetConstraintAsList(ctx, "package_file_repositories", pp);
 
@@ -1071,7 +1059,6 @@ Packages GetPackageConstraints(const EvalContext *ctx, const Promise *pp)
     p.package_patch_installed_regex = PromiseGetConstraintAsRval(pp, "package_patch_installed_regex", RVAL_TYPE_SCALAR);
 
     p.package_list_update_command = PromiseGetConstraintAsRval(pp, "package_list_update_command", RVAL_TYPE_SCALAR);
-    p.package_list_update_ifelapsed = PromiseGetConstraintAsInt(ctx, "package_list_update_ifelapsed", pp);
     p.package_list_command = PromiseGetConstraintAsRval(pp, "package_list_command", RVAL_TYPE_SCALAR);
     p.package_list_version_regex = PromiseGetConstraintAsRval(pp, "package_list_version_regex", RVAL_TYPE_SCALAR);
     p.package_list_name_regex = PromiseGetConstraintAsRval(pp, "package_list_name_regex", RVAL_TYPE_SCALAR);
@@ -1089,16 +1076,6 @@ Packages GetPackageConstraints(const EvalContext *ctx, const Promise *pp)
     p.package_patch_command = PromiseGetConstraintAsRval(pp, "package_patch_command", RVAL_TYPE_SCALAR);
     p.package_verify_command = PromiseGetConstraintAsRval(pp, "package_verify_command", RVAL_TYPE_SCALAR);
     p.package_noverify_regex = PromiseGetConstraintAsRval(pp, "package_noverify_regex", RVAL_TYPE_SCALAR);
-    p.package_noverify_returncode = PromiseGetConstraintAsInt(ctx, "package_noverify_returncode", pp);
-
-    if (PromiseGetConstraint(pp, "package_commands_useshell") == NULL)
-    {
-        p.package_commands_useshell = true;
-    }
-    else
-    {
-        p.package_commands_useshell = PromiseGetConstraintAsBoolean(ctx, "package_commands_useshell", pp);
-    }
 
     p.package_name_convention = PromiseGetConstraintAsRval(pp, "package_name_convention", RVAL_TYPE_SCALAR);
     p.package_delete_convention = PromiseGetConstraintAsRval(pp, "package_delete_convention", RVAL_TYPE_SCALAR);
@@ -1107,6 +1084,65 @@ Packages GetPackageConstraints(const EvalContext *ctx, const Promise *pp)
 
     p.package_version_equal_command = PromiseGetConstraintAsRval(pp, "package_version_equal_command", RVAL_TYPE_SCALAR);
     p.package_version_less_command = PromiseGetConstraintAsRval(pp, "package_version_less_command", RVAL_TYPE_SCALAR);
+    
+    p.is_empty = (memcmp(&p, &empty, sizeof(Packages)) == 0);
+    
+    p.package_list_update_ifelapsed = PromiseGetConstraintAsInt(ctx, "package_list_update_ifelapsed", pp);
+    p.package_noverify_returncode = PromiseGetConstraintAsInt(ctx, "package_noverify_returncode", pp);
+    
+    if (PromiseGetConstraint(pp, "package_commands_useshell") == NULL)
+    {
+        p.package_commands_useshell = true;
+    }
+    else
+    {
+        p.package_commands_useshell = PromiseGetConstraintAsBoolean(ctx, "package_commands_useshell", pp);
+    }
+    
+    action = PackageActionFromString(PromiseGetConstraintAsRval(pp, "package_policy", RVAL_TYPE_SCALAR));
+    p.package_policy = action;
+
+    if (p.package_policy == PACKAGE_ACTION_NONE)        // Default action => package add
+    {
+        p.package_policy = PACKAGE_ACTION_ADD;
+    }
+
+    operator = PackageVersionComparatorFromString(PromiseGetConstraintAsRval(pp, "package_select", RVAL_TYPE_SCALAR));
+
+    p.package_select = operator;
+    change_policy = PackageActionPolicyFromString(PromiseGetConstraintAsRval(pp, "package_changes", RVAL_TYPE_SCALAR));
+    p.package_changes = change_policy;
+
+    return p;
+}
+
+/*******************************************************************/
+
+static const char *new_packages_actions[] =
+{
+    "absent",
+    "present",
+    NULL
+};
+
+NewPackages GetNewPackageConstraints(const EvalContext *ctx, const Promise *pp)
+{
+    NewPackages p = {0};
+    NewPackages empty = {0};
+
+    p.package_manager = PromiseGetConstraintAsRval(pp, "package_manager", RVAL_TYPE_SCALAR);
+    p.package_version = PromiseGetConstraintAsRval(pp, "version", RVAL_TYPE_SCALAR);
+    p.package_architecture = PromiseGetConstraintAsRval(pp, "architecture", RVAL_TYPE_SCALAR);
+    p.package_options = PromiseGetConstraintAsList(ctx, "options", pp);
+    p.package_additional_packages = PromiseGetConstraintAsList(ctx, "additional_packages", pp);
+    
+    p.is_empty = (memcmp(&p, &empty, sizeof(NewPackages)) == 0);
+    
+    p.package_updates_ifelapsed = PromiseGetConstraintAsInt(ctx, "query_updates_ifelapsed", pp);
+    p.package_installed_ifelapsed = PromiseGetConstraintAsInt(ctx, "query_installed_ifelapsed", pp);
+    
+    p.package_policy = GetNewPackagePolicy(PromiseGetConstraintAsRval(pp, "policy", RVAL_TYPE_SCALAR),
+                                           new_packages_actions);
 
     return p;
 }

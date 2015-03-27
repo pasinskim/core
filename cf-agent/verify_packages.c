@@ -93,6 +93,14 @@
 #define PromiseResultUpdate_HELPER(__pp, __prior, __evidence) \
     REPORT_THIS_PROMISE(__pp) ? PromiseResultUpdate(__prior, __evidence) : __evidence
 
+typedef enum
+{
+    PACKAGE_PROMISE_TYPE_OLD = 0,
+    PACKAGE_PROMISE_TYPE_NEW = 1,
+    PACKAGE_PROMISE_TYPE_BOTH = 2,
+    PACKAGE_PROMISE_TYPE_NONE = 3
+} PackagePromiseType;
+
 static int PackageSanityCheck(EvalContext *ctx, Attributes a, const Promise *pp);
 
 static int VerifyInstalledPackages(EvalContext *ctx, PackageManager **alllists, const char *default_arch, Attributes a, const Promise *pp, PromiseResult *result);
@@ -131,6 +139,24 @@ PackageManager *INSTALLED_PACKAGE_LISTS = NULL; /* GLOBAL_X */
 
 #define PACKAGE_IGNORED_CFE_INTERNAL "cfe_internal_non_existing_package"
 
+static PackagePromiseType GetPackagePromiseVersion(const Packages *packages,
+        const NewPackages *new_packages)
+{
+    if (packages->is_empty && new_packages->is_empty)
+    {
+        return PACKAGE_PROMISE_TYPE_NONE;
+    }
+    else if (!packages->is_empty && !new_packages->is_empty)
+    {
+        return PACKAGE_PROMISE_TYPE_BOTH;
+    }
+    else if (!packages->is_empty)
+    {
+        return PACKAGE_PROMISE_TYPE_OLD;
+    }
+    return PACKAGE_PROMISE_TYPE_NEW;
+}
+
 /**
    @brief Verifies a single packages promise
 
@@ -156,6 +182,20 @@ PromiseResult VerifyPackagesPromise(EvalContext *ctx, const Promise *pp)
     CfLock thislock;
     char lockname[CF_BUFSIZE];
     PromiseResult result = PROMISE_RESULT_NOOP;
+    
+    Attributes a = GetPackageAttributes(ctx, pp);
+    PackagePromiseType package_promise_type =
+            GetPackagePromiseVersion(&a.packages, &a.new_packages);
+    
+    /* Make sure old and new promises attributes are not mixed together. */
+    if (package_promise_type == PACKAGE_PROMISE_TYPE_BOTH || package_promise_type == PACKAGE_PROMISE_TYPE_NONE)
+    {
+        Log(LOG_LEVEL_VERBOSE, 
+            "Package promise %s failed sanity check due to arguments error", 
+            pp->promiser);
+        result = PROMISE_RESULT_FAIL;
+        goto end;
+    }
 
     const char *reserved_vars[] = { "name", "version", "arch", "firstrepo", NULL };
     for (int c = 0; reserved_vars[c]; c++)
@@ -164,14 +204,12 @@ PromiseResult VerifyPackagesPromise(EvalContext *ctx, const Promise *pp)
         VarRef *var_ref = VarRefParseFromScope(reserved, "this");
         if (EvalContextVariableGet(ctx, var_ref, NULL))
         {
-            Log(LOG_LEVEL_WARNING, "$(%s) variable has a special meaning in packages promises. "
+            Log(LOG_LEVEL_ERR, "$(%s) variable has a special meaning in packages promises. "
                 "Things may not work as expected if it is already defined.", reserved);
         }
         VarRefDestroy(var_ref);
     }
-
-    Attributes a = GetPackageAttributes(ctx, pp);
-
+    
     if (!PromiseBundleConstraintExists(ctx, "package_method", pp))
     {
         Log(LOG_LEVEL_VERBOSE, 
