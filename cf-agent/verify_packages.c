@@ -123,6 +123,9 @@ static void DeletePackageManagers(PackageManager *morituri);
 
 static const char *PrefixLocalRepository(const Rlist *repositories, const char *package);
 
+PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes a);
+PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes *a);
+
 ENTERPRISE_VOID_FUNC_1ARG_DEFINE_STUB(void, ReportPatches, ARG_UNUSED PackageManager *, list)
 {
     Log(LOG_LEVEL_VERBOSE, "Patch reporting feature is only available in the enterprise version");
@@ -179,9 +182,7 @@ static PackagePromiseType GetPackagePromiseVersion(const Packages *packages,
 */
 PromiseResult VerifyPackagesPromise(EvalContext *ctx, const Promise *pp)
 {
-    CfLock thislock;
-    char lockname[CF_BUFSIZE];
-    PromiseResult result = PROMISE_RESULT_NOOP;
+    PromiseResult result;
     
     Attributes a = GetPackageAttributes(ctx, pp);
     PackagePromiseType package_promise_type =
@@ -191,12 +192,35 @@ PromiseResult VerifyPackagesPromise(EvalContext *ctx, const Promise *pp)
     if (package_promise_type == PACKAGE_PROMISE_TYPE_BOTH || package_promise_type == PACKAGE_PROMISE_TYPE_NONE)
     {
         Log(LOG_LEVEL_VERBOSE, 
-            "Package promise %s failed sanity check due to arguments error", 
-            pp->promiser);
+            "Package promise %s failed sanity check due to arguments error: %d", 
+            pp->promiser, package_promise_type);
         result = PROMISE_RESULT_FAIL;
-        goto end;
+        
+        if (!REPORT_THIS_PROMISE(pp))
+        {
+            // This will not be reported elsewhere, so give it kept outcome.
+            result = PROMISE_RESULT_NOOP;
+            cfPS(ctx, LOG_LEVEL_DEBUG, result, pp, a, "Giving dummy package kept outcome");
+        }
+        return result;
     }
+    
+    else if (package_promise_type == PACKAGE_PROMISE_TYPE_OLD)
+    {
+        return HandleOldPackagePromiseType(ctx, pp, a);
+    }
+    else
+    {
+        return HandleNewPackagePromiseType(ctx, pp, &a);
+    }
+}
 
+PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes a)
+{
+    CfLock thislock;
+    char lockname[CF_BUFSIZE];
+    PromiseResult result = PROMISE_RESULT_NOOP;
+    
     const char *reserved_vars[] = { "name", "version", "arch", "firstrepo", NULL };
     for (int c = 0; reserved_vars[c]; c++)
     {
@@ -301,6 +325,11 @@ end:
     }
 
     return result;
+}
+
+PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes *a)
+{
+    return PROMISE_RESULT_NOOP;
 }
 
 /**
