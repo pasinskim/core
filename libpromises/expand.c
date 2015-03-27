@@ -1110,6 +1110,13 @@ static void ResolveControlBody(EvalContext *ctx, GenericAgentConfig *config,
             Log(LOG_LEVEL_VERBOSE, "SET common protocol_version: %s",
                 PROTOCOL_VERSION_STRING[config->protocol_version]);
         }
+        
+        if (strcmp(cp->lval, CFG_CONTROLBODY[COMMON_CONTROL_PACKAGE_INVENTORY].lval) == 0)
+        {
+            config->agent_specific.agent.package_inventory = RvalScalarValue(cp->rval);
+            Log(LOG_LEVEL_VERBOSE, "SET common package_inventory: %s", 
+                RvalScalarValue(cp->rval));
+        }
 
         if (strcmp(lval, CFG_CONTROLBODY[COMMON_CONTROL_GOALPATTERNS].lval) == 0)
         {
