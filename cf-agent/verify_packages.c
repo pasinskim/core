@@ -52,6 +52,7 @@
 #include <csv_writer.h>
 #include <cf-agent-enterprise-stubs.h>
 #include <cf-windows-functions.h>
+#include <packages-wrapper.h>
 
 /* Called structure:
 
@@ -329,6 +330,29 @@ end:
 
 PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes *a)
 {
+    //TODO: sanity check
+    
+    char *package_manager = a->new_packages.package_manager;
+    if (!package_manager)
+    {
+        /* Get default package manager from system */
+        //TODO: implement me
+        package_manager = strdup("apt-get");
+    }
+
+    PromiseBanner(ctx, pp);
+    
+    //TODO: lock
+    
+    PackageManagerWrapper *package_manager_wraper = GetPackageManagerWrapper(package_manager);
+    unsigned int version = package_manager_wraper->GetApiVersion();
+    PackageInfo *package_data = package_manager_wraper->GetPackageInfo(version, pp->promiser);
+            
+    package_manager_wraper->RepoInstallPackage(package_data);
+    
+    
+    //TODO: unlock
+    
     return PROMISE_RESULT_NOOP;
 }
 
