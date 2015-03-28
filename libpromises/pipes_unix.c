@@ -100,14 +100,21 @@ static void SetChildFD(int fd, pid_t pid)
 
 /*****************************************************************************/
 
-static pid_t CreatePipeAndFork(const char *type, int *pd)
+typedef struct
 {
-    pid_t pid = -1;
+    const char *type;
+    int pipe_desc[2];
+} IOPipe;
 
-    if (!PipeTypeIsOk(type))
+static pid_t GenericCreatePipeAndFork(IOPipe *pipes)
+{
+    for (int i = 0; i < 2; i++)
     {
-        errno = EINVAL;
-        return -1;
+        if (pipes[i].type && !PipeTypeIsOk(pipes[i].type))
+        {
+            errno = EINVAL;
+            return -1;
+        }
     }
 
     if (!InitChildrenFD())
@@ -115,15 +122,35 @@ static pid_t CreatePipeAndFork(const char *type, int *pd)
         return -1;
     }
 
-    if (pipe(pd) < 0)           /* Create a pair of descriptors to this process */
+    /* Create pair of descriptors to this process. */
+    if (pipes[0].type && pipe(pipes[0].pipe_desc) < 0)
     {
         return -1;
     }
+    
+    /* Create second pair of descriptors (if exists) to this process.
+     * This will allow full I/O operations. */
+    if (pipes[1].type && pipe(pipes[1].pipe_desc) < 0)
+    {
+        close(pipes[0].pipe_desc[0]);
+        close(pipes[0].pipe_desc[1]);
+        return -1;
+    }
 
+    pid_t pid = -1;
+    
     if ((pid = fork()) == -1)
     {
-        close(pd[0]);
-        close(pd[1]);
+        /* One pipe will be always here. */
+        close(pipes[0].pipe_desc[0]);
+        close(pipes[0].pipe_desc[1]);
+        
+        /* Second pipe is optional so we have to check existence. */
+        if (pipes[1].type)
+        {
+            close(pipes[1].pipe_desc[0]);
+            close(pipes[1].pipe_desc[1]);
+        }
         return -1;
     }
 
@@ -141,6 +168,123 @@ static pid_t CreatePipeAndFork(const char *type, int *pd)
 }
 
 /*****************************************************************************/
+
+static pid_t CreatePipeAndFork(const char *type, int *pd)
+{
+    IOPipe pipes[2] = {{0}};
+    pipes[0].type = type;
+    
+    pid_t pid = GenericCreatePipeAndFork(pipes);
+    
+    pd[0] = pipes[0].pipe_desc[0];
+    pd[1] = pipes[0].pipe_desc[1];
+
+    return pid;
+}
+
+/*****************************************************************************/
+
+static pid_t CreatePipesAndFork(const char *type, int *pd, int *pdb)
+{
+    IOPipe pipes[2] = {{0}};
+    /* Both pipes MUST have the same type. */
+    pipes[0].type = type;
+    pipes[1].type = type;
+
+    pid_t pid =  GenericCreatePipeAndFork(pipes);
+
+    pd[0] = pipes[0].pipe_desc[0];
+    pd[1] =  pipes[0].pipe_desc[1];
+    pdb[0] = pipes[1].pipe_desc[0];
+    pdb[1] = pipes[1].pipe_desc[1];
+    return pid;
+}
+
+/*****************************************************************************/
+
+IOData cf_popen_full_duplex(const char *command, bool capture_stderr)
+{
+/* For simplifying reading and writing directions */
+#define READ  0
+#define WRITE 1
+    int child_pipe[2];  /* From child to parent */
+    int parent_pipe[2]; /* From parent to child */
+    pid_t pid;
+
+    fflush(NULL); /* Empty file buffers */
+    pid = CreatePipesAndFork("rt", child_pipe, parent_pipe);
+
+    if (pid < 0)
+    {
+        Log(LOG_LEVEL_ERR, "Couldn't fork child process: %s", GetErrorStr());
+        return (IOData) {0, 0};
+    }
+    
+    else if (pid > 0) // parent
+    {
+        close(child_pipe[WRITE]);
+        close(parent_pipe[READ]);
+        
+        IOData io_desc = {0};
+        io_desc.write_fd = parent_pipe[WRITE];
+        io_desc.read_fd = child_pipe[READ];
+        
+        SetChildFD(parent_pipe[WRITE], pid);
+        SetChildFD(child_pipe[READ], pid);
+        return io_desc;
+    }
+    else // child
+    {
+        int fd;
+
+        close(child_pipe[READ]);
+        close(parent_pipe[WRITE]);
+
+        /* Open stdin from parant process and stdout from child */
+        if (dup2(parent_pipe[READ], 0) == -1 || dup2(child_pipe[WRITE],1) == -1)
+        {
+            Log(LOG_LEVEL_ERR, "Can not execute dup2: %s", GetErrorStr());
+            _Exit(EXIT_FAILURE);
+        }
+        
+        if (capture_stderr)
+        {
+            /* Merge stdout/stderr */
+            if(dup2(child_pipe[WRITE], 2) == -1)
+            {
+                Log(LOG_LEVEL_ERR, "Can not execute dup2 for merging stderr: %s", 
+                    GetErrorStr());
+                _Exit(EXIT_FAILURE);
+            }
+        }
+        else
+        {
+            /* Close stderr */
+            if ((fd = open(NULLFILE, O_WRONLY)) == -1 || (dup2(fd, 2) == -1))
+            {
+                Log(LOG_LEVEL_ERR, 
+                    "Can not execute dup2 while closing stderr: %s",
+                    GetErrorStr());
+                _Exit(EXIT_FAILURE);
+            }
+            close(fd);
+        }
+        
+        close(child_pipe[WRITE]);
+        close(parent_pipe[READ]);
+
+        CloseChildrenFD();
+        
+        char **argv  = ArgSplitCommand(command);
+        if (execv(argv[0], argv) == -1)
+        {
+            /* NOTE: exec functions return only when error have occured. */
+            Log(LOG_LEVEL_ERR, "Couldn't run '%s'. (execv: %s)", argv[0], GetErrorStr());
+        }
+        /* We shouldn't reach this point */
+        _Exit(EXIT_FAILURE);
+    }
+}
 
 FILE *cf_popen(const char *command, const char *type, bool capture_stderr)
 {
@@ -555,47 +699,69 @@ static int cf_pwait(pid_t pid)
 
 /*******************************************************************/
 
-int cf_pclose(FILE *pp)
+int PipeCloseGeneric(int pipes[2])
 {
-    int fd = fileno(pp);
-    pid_t pid;
-
     if (!ThreadLock(cft_count))
     {
-        fclose(pp);
+        close(pipes[0]);
+        if (pipes[1] != 0)
+        {
+            close(pipes[1]);
+        }
         return -1;
     }
 
     if (CHILDREN == NULL)       /* popen hasn't been called */
     {
         ThreadUnlock(cft_count);
-        fclose(pp);
+        close(pipes[0]);
+        if (pipes[1] != 0)
+        {
+            close(pipes[1]);
+        }
         return -1;
     }
 
     ALARM_PID = -1;
+    pid_t pid = 0;
 
-    if (fd >= MAX_FD)
+    /* Safe as pipes[1] is 0 if not initialized */
+    if (pipes[0] >= MAX_FD || pipes[1] >= MAX_FD)
     {
         ThreadUnlock(cft_count);
         Log(LOG_LEVEL_ERR,
             "File descriptor %d of child higher than MAX_FD in cf_pclose!",
-            fd);
-        pid = 0;
+            pipes[0] > pipes[1] ? pipes[0] : pipes[1]);
     }
     else
     {
-        pid = CHILDREN[fd];
-        CHILDREN[fd] = 0;
+        pid = CHILDREN[pipes[0]];
+        if (pipes[1] != 0)
+        {
+            assert(pid == CHILDREN[pipes[1]]);
+            CHILDREN[pipes[1]] = 0;
+        }
+        CHILDREN[pipes[0]] = 0;
         ThreadUnlock(cft_count);
     }
-
-    if (fclose(pp) == EOF || pid == 0)
+    
+    if (close(pipes[0]) != 0 || (pipes[1] != 0 && close(pipes[1]) != 0) || pid == 0)
     {
         return -1;
     }
 
     return cf_pwait(pid);
+}
+
+int cf_pclose(FILE *pp)
+{
+    int fd = fileno(pp);
+    return PipeCloseGeneric((int[2]){fd, 0});
+}
+
+int cf_pclose_full_duplex(IOData *data)
+{
+    return PipeCloseGeneric((int[2]){data->read_fd, data->write_fd});
 }
 
 bool PipeToPid(pid_t *pid, FILE *pp)
