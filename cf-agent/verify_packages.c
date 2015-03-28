@@ -345,10 +345,9 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, A
     //TODO: lock
     
     PackageManagerWrapper *package_manager_wraper = GetPackageManagerWrapper(package_manager);
-    unsigned int version = package_manager_wraper->GetApiVersion();
-    PackageInfo *package_data = package_manager_wraper->GetPackageInfo(version, pp->promiser);
+    //PackageInfo *package_data = package_manager_wraper->GetPackageInfo(pp->promiser);
             
-    package_manager_wraper->RepoInstallPackage(package_data);
+    //package_manager_wraper->InstallPackage(package_data);
     
     
     //TODO: unlock

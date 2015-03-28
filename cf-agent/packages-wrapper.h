@@ -45,12 +45,13 @@ typedef struct
 {
     const char *name;
     const char *path;
-    PackageInfo* (*GetPackageInfo)(int, const char*);
-    int (*GetApiVersion)();
-    int (*RepoInstallPackage)(PackageInfo*);
+    int supported_api_version;
+    
+    PackageInfo* (*GetPackageInfo)(const char*);
+    int (*InstallPackage)(PackageInfo*);
     
 } PackageManagerWrapper;
 
-PackageManagerWrapper *GetPackageManagerWrapper();
+PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name);
 
 #endif
