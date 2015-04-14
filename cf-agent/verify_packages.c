@@ -328,33 +328,6 @@ end:
     return result;
 }
 
-PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes *a)
-{
-    //TODO: sanity check
-    
-    char *package_manager = a->new_packages.package_manager;
-    if (!package_manager)
-    {
-        /* Get default package manager from system */
-        //TODO: implement me
-        package_manager = strdup("apt-get");
-    }
-
-    PromiseBanner(ctx, pp);
-    
-    //TODO: lock
-    
-    PackageManagerWrapper *package_manager_wraper = GetPackageManagerWrapper(package_manager);
-    //PackageInfo *package_data = package_manager_wraper->GetPackageInfo(pp->promiser);
-            
-    //package_manager_wraper->InstallPackage(package_data);
-    
-    
-    //TODO: unlock
-    
-    return PROMISE_RESULT_NOOP;
-}
-
 /**
    @brief Pre-check of promise contents
 

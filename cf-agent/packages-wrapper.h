@@ -43,8 +43,8 @@ typedef struct
 
 typedef struct
 {
-    const char *name;
-    const char *path;
+    char *name;
+    char *path;
     int supported_api_version;
     
     PackageInfo* (*GetPackageInfo)(const char*);
@@ -52,6 +52,6 @@ typedef struct
     
 } PackageManagerWrapper;
 
-PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name);
+PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes *a);
 
 #endif
