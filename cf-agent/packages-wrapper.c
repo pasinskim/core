@@ -57,6 +57,7 @@ int IsReadWriteReady(const IOData *io, int timeout_sec)
     /* We have reached timeout */
     if(ret == 0)
     {
+        Log(LOG_LEVEL_ERR, "Reading from package manager wrapper timeout");
         return 0;
     }
 
@@ -130,38 +131,83 @@ Rlist *RedDataFromPackageScript(const IOData *io)
     return response_lines;
 }
 
-int WriteDataToPackageScript(const char *data, const IOData *io)
+int WriteScriptData(const char *data, const IOData *io)
 {
     ssize_t wrt = write(io->write_fd, data, strlen(data));
     
     return wrt;
 }
 
-Rlist *ReadWriteDataToPackageScript(const char *write_buff, const IOData *io)
+int WriteDataToPackageScript(const char *args, const char *data,
+                             const PackageManagerWrapper *wrapper)
 {
-    if (WriteDataToPackageScript(write_buff, io) != strlen(write_buff))
+    char *command = StringFormat("%s %s", wrapper->path, args);
+    IOData io = cf_popen_full_duplex(command, true);
+    free(command);
+    
+    if (io.write_fd == 0 || io.read_fd == 0)
+    {
+        Log(LOG_LEVEL_VERBOSE, "some error occurred while communicating "
+                "package manager script");
+        return -1;
+    }
+    
+    int res = 0;
+    if (WriteScriptData(data, &io) != strlen(data))
+    {
+        res = -1;
+    }
+    
+    /* If script returns non 0 status */
+    if (cf_pclose_full_duplex(&io) != EXIT_SUCCESS)
+    {
+        Log(LOG_LEVEL_VERBOSE,
+            "package manager script returned with failure");
+        res = -1;
+    }
+    return res;
+}
+
+Rlist *ReadWriteDataToPackageScript(const char *args, const char *data,
+                                    const PackageManagerWrapper *wrapper)
+{
+    char *command = StringFormat("%s %s", wrapper->path, args);
+    IOData io = cf_popen_full_duplex(command, true);
+    free(command);
+    
+    if (io.write_fd == 0 || io.read_fd == 0)
+    {
+        Log(LOG_LEVEL_VERBOSE, "some error occurred while communicating "
+                "package manager script");
+        return NULL;
+    }
+    
+    if (WriteScriptData(data, &io) != strlen(data))
     {
         Log(LOG_LEVEL_ERR, "couldn't write whole data to script");
         return NULL;
     }
     
-    return RedDataFromPackageScript(io);
+    Rlist *response = RedDataFromPackageScript(&io);
+    
+    /* If script returns non 0 status */
+    if (cf_pclose_full_duplex(&io) != EXIT_SUCCESS)
+    {
+        Log(LOG_LEVEL_VERBOSE,
+            "package manager script returned with failure");
+        RlistDestroy(response);
+        response = NULL;
+    }
+    
+    return response;
 }
 
 
 static int NegotiateSupportedAPIVersion(PackageManagerWrapper *wrapper)
 {
-    IOData io = cf_popen_full_duplex(wrapper->path, true);
     int api_version = -1;
 
-    if (io.write_fd == 0 || io.read_fd == 0)
-    {
-        Log(LOG_LEVEL_VERBOSE, "some error occurred while negotiating API version");
-        return -1;
-    }
-   Log(LOG_LEVEL_ERR, "IO: %d %d", io.write_fd, io.read_fd);
-
-    Rlist *response = ReadWriteDataToPackageScript("supports-api-version\n", &io);
+    Rlist *response = ReadWriteDataToPackageScript("supports-api-version", "", wrapper);
     
     if (response)
     {
@@ -171,13 +217,6 @@ static int NegotiateSupportedAPIVersion(PackageManagerWrapper *wrapper)
             Log(LOG_LEVEL_ERR, "package wrapper API version: %d", api_version);
         }
         RlistDestroy(response);
-    }
-    
-    /* If script returns non 0 exit code */
-    if (cf_pclose_full_duplex(&io) != 0)
-    {
-        Log(LOG_LEVEL_VERBOSE,
-            "some error occurred while closing communication channel");
     }
     return api_version;
 }
@@ -214,7 +253,8 @@ void FreePackageInfo(PackageInfo *package_info)
 }
 
 static
-PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data)
+PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data, 
+        PackageError *error)
 {
     PackageInfo *package_data = xcalloc(1, sizeof(PackageInfo));
     
@@ -256,6 +296,17 @@ PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data)
             package_data->arch = 
                 SafeStringDuplicate(line + strlen("Architecture") + 1);
         }
+        /* For handling errors */
+        else if (StringStartsWith(line, "Error"))
+        {
+            error->type = 
+                SafeStringDuplicate(line + strlen("Error") + 1);
+        }
+        else if (StringStartsWith(line, "ErrorMesssage"))
+        {
+            error->message = 
+                SafeStringDuplicate(line + strlen("ErrorMesssage") + 1);
+        }
         else
         {
             Log(LOG_LEVEL_ERR, "unsupported option: %s", line);
@@ -274,38 +325,24 @@ PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data)
 
 static
 PackageInfo *GetPackageData(const char *name, Rlist *options,
-                            const PackageManagerWrapper *wrapper)
+                            const PackageManagerWrapper *wrapper, 
+                            PackageError *error)
 {
-    IOData io = cf_popen_full_duplex(wrapper->path, true);
-    if (io.write_fd == 0 || io.read_fd == 0)
-    {
-        Log(LOG_LEVEL_ERR, "some error occurred while negotiating API version");
-        return NULL;
-    }
-     Log(LOG_LEVEL_ERR, "IO: %d %d", io.write_fd, io.read_fd);
-    
     char *options_str = ParseOptions(options);
-    char *request = StringFormat("get-package-data\n%sFile=%s\n",
+    const char *request = StringFormat("%sFile=%s\n",
                                  options_str, name);
     
-    Rlist *response = ReadWriteDataToPackageScript(request, &io);
+    Rlist *response = ReadWriteDataToPackageScript("get-package-data", request, wrapper);
     PackageInfo *package_data = NULL;
     
     if (response)
     {
-        package_data = ParseAndCheckPackageDataReply(response);
+        package_data = ParseAndCheckPackageDataReply(response, error);
         RlistDestroy(response);
     }
     free(options_str);
-    free(request);
-    
-    /* If script returns non 0 exit code */
-    if (cf_pclose_full_duplex(&io) != 0)
-    {
-        Log(LOG_LEVEL_VERBOSE,
-            "some error occurred while closing communication channel");
-    }
-    
+    free((void*)request);
+        
     return package_data;
 }
 
@@ -313,7 +350,7 @@ PackageInfo *GetPackageData(const char *name, Rlist *options,
 static char *GetPackageWrapperRealPath(const char *package_manager_name)
 {
     
-    return strdup("/usr/bin/python /tmp/dummy");
+    return strdup("/tmp/dummy");
 }
 
 void FreePackageManageWrapper(PackageManagerWrapper *wrapper)
@@ -375,27 +412,23 @@ PromiseResult FileInstallPackage(const char *package_file_path, Rlist *options,
                        const PackageManagerWrapper *wrapper)
 {
     Log(LOG_LEVEL_ERR, "FILE INSTALL PACKAGE");
-    IOData io = cf_popen_full_duplex(wrapper->path, true);
-    if (io.write_fd == 0 || io.read_fd == 0)
-    {
-        Log(LOG_LEVEL_ERR, "some error occurred while negotiating API version");
-        return PROMISE_RESULT_FAIL;
-    }
-     Log(LOG_LEVEL_ERR, "IO: %d %d", io.write_fd, io.read_fd);
     
     char *options_str = ParseOptions(options);
-    char *request = StringFormat("file-install\n%sFile=%s\n",
+    const char *request = StringFormat("%sFile=%s\n",
                                  options_str, package_file_path);
     
-    WriteDataToPackageScript(request, &io);
-    
-    /* If script returns non 0 exit code */
-    if (cf_pclose_full_duplex(&io) != 0)
+    if (WriteDataToPackageScript("file-install", request, wrapper) != 0)
     {
         Log(LOG_LEVEL_VERBOSE,
-            "some error occurred while closing communication channel");
+            "error installing package");
+        
+        free((void*)request);
+        free(options_str);
         return PROMISE_RESULT_FAIL;
     }
+    
+    free((void*)request);
+    free(options_str);
     
     /* We assume that at this point package is installed correctly. */
     return PROMISE_RESULT_CHANGE;
@@ -413,10 +446,12 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
                            const PackageManagerWrapper *package_manager_wrapper)
 {
     Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION");
+    
+    PackageError error = {0};
     /* Figure out what kind of package we are having. */
     PackageInfo *package_info = GetPackageData(package_name,
                                                new_packages->package_options,
-                                               package_manager_wrapper);
+                                               package_manager_wrapper, &error);
     
     PromiseResult result = PROMISE_RESULT_FAIL;
     if (package_info)
@@ -449,6 +484,20 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
                 assert(0 && "unsupported package type");
         }
         FreePackageInfo(package_info);
+    }
+    /* Some error occurred; let's check if we are having some error message. */
+    else if (error.type)
+    {
+        if (error.message)
+        {
+            Log(LOG_LEVEL_ERR, "have error: %s [%s]", error.type, error.message);
+            free(error.message);
+        }
+        else
+        {
+            Log(LOG_LEVEL_ERR, "have error: %s", error.type);
+        }
+        free(error.type);
     }
     
     return result;

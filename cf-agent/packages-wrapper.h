@@ -43,6 +43,12 @@ typedef struct
 
 typedef struct
 {
+    char *type;
+    char *message;
+} PackageError;
+
+typedef struct
+{
     char *name;
     char *path;
     int supported_api_version;
