@@ -202,7 +202,6 @@ Rlist *ReadWriteDataToPackageScript(const char *args, const char *data,
     return response;
 }
 
-
 static int NegotiateSupportedAPIVersion(PackageManagerWrapper *wrapper)
 {
     int api_version = -1;
@@ -262,10 +261,9 @@ PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data,
     {
         char *line = RlistScalarValue(rp);
                    
-        if (StringStartsWith(line, "PackageType"))
+        if (StringStartsWith(line, "PackageType="))
         {
-            //TODO: extra check if line + strlen(get_package_attributes[0]) == '=' ?
-            char *type = line + strlen("PackageType") + 1;
+            char *type = line + strlen("PackageType=");
             if (StringSafeEqual(type, "file"))
             {
                 package_data->type = PACKAGE_TYPE_FILE;
@@ -281,31 +279,31 @@ PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data,
                 return NULL;
             }
         }
-        else if (StringStartsWith(line, "Name"))
+        else if (StringStartsWith(line, "Name="))
         {
             package_data->name = 
-                SafeStringDuplicate(line + strlen("Name") + 1);
+                SafeStringDuplicate(line + strlen("Name="));
         }
-        else if (StringStartsWith(line, "Version"))
+        else if (StringStartsWith(line, "Version="))
         {
             package_data->version = 
-                SafeStringDuplicate(line + strlen("Version") + 1);
+                SafeStringDuplicate(line + strlen("Version="));
         }
-        else if (StringStartsWith(line, "Architecture"))
+        else if (StringStartsWith(line, "Architecture="))
         {
             package_data->arch = 
-                SafeStringDuplicate(line + strlen("Architecture") + 1);
+                SafeStringDuplicate(line + strlen("Architecture="));
         }
         /* For handling errors */
-        else if (StringStartsWith(line, "Error"))
+        else if (StringStartsWith(line, "Error="))
         {
             error->type = 
-                SafeStringDuplicate(line + strlen("Error") + 1);
+                SafeStringDuplicate(line + strlen("Error="));
         }
-        else if (StringStartsWith(line, "ErrorMesssage"))
+        else if (StringStartsWith(line, "ErrorMessage="))
         {
             error->message = 
-                SafeStringDuplicate(line + strlen("ErrorMesssage") + 1);
+                SafeStringDuplicate(line + strlen("ErrorMessage="));
         }
         else
         {
@@ -313,7 +311,7 @@ PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data,
         }
     }
     
-    /* At this point at least package name MUST be known */
+    /* At this point at least package name MUST be known (if no error) */
     if (!package_data || !package_data->name)
     {
         Log(LOG_LEVEL_ERR, "can not figure out package name");
@@ -408,12 +406,34 @@ PromiseResult HandleAbsentPromiseAction(const char *package_name,
     return PROMISE_RESULT_NOOP;
 }
 
-PromiseResult FileInstallPackage(const char *package_file_path, Rlist *options,
-                       const PackageManagerWrapper *wrapper)
+PromiseResult FileInstallPackage(const char *package_file_path, 
+        const NewPackages *new_packages, PackageInfo *info,
+        const PackageManagerWrapper *wrapper)
 {
     Log(LOG_LEVEL_ERR, "FILE INSTALL PACKAGE");
     
-    char *options_str = ParseOptions(options);
+    /* First check if file we are having matches what we want in policy. */
+    if (info->arch && new_packages->package_architecture && 
+            !StringSafeEqual(info->arch, new_packages->package_architecture))
+    {
+        Log(LOG_LEVEL_ERR, 
+            "package arch and one specified in policy doesn't match: %s -> %s",
+            info->arch, new_packages->package_architecture);
+        //TODO: figure out results!
+        return PROMISE_RESULT_FAIL;
+    }
+    if (info->version && new_packages->package_version && 
+            (!StringSafeEqual(new_packages->package_version, "latest") ||
+             !StringSafeEqual(info->arch, new_packages->package_architecture)))
+    {
+        Log(LOG_LEVEL_ERR,
+            "package version and one specified in policy doesn't match: %s -> %s",
+            info->version, new_packages->package_version);
+        //TODO: figure out results!
+        return PROMISE_RESULT_FAIL;
+    }
+    
+    char *options_str = ParseOptions(new_packages->package_options);
     const char *request = StringFormat("%sFile=%s\n",
                                  options_str, package_file_path);
     
@@ -463,7 +483,7 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
         {
             case PACKAGE_TYPE_FILE:
                 result = FileInstallPackage(package_name,
-                                            new_packages->package_options,
+                                            new_packages, package_info,
                                             package_manager_wrapper);
                 
                 if (result == PROMISE_RESULT_CHANGE)
