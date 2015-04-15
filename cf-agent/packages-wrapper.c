@@ -406,6 +406,46 @@ PromiseResult HandleAbsentPromiseAction(const char *package_name,
     return PROMISE_RESULT_NOOP;
 }
 
+PromiseResult InstallPackage(Rlist *options, 
+        PackageType type, const char *package_to_install,
+        const PackageManagerWrapper *wrapper)
+{
+    char *options_str = ParseOptions(options);
+    char *request = StringFormat("%sFile=%s\n",
+                                 options_str, package_to_install);
+    
+    //TODO: figure out result
+    PromiseResult res = PROMISE_RESULT_CHANGE;
+    
+    const char *package_install_command = NULL;
+    if (type == PACKAGE_TYPE_FILE)
+    {
+        package_install_command = "file-install";
+    }
+    else if (type == PACKAGE_TYPE_REPO)
+    {
+        package_install_command = "repo-install";
+    }
+    else
+    {
+        /* If we end up here something bad has happened. */
+        assert(0 && "unsupported package type");
+    }
+    
+    if (WriteDataToPackageScript(package_install_command, request, wrapper) != 0)
+    {
+        Log(LOG_LEVEL_VERBOSE,
+            "error installing package");
+        res = PROMISE_RESULT_FAIL;
+    }
+    
+    free(request);
+    free(options_str);
+    
+    /* We assume that at this point package is installed correctly. */
+    return res;
+}
+
 PromiseResult FileInstallPackage(const char *package_file_path, 
         const NewPackages *new_packages, PackageInfo *info,
         const PackageManagerWrapper *wrapper)
@@ -433,32 +473,25 @@ PromiseResult FileInstallPackage(const char *package_file_path,
         return PROMISE_RESULT_FAIL;
     }
     
-    char *options_str = ParseOptions(new_packages->package_options);
-    const char *request = StringFormat("%sFile=%s\n",
-                                 options_str, package_file_path);
-    
-    if (WriteDataToPackageScript("file-install", request, wrapper) != 0)
-    {
-        Log(LOG_LEVEL_VERBOSE,
-            "error installing package");
-        
-        free((void*)request);
-        free(options_str);
-        return PROMISE_RESULT_FAIL;
-    }
-    
-    free((void*)request);
-    free(options_str);
-    
-    /* We assume that at this point package is installed correctly. */
-    return PROMISE_RESULT_CHANGE;
+    return InstallPackage(new_packages->package_options, PACKAGE_TYPE_FILE,
+            package_file_path, wrapper);
 }
 
-PromiseResult RepoInstallPackage(const PackageInfo *package_info, Rlist *options,
-                       const PackageManagerWrapper *wrapper)
+PromiseResult RepoInstallPackage(const PackageInfo *package_info,
+        const NewPackages *policy_data, const PackageManagerWrapper *wrapper)
 {
     Log(LOG_LEVEL_ERR, "REPO INSTALL PACKAGE");
-    return PROMISE_RESULT_NOOP;
+    
+    /* Check if policy is latest and if so get possible package form updates. */
+    if (policy_data->package_version &&
+        StringSafeEqual(policy_data->package_version, "latest"))
+    {
+        //TODO: check last package version
+        //package_info->version = //one from updates
+    }
+    
+    return InstallPackage(policy_data->package_options, PACKAGE_TYPE_REPO,
+            package_info->name, wrapper);
 }
 
 PromiseResult HandlePresentPromiseAction(const char *package_name,
@@ -493,8 +526,7 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
                 }
                 break;
             case PACKAGE_TYPE_REPO:
-                result = RepoInstallPackage(package_info,
-                                            new_packages->package_options,
+                result = RepoInstallPackage(package_info, new_packages,
                                             package_manager_wrapper);
                 break;
             default:
@@ -519,7 +551,7 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
         }
         free(error.type);
     }
-    
+    Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION RETURNES: %c", result);
     return result;
 }
 
