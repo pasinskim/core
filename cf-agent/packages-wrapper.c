@@ -321,14 +321,15 @@ PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data,
     return package_data;
 }
 
+/* IMPORTANT: this might not return all the data we need like version
+              or architecture but package name MUST be known. */
 static
 PackageInfo *GetPackageData(const char *name, Rlist *options,
                             const PackageManagerWrapper *wrapper, 
                             PackageError *error)
 {
     char *options_str = ParseOptions(options);
-    const char *request = StringFormat("%sFile=%s\n",
-                                 options_str, name);
+    char *request = StringFormat("%sFile=%s\n", options_str, name);
     
     Rlist *response = ReadWriteDataToPackageScript("get-package-data", request, wrapper);
     PackageInfo *package_data = NULL;
@@ -339,7 +340,7 @@ PackageInfo *GetPackageData(const char *name, Rlist *options,
         RlistDestroy(response);
     }
     free(options_str);
-    free((void*)request);
+    free(request);
         
     return package_data;
 }
@@ -395,24 +396,73 @@ PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name
     return wrapper;
 }
 
+//TODO: ?
+/* Returns list of all matching packages (may be more than one if arch or
+ * version is not specified). */
+Rlist *IsPackageInCache(const char *name, const char *arch,
+        const char *ver, PackageType type)
+{
+    const char *version = ver;
+    //handle latest version in specific way for file and repo packages
+    if (version && StringSafeEqual(version, "latest"))
+    {
+        /* Even if the package will be there we don't care at this point
+           as we will have to check against possible latest package update. */
+
+        /* For the PACKAGE_TYPE_FILE we ignore latest version and we threat
+           it as not specified. */
+        if (type == PACKAGE_TYPE_FILE)
+        {
+            Log(LOG_LEVEL_ERR, "unsupported 'latest' version for package "
+                    "promise of type file. It will be threat as not specified.");
+        }
+        version = NULL;
+    }
+    
+    //return GetFromCache(name, arch, version);
+    
+    /* TEST */
+    if (StringSafeEqual(name, "firefox"))
+    {
+        Rlist *packages_cache = NULL;
+        RlistAppend(&packages_cache, (void*)((PackageInfo*){"firefox", "32", "i686", PACKAGE_TYPE_REPO}), RVAL_TYPE_SCALAR);
+    }
+    return NULL;
+}
+
 PromiseResult HandleAbsentPromiseAction(const char *package_name,
-                          const NewPackages *new_packages,
+                          const NewPackages *policy_data,
                           const PackageManagerWrapper *wrapper)
 {
+    Rlist *packages_from_cache = NULL;
     /* Check if package exists in cache */
-    //TODO: ?
-    
+    if ((packages_from_cache = IsPackageInCache(package_name,
+            policy_data->package_architecture,
+            policy_data->package_version, PACKAGE_TYPE_REPO)))
+    {
+        /* Remove package(s) */
+        
+        RlistDestroy(packages_from_cache);
+        return PROMISE_RESULT_CHANGE;
+    }
     
     return PROMISE_RESULT_NOOP;
 }
 
 PromiseResult InstallPackage(Rlist *options, 
         PackageType type, const char *package_to_install,
+        const char *version, const char *architecture,
         const PackageManagerWrapper *wrapper)
 {
+    Log(LOG_LEVEL_ERR, "Installing package '%s'", package_to_install);
+             
     char *options_str = ParseOptions(options);
-    char *request = StringFormat("%sFile=%s\n",
-                                 options_str, package_to_install);
+    char *ver = version ? 
+        StringFormat("Version=%s\n", version) : NULL;
+    char *arch = architecture ? 
+        StringFormat("Architecture=%s\n", architecture) : NULL;
+    char *request = StringFormat("%Package=%s%s%s\n",
+                                 options_str, ver ? ver : "", arch ? arch : "", package_to_install);
     
     //TODO: figure out result
     PromiseResult res = PROMISE_RESULT_CHANGE;
@@ -441,6 +491,8 @@ PromiseResult InstallPackage(Rlist *options,
     
     free(request);
     free(options_str);
+    free(ver);
+    free(arch);
     
     /* We assume that at this point package is installed correctly. */
     return res;
@@ -448,50 +500,123 @@ PromiseResult InstallPackage(Rlist *options,
 
 PromiseResult FileInstallPackage(const char *package_file_path, 
         const NewPackages *new_packages, PackageInfo *info,
-        const PackageManagerWrapper *wrapper)
+        const PackageManagerWrapper *wrapper,
+        Rlist *cached_packages)
 {
     Log(LOG_LEVEL_ERR, "FILE INSTALL PACKAGE");
     
-    /* First check if file we are having matches what we want in policy. */
-    if (info->arch && new_packages->package_architecture && 
-            !StringSafeEqual(info->arch, new_packages->package_architecture))
+    /* We have some packages matching file package promise in cache. */
+    if (cached_packages)
     {
-        Log(LOG_LEVEL_ERR, 
-            "package arch and one specified in policy doesn't match: %s -> %s",
-            info->arch, new_packages->package_architecture);
-        //TODO: figure out results!
-        return PROMISE_RESULT_FAIL;
-    }
-    if (info->version && new_packages->package_version && 
-            (!StringSafeEqual(new_packages->package_version, "latest") ||
-             !StringSafeEqual(info->arch, new_packages->package_architecture)))
-    {
-        Log(LOG_LEVEL_ERR,
-            "package version and one specified in policy doesn't match: %s -> %s",
-            info->version, new_packages->package_version);
-        //TODO: figure out results!
-        return PROMISE_RESULT_FAIL;
+        Log(LOG_LEVEL_ERR, "Package exists in cache. Exiting");
+        RlistDestroy(cached_packages);
+        return PROMISE_RESULT_NOOP;
     }
     
     return InstallPackage(new_packages->package_options, PACKAGE_TYPE_FILE,
-            package_file_path, wrapper);
+            package_file_path, NULL, NULL, wrapper);
+}
+
+//TODO: implement me
+char *GetVersionFromUpdates(const PackageInfo *package_info)
+{
+    //TODO: what if architecture will not be provided
+    //if more than one entry here return error and stop
+    if (StringSafeEqual(package_info->name, "lynx"))
+        return NULL;
+    return "32";
 }
 
 PromiseResult RepoInstallPackage(const PackageInfo *package_info,
-        const NewPackages *policy_data, const PackageManagerWrapper *wrapper)
+        const NewPackages *policy_data, const PackageManagerWrapper *wrapper,
+        Rlist *cached_packages)
 {
     Log(LOG_LEVEL_ERR, "REPO INSTALL PACKAGE");
     
-    /* Check if policy is latest and if so get possible package form updates. */
-    if (policy_data->package_version &&
-        StringSafeEqual(policy_data->package_version, "latest"))
+    /* If we want ANY package version and something is there. */
+    if (!policy_data->package_version && cached_packages)
     {
-        //TODO: check last package version
-        //package_info->version = //one from updates
+        Log(LOG_LEVEL_ERR, "Package '%s' already installed",
+                    package_info->name);
+            
+        RlistDestroy(cached_packages);
+        return PROMISE_RESULT_NOOP;
     }
+    /* We don't care about version so grab latest one. */
+    else if (!policy_data->package_version && !cached_packages)
+    {
+        /* Script should support repo-install without version specified. */
+        return InstallPackage(policy_data->package_options, PACKAGE_TYPE_REPO,
+                package_info->name, GetVersionFromUpdates(package_info),
+                package_info->arch, wrapper);
+    }
+    else if (policy_data->package_version)
+    {
+        char *latest_version = NULL;
     
-    return InstallPackage(policy_data->package_options, PACKAGE_TYPE_REPO,
-            package_info->name, wrapper);
+        /* Check if policy is latest and if so get possible package form updates. */
+        if (StringSafeEqual(policy_data->package_version, "latest"))
+        {
+            if((latest_version = GetVersionFromUpdates(package_info)) == NULL)
+            {
+                Log(LOG_LEVEL_ERR, "Can not find exact package version for package "
+                        "'%s' with version latest", package_info->name);
+                
+                RlistDestroy(cached_packages);
+                return PROMISE_RESULT_FAIL;
+            }
+            free(policy_data->package_version);
+            policy_data->package_version = latest_version;
+        }
+        /* Check if package matches one from cache. */
+        if (cached_packages)
+        {
+            //TODO: check if version and arch matches
+            Log(LOG_LEVEL_ERR, "Package '%s' already installed", 
+                    package_info->name);
+            
+            RlistDestroy(cached_packages);
+            return PROMISE_RESULT_NOOP;
+        }
+        
+        return InstallPackage(policy_data->package_options, PACKAGE_TYPE_REPO,
+                package_info->name, policy_data->package_version,
+                package_info->arch, wrapper);
+    }
+    return PROMISE_RESULT_FAIL;
+}
+
+static
+bool CheckPolicyAndPackageInfoMatch(const NewPackages *packages_policy,
+        const PackageInfo *info)
+{
+    /* Check if file we are having matches what we want in policy. */
+    if (info->arch && packages_policy->package_architecture && 
+            !StringSafeEqual(info->arch, packages_policy->package_architecture))
+    {
+        Log(LOG_LEVEL_ERR, 
+            "package arch and one specified in policy doesn't match: %s -> %s",
+            info->arch, packages_policy->package_architecture);
+        return false;
+    }
+    if (info->version)
+    {
+        if (StringSafeEqual(packages_policy->package_version, "latest"))
+        {
+            Log(LOG_LEVEL_ERR, "unsupported 'latest' version for package "
+                    "promise of type file.");
+            return false;
+        }
+        if (packages_policy->package_version && 
+            !StringSafeEqual(info->arch, packages_policy->package_architecture))
+        {
+            Log(LOG_LEVEL_ERR,
+                "package version and one specified in policy doesn't match: %s -> %s",
+                info->version, packages_policy->package_version);
+            return false;
+        }
+    }
+    return true;
 }
 
 PromiseResult HandlePresentPromiseAction(const char *package_name,
@@ -509,25 +634,50 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
     PromiseResult result = PROMISE_RESULT_FAIL;
     if (package_info)
     {
+        /* Check if data in policy matches returned by wrapper (files only). */
+        if (package_info->type == PACKAGE_TYPE_FILE)
+        {
+            if (!CheckPolicyAndPackageInfoMatch(new_packages, package_info))
+            {
+                Log(LOG_LEVEL_ERR, "package data and policy doesn't match");
+                FreePackageInfo(package_info);
+                return PROMISE_RESULT_FAIL;
+            }
+        }
+        
+        /* Fill missing data in package_info from policy. This will allow
+         * to match cache against all known package details we are interested */
+        if (!package_info->arch && new_packages->package_architecture)
+        {
+            package_info->arch =
+                    SafeStringDuplicate(new_packages->package_architecture);
+        }
+        if (!package_info->version && new_packages->package_version)
+        {
+            package_info->version =
+                    SafeStringDuplicate(new_packages->package_version);
+        }
+        
         /* Check if package exists in cache */
-        //TODO:
+        Rlist *cached_packages = IsPackageInCache(package_info->name,
+            package_info->arch, package_info->version,
+            package_info->type);
         
         switch (package_info->type)
         {
+            /* IMPORTANT: Both FileInstallPackage() and 
+             * RepoInstallPackage() take ownership of cached_packages and
+             * are responsible to call free. */
             case PACKAGE_TYPE_FILE:
                 result = FileInstallPackage(package_name,
                                             new_packages, package_info,
-                                            package_manager_wrapper);
-                
-                if (result == PROMISE_RESULT_CHANGE)
-                {
-                    //TODO: run 'list-installed' and see if package is there
-                    //TODO: update cache
-                }
+                                            package_manager_wrapper,
+                                            cached_packages);
                 break;
             case PACKAGE_TYPE_REPO:
                 result = RepoInstallPackage(package_info, new_packages,
-                                            package_manager_wrapper);
+                                            package_manager_wrapper,
+                                            cached_packages);
                 break;
             default:
                 /* We shouldn't end up here. If we are having unsupported 
@@ -535,6 +685,12 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
                  in ParseAndCheckPackageDataReply(). */
                 assert(0 && "unsupported package type");
         }
+        if (result == PROMISE_RESULT_CHANGE)
+        {
+            //TODO: run 'list-installed' and see if package is there
+            //TODO: update cache
+        }
+        
         FreePackageInfo(package_info);
     }
     /* Some error occurred; let's check if we are having some error message. */
@@ -551,7 +707,13 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
         }
         free(error.type);
     }
-    Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION RETURNES: %c", result);
+    /* No error message. Just log an error. */
+    else
+    {
+        Log(LOG_LEVEL_ERR, 
+                "unknown error occurred while evaluating package promise");
+    }
+Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION RETURNES: %c", result);
     return result;
 }
 
@@ -559,6 +721,8 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, A
 {
     Log(LOG_LEVEL_ERR, "New package promise handler");
     //TODO: sanity check
+    //absent and latest -> error
+    //absent and something else than name is not supported (how we will figure out that package is file not repo?) -> maybe rung get package info to see this is repo?
     
     char *package_manager = a->new_packages.package_manager;
     if (!package_manager)
