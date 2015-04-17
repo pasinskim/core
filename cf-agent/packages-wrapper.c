@@ -134,6 +134,11 @@ Rlist *RedDataFromPackageScript(const IOData *io)
 
 int WriteScriptData(const char *data, const IOData *io)
 {
+    if (strlen(data) == 0)
+    {
+        return 0;
+    }
+    
     ssize_t wrt = write(io->write_fd, data, strlen(data));
     
     return wrt;
@@ -203,7 +208,8 @@ Rlist *ReadWriteDataToPackageScript(const char *args, const char *data,
     return response;
 }
 
-static int NegotiateSupportedAPIVersion(PackageManagerWrapper *wrapper)
+static 
+int NegotiateSupportedAPIVersion(PackageManagerWrapper *wrapper)
 {
     int api_version = -1;
 
@@ -240,6 +246,7 @@ char *ParseOptions(Rlist *options)
     return BufferClose(data);
 }
 
+static
 void FreePackageInfo(PackageInfo *package_info)
 {
     if (package_info)
@@ -347,12 +354,14 @@ PackageInfo *GetPackageData(const char *name, Rlist *options,
 }
 
 //TODO: implement me
-static char *GetPackageWrapperRealPath(const char *package_manager_name)
+static
+char *GetPackageWrapperRealPath(const char *package_manager_name)
 {
     
     return strdup("/tmp/dummy");
 }
 
+static
 void FreePackageManageWrapper(PackageManagerWrapper *wrapper)
 {
     free(wrapper->path);
@@ -400,11 +409,14 @@ PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name
 //TODO: ?
 /* Returns list of all matching packages (may be more than one if arch or
  * version is not specified). */
+static
 PackageInfoList *IsPackageInCache(const char *name, const char *arch,
         const char *ver, PackageType type)
 {
     const char *version = ver;
-    /* Handle latest version in specific way for repo packages. */
+    /* Handle latest version in specific way for repo packages. 
+     * Please note that for file packages 'latest' version is not supported
+     * and check against that is made elsewhere. */
     if (version && StringSafeEqual(version, "latest"))
     {
         version = NULL;
@@ -416,6 +428,7 @@ PackageInfoList *IsPackageInCache(const char *name, const char *arch,
     return NULL;
 }
 
+static
 void PackagesListDestroy(PackageInfoList *list)
 {
     while (list)
@@ -427,13 +440,44 @@ void PackagesListDestroy(PackageInfoList *list)
     }
 }
 
-bool GetListInstalled(const Rlist* options, const PackageManagerWrapper *wrapper)
+//TOOD:
+bool GetListInstalled(Rlist* options, const PackageManagerWrapper *wrapper)
 {
+    char *options_str = ParseOptions(options);
+    Rlist *response =
+            ReadWriteDataToPackageScript("list-installed", options_str, wrapper);
+    
+    if (!response)
+    {
+        Log(LOG_LEVEL_ERR, "error reading 'list-installed'");
+        free(options_str);
+        return false;
+    }
+    Log(LOG_LEVEL_ERR, "have installed packages");
+    
+    RlistDestroy(response);
+    free(options_str);
     return true;
 }
 
-bool GetListUpdates(const Rlist* options, const PackageManagerWrapper *wrapper)
+//TODO:
+bool GetListUpdates(Rlist* options, const PackageManagerWrapper *wrapper)
 {
+    char *options_str = ParseOptions(options);
+    Rlist *response =
+            ReadWriteDataToPackageScript("list-updates", options_str, wrapper);
+    
+    if (!response)
+    {
+        Log(LOG_LEVEL_ERR, "error reading 'list-updates'");
+        free(options_str);
+        return false;
+    }
+    
+    Log(LOG_LEVEL_ERR, "have list of updates");
+    
+    RlistDestroy(response);
+    free(options_str);
     return true;
 }
 
@@ -717,6 +761,25 @@ bool CheckPolicyAndPackageInfoMatch(const NewPackages *packages_policy,
     return true;
 }
 
+static
+void LogPackagePromiseError(PackageError *error)
+{
+    if (error)
+    {
+        if (error->message && error->type)
+        {
+            Log(LOG_LEVEL_ERR, "have error: %s [%s]", error->type, error->message);
+            free(error->message);
+            free(error->type);
+        }
+        else if (error->type)
+        {
+            Log(LOG_LEVEL_ERR, "have error: %s", error->type);
+            free(error->type);
+        }
+    }
+}
+
 PromiseResult HandlePresentPromiseAction(const char *package_name,
                            const NewPackages *new_packages,
                            const PackageManagerWrapper *package_manager_wrapper)
@@ -792,26 +855,9 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
         FreePackageInfo(package_info);
     }
     /* Some error occurred; let's check if we are having some error message. */
-    else if (error.type)
-    {
-        if (error.message)
-        {
-            Log(LOG_LEVEL_ERR, "have error: %s [%s]", error.type, error.message);
-            free(error.message);
-        }
-        else
-        {
-            Log(LOG_LEVEL_ERR, "have error: %s", error.type);
-        }
-        free(error.type);
-    }
-    /* No error message. Just log an error. */
-    else
-    {
-        Log(LOG_LEVEL_ERR, 
-                "unknown error occurred while evaluating package promise");
-    }
-Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION RETURNES: %c", result);
+    LogPackagePromiseError(&error);
+    
+Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION RETURNED: %c", result);
     return result;
 }
 
@@ -819,7 +865,6 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, A
 {
     Log(LOG_LEVEL_ERR, "New package promise handler");
     //TODO: sanity check
-    //absent and latest -> error
     //absent and something else than name is not supported (how we will figure out that package is file not repo?) -> maybe rung get package info to see this is repo?
     
     char *package_manager = a->new_packages.package_manager;
