@@ -30,6 +30,47 @@
 #include <string_lib.h>
 #include <actuator.h>
 
+static
+void LogPackagePromiseError(PackageError *error)
+{
+    if (error)
+    {
+        if (error->message && error->type)
+        {
+            Log(LOG_LEVEL_ERR, "have error: %s [%s]", error->type, error->message);
+            free(error->message);
+            free(error->type);
+        }
+        else if (error->type)
+        {
+            Log(LOG_LEVEL_ERR, "have error: %s", error->type);
+            free(error->type);
+        }
+    }
+}
+
+static
+void ParseAndLogErrorMessage(const Rlist *data)
+{
+    for (const Rlist *rp = data; rp != NULL; rp = rp->next)
+    {
+        char *line = RlistScalarValue(rp);
+                   
+        if (StringStartsWith(line, "Error="))
+        {
+            Log(LOG_LEVEL_ERR, "have error: %s", line + strlen("Error="));
+        }
+        else if (StringStartsWith(line, "ErrorMessage="))
+        {
+            Log(LOG_LEVEL_ERR, "have error message: %s", line + strlen("ErrorMessage="));
+        }
+        else
+        {
+            Log(LOG_LEVEL_ERR, "unsupported error info: %s", line);
+        }
+    }
+}
+
 static 
 int IsReadWriteReady(const IOData *io, int timeout_sec)
 {
@@ -174,8 +215,11 @@ int WriteDataToPackageScript(const char *args, const char *data,
     return res;
 }
 
-Rlist *ReadWriteDataToPackageScript(const char *args, const char *data,
-                                    const PackageManagerWrapper *wrapper)
+/* In some cases the response is expected to be not filled out. Some requests
+   will have response filled only in case of errors. */
+static
+int ReadWriteDataToPackageScript(const char *args, const char *request,
+        Rlist **response, const PackageManagerWrapper *wrapper)
 {
     char *command = StringFormat("%s %s", wrapper->path, args);
     IOData io = cf_popen_full_duplex(command, true);
@@ -185,27 +229,29 @@ Rlist *ReadWriteDataToPackageScript(const char *args, const char *data,
     {
         Log(LOG_LEVEL_VERBOSE, "some error occurred while communicating "
                 "package manager script");
-        return NULL;
+        return -1;
     }
     
-    if (WriteScriptData(data, &io) != strlen(data))
+    if (WriteScriptData(request, &io) != strlen(request))
     {
         Log(LOG_LEVEL_ERR, "couldn't write whole data to script");
-        return NULL;
+        return -1;
     }
     
-    Rlist *response = RedDataFromPackageScript(&io);
+    /* We can have some error message here. */
+    Rlist *res = RedDataFromPackageScript(&io);
     
     /* If script returns non 0 status */
     if (cf_pclose_full_duplex(&io) != EXIT_SUCCESS)
     {
         Log(LOG_LEVEL_VERBOSE,
             "package manager script returned with failure");
-        RlistDestroy(response);
-        response = NULL;
+        RlistDestroy(res);
+        return -1;
     }
     
-    return response;
+    *response = res;
+    return 0;
 }
 
 static 
@@ -213,7 +259,14 @@ int NegotiateSupportedAPIVersion(PackageManagerWrapper *wrapper)
 {
     int api_version = -1;
 
-    Rlist *response = ReadWriteDataToPackageScript("supports-api-version", "", wrapper);
+    Rlist *response = NULL;
+    if (ReadWriteDataToPackageScript("supports-api-version", "",
+            &response, wrapper) != 0)
+    {
+        Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
+                "wrapper.");
+        return -1;
+    }
     
     if (response)
     {
@@ -339,7 +392,14 @@ PackageInfo *GetPackageData(const char *name, Rlist *options,
     char *options_str = ParseOptions(options);
     char *request = StringFormat("%sFile=%s\n", options_str, name);
     
-    Rlist *response = ReadWriteDataToPackageScript("get-package-data", request, wrapper);
+    Rlist *response = NULL;
+    if (ReadWriteDataToPackageScript("get-package-data", request, &response,
+            wrapper) != 0)
+    {
+        Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
+                "wrapper.");
+        return NULL;
+    }
     PackageInfo *package_data = NULL;
     
     if (response)
@@ -444,8 +504,14 @@ void PackagesListDestroy(PackageInfoList *list)
 bool GetListInstalled(Rlist* options, const PackageManagerWrapper *wrapper)
 {
     char *options_str = ParseOptions(options);
-    Rlist *response =
-            ReadWriteDataToPackageScript("list-installed", options_str, wrapper);
+    Rlist *response = NULL;
+    if (ReadWriteDataToPackageScript("list-installed", options_str, &response,
+            wrapper) != 0)
+    {
+        Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
+                "wrapper.");
+        return false;
+    }
     
     if (!response)
     {
@@ -464,8 +530,14 @@ bool GetListInstalled(Rlist* options, const PackageManagerWrapper *wrapper)
 bool GetListUpdates(Rlist* options, const PackageManagerWrapper *wrapper)
 {
     char *options_str = ParseOptions(options);
-    Rlist *response =
-            ReadWriteDataToPackageScript("list-updates", options_str, wrapper);
+    Rlist *response = NULL;
+    if (ReadWriteDataToPackageScript("list-updates", options_str, &response,
+            wrapper) != 0)
+    {
+        Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
+                "wrapper.");
+        return false;
+    }
     
     if (!response)
     {
@@ -498,11 +570,19 @@ PromiseResult RemovePackage(const char *name, Rlist* options,
     //TODO: figure out result
     PromiseResult res = PROMISE_RESULT_CHANGE;
     
-    if (WriteDataToPackageScript("remove", request, wrapper) != 0)
+    Rlist *error_message = NULL;
+    if (ReadWriteDataToPackageScript("remove", request, 
+            &error_message, wrapper) != 0)
     {
-        Log(LOG_LEVEL_VERBOSE,
-            "error installing package");
+        Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
+                "wrapper.");
         res = PROMISE_RESULT_FAIL;
+    }
+    if (error_message)
+    {
+        ParseAndLogErrorMessage(error_message);
+        res = PROMISE_RESULT_FAIL;
+        RlistDestroy(error_message);
     }
     
     free(request);
@@ -580,11 +660,19 @@ PromiseResult InstallPackage(Rlist *options,
         assert(0 && "unsupported package type");
     }
     
-    if (WriteDataToPackageScript(package_install_command, request, wrapper) != 0)
+    Rlist *error_message = NULL;
+    if (ReadWriteDataToPackageScript(package_install_command, request, 
+            &error_message, wrapper) != 0)
     {
-        Log(LOG_LEVEL_VERBOSE,
-            "error installing package");
+        Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
+                "wrapper.");
         res = PROMISE_RESULT_FAIL;
+    }
+    if (error_message)
+    {
+        ParseAndLogErrorMessage(error_message);
+        res = PROMISE_RESULT_FAIL;
+        RlistDestroy(error_message);
     }
     
     free(request);
@@ -759,25 +847,6 @@ bool CheckPolicyAndPackageInfoMatch(const NewPackages *packages_policy,
         }
     }
     return true;
-}
-
-static
-void LogPackagePromiseError(PackageError *error)
-{
-    if (error)
-    {
-        if (error->message && error->type)
-        {
-            Log(LOG_LEVEL_ERR, "have error: %s [%s]", error->type, error->message);
-            free(error->message);
-            free(error->type);
-        }
-        else if (error->type)
-        {
-            Log(LOG_LEVEL_ERR, "have error: %s", error->type);
-            free(error->type);
-        }
-    }
 }
 
 PromiseResult HandlePresentPromiseAction(const char *package_name,
