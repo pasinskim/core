@@ -61,8 +61,8 @@ Attributes GetFilesAttributes(const EvalContext *ctx, const Promise *pp)
     attr.template_method = PromiseGetConstraintAsRval(pp, "template_method", RVAL_TYPE_SCALAR);
     attr.template_data = PromiseGetConstraintAsRval(pp, "template_data", RVAL_TYPE_CONTAINER);
 
-    attr.haveeditline = PromiseBundleConstraintExists(ctx, "edit_line", pp);
-    attr.haveeditxml = PromiseBundleConstraintExists(ctx, "edit_xml", pp);
+    attr.haveeditline = PromiseBundleOrBodyConstraintExists(ctx, "edit_line", pp);
+    attr.haveeditxml = PromiseBundleOrBodyConstraintExists(ctx, "edit_xml", pp);
     attr.haveedit = (attr.haveeditline) || (attr.haveeditxml) || (attr.edit_template);
 
 /* Files, specialist */
@@ -139,7 +139,7 @@ Attributes GetServicesAttributes(const EvalContext *ctx, const Promise *pp)
     attr.transaction = GetTransactionConstraints(ctx, pp);
     attr.classes = GetClassDefinitionConstraints(ctx, pp);
     attr.service = GetServicesConstraints(ctx, pp);
-    attr.havebundle = PromiseBundleConstraintExists(ctx, "service_bundle", pp);
+    attr.havebundle = PromiseBundleOrBodyConstraintExists(ctx, "service_bundle", pp);
 
     return attr;
 }
@@ -163,7 +163,7 @@ Attributes GetUserAttributes(const EvalContext *ctx, const Promise *pp)
 {
     Attributes attr = { {0} };
 
-    attr.havebundle = PromiseBundleConstraintExists(ctx, "home_bundle", pp);
+    attr.havebundle = PromiseBundleOrBodyConstraintExists(ctx, "home_bundle", pp);
 
     attr.inherit = PromiseGetConstraintAsBoolean(ctx, "home_bundle_inherit", pp);
 
@@ -280,7 +280,7 @@ Attributes GetMethodAttributes(const EvalContext *ctx, const Promise *pp)
 {
     Attributes attr = { {0} };
 
-    attr.havebundle = PromiseBundleConstraintExists(ctx, "usebundle", pp);
+    attr.havebundle = PromiseBundleOrBodyConstraintExists(ctx, "usebundle", pp);
 
     attr.inherit = PromiseGetConstraintAsBoolean(ctx, "inherit", pp);
 
@@ -1147,6 +1147,12 @@ NewPackages GetNewPackageConstraints(const EvalContext *ctx, const Promise *pp)
     p.package_version = PromiseGetConstraintAsRval(pp, "version", RVAL_TYPE_SCALAR);
     p.package_architecture = PromiseGetConstraintAsRval(pp, "architecture", RVAL_TYPE_SCALAR);
     p.package_options = PromiseGetConstraintAsList(ctx, "options", pp);
+    
+    /* If global options are not override by promise specific ones. */
+    if (!p.package_options && p.package_manager)
+    {
+        p.package_options = p.package_manager->options;
+    }
     
     p.is_empty = (memcmp(&p, &empty, sizeof(NewPackages)) == 0);
     p.package_policy = GetNewPackagePolicy(PromiseGetConstraintAsRval(pp, "policy", RVAL_TYPE_SCALAR),

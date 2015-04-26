@@ -58,12 +58,9 @@ typedef struct
     char *name;
     char *path;
     int supported_api_version;
-    
-    PackageInfo* (*GetPackageInfo)(const char*);
-    int (*InstallPackage)(PackageInfo*);
-    
 } PackageManagerWrapper;
 
-PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes *a);
+PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
+                                          Attributes *a);
 
 #endif

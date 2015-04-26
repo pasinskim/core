@@ -126,8 +126,6 @@ Promise *DeRefCopyPromise(EvalContext *ctx, const Promise *pp)
                     PromiseGetBundle(pp)->source_path, bp->type, cp->lval);
             }
 
-            /* Keep the referent body type as a boolean for convenience when checking later */
-
             if (IsDefinedClass(ctx, cp->classes))
             {
                 /* For new package promises we need to have name of the
@@ -148,6 +146,8 @@ Promise *DeRefCopyPromise(EvalContext *ctx, const Promise *pp)
                 }
                 else
                 {
+                    /* Keep the referent body type as a boolean for convenience 
+                     * when checking later */
                     PromiseAppendConstraint(pcopy, cp->lval,
                             (Rval) {xstrdup("true"), RVAL_TYPE_SCALAR }, false);
                 }

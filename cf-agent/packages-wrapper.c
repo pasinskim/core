@@ -30,7 +30,6 @@
 #include <string_lib.h>
 #include <actuator.h>
 
-#include <generic_agent.h>
 #include <file_lib.h>
 #include <known_dirs.h>
 
@@ -419,7 +418,6 @@ PackageInfo *GetPackageData(const char *name, Rlist *options,
     return package_data;
 }
 
-//TODO: implement me
 static
 char *GetPackageWrapperRealPath(const char *package_manager_name)
 {
@@ -455,8 +453,8 @@ PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name
         Log(LOG_LEVEL_VERBOSE,
             "can not find package wrapper in provided location: %s",
             wrapper->path);
-        //FreePackageManageWrapper(wrapper);
-        //return NULL;
+        FreePackageManageWrapper(wrapper);
+        return NULL;
     }
     
     /* Negotiate API version */
