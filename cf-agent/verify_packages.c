@@ -125,7 +125,6 @@ static void DeletePackageManagers(PackageManager *morituri);
 static const char *PrefixLocalRepository(const Rlist *repositories, const char *package);
 
 PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes a);
-PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes *a);
 
 ENTERPRISE_VOID_FUNC_1ARG_DEFINE_STUB(void, ReportPatches, ARG_UNUSED PackageManager *, list)
 {

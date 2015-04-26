@@ -411,6 +411,7 @@ typedef enum
     COMMON_CONTROL_PROTOCOL_VERSION,
     COMMON_CONTROL_TLS_CIPHERS,
     COMMON_CONTROL_TLS_MIN_VERSION,
+    COMMON_CONTROL_PACKAGE_MANAGER,
     COMMON_CONTROL_MAX
 } CommonControl;
 
@@ -1303,18 +1304,37 @@ typedef struct
 
 typedef struct
 {
+    char *name;
+    int updates_ifelapsed;
+    int installed_ifelapesed;
+    Rlist *options;
+} PackageManagerBody;
+
+
+typedef struct
+{
+    Rlist *package_inventory; /* list of all inventory used package managers names */
+    char *package_manager;    /* policy default package manager name */
+    Seq *package_managers_bodies; /* list of all discovered in policy PackageManagerBody bodies */
+} PackagePromiseContext;
+
+
+typedef struct
+{
     NewPackageAction package_policy;
-    char *package_manager;
+    PackageManagerBody *package_manager;
+    Rlist *package_inventory;
     char *package_version;
     char *package_architecture;
     Rlist *package_options;
-    Rlist *package_additional_packages;
-    
-    int package_updates_ifelapsed;
-    int package_installed_ifelapsed;
     
     bool is_empty;
 } NewPackages;
+
+typedef enum {
+    PACKAGE_CONTROLL_DEF_INVENTORY,
+    PACKAGE_CONTROLL_DEF_MANAGER
+} PackageControll;
 
 /*************************************************************************/
 
@@ -1577,6 +1597,7 @@ extern const PromiseTypeSyntax CF_COMMON_PROMISE_TYPES[];
 extern const ConstraintSyntax CF_CLASSBODY[];
 extern const ConstraintSyntax CFA_CONTROLBODY[];
 extern const ConstraintSyntax CFEX_CONTROLBODY[];
+extern const ConstraintSyntax PACKAGES_CONTROLBODY[];
 
 typedef struct ServerConnectionState_ ServerConnectionState;
 

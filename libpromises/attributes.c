@@ -1129,20 +1129,34 @@ NewPackages GetNewPackageConstraints(const EvalContext *ctx, const Promise *pp)
 {
     NewPackages p = {0};
     NewPackages empty = {0};
-
-    p.package_manager = PromiseGetConstraintAsRval(pp, "package_manager", RVAL_TYPE_SCALAR);
+    
+    /* If we have promise package manager specified. */
+    char *local_promise_manager = 
+            PromiseGetConstraintAsRval(pp, "package_manager", RVAL_TYPE_SCALAR);
+    if (local_promise_manager)
+    {
+        p.package_manager = 
+                GetManagerFromPackagePromiseContext(ctx, local_promise_manager);
+    }
+    else
+    {
+        p.package_manager = GetDefaultManagerFromPackagePromiseContext(ctx);
+    }
+    p.package_inventory = GetDefaultInventoryFromPackagePromiseContext(ctx);
+    
     p.package_version = PromiseGetConstraintAsRval(pp, "version", RVAL_TYPE_SCALAR);
     p.package_architecture = PromiseGetConstraintAsRval(pp, "architecture", RVAL_TYPE_SCALAR);
     p.package_options = PromiseGetConstraintAsList(ctx, "options", pp);
-    p.package_additional_packages = PromiseGetConstraintAsList(ctx, "additional_packages", pp);
     
     p.is_empty = (memcmp(&p, &empty, sizeof(NewPackages)) == 0);
-    
-    p.package_updates_ifelapsed = PromiseGetConstraintAsInt(ctx, "query_updates_ifelapsed", pp);
-    p.package_installed_ifelapsed = PromiseGetConstraintAsInt(ctx, "query_installed_ifelapsed", pp);
-    
     p.package_policy = GetNewPackagePolicy(PromiseGetConstraintAsRval(pp, "policy", RVAL_TYPE_SCALAR),
                                            new_packages_actions);
+    
+    /* We can have only policy specified in new package promise definition. */
+    if (p.package_policy != NEW_PACKAGE_ACTION_NONE)
+    {
+        p.is_empty = false;
+    }
 
     return p;
 }

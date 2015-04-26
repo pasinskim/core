@@ -96,7 +96,91 @@ struct EvalContext_
 
     // Full path to directory that the binary was launched from.
     char *launch_directory;
+    
+    /* new package promise evaluation context */
+    PackagePromiseContext *package_promise_context;
 };
+
+
+void PackagePromiseAddDefaultPackageManager(const EvalContext *ctx, char *name, 
+        bool overides_other)
+{
+    if (ctx && ctx->package_promise_context)
+    {
+        if (ctx->package_promise_context->package_manager)
+        {
+            if (overides_other)
+            {
+                free(ctx->package_promise_context->package_manager);
+                ctx->package_promise_context->package_manager =
+                    SafeStringDuplicate(name);
+            }
+        }
+        else
+        {
+            ctx->package_promise_context->package_manager =
+                SafeStringDuplicate(name);
+        }
+    }
+}
+
+void PackagePromiseAddDefaultInventory(const EvalContext *ctx, Rlist *inventory, 
+        bool overides_other)
+{
+    if (ctx && ctx->package_promise_context)
+    {
+        if (ctx->package_promise_context->package_inventory)
+        {
+            if (overides_other)
+            {
+                RlistDestroy(ctx->package_promise_context->package_inventory);
+                ctx->package_promise_context->package_inventory =
+                        RlistCopy(inventory);
+            }
+        }
+        else
+        {
+            ctx->package_promise_context->package_inventory =
+                    RlistCopy(inventory);
+        }
+    }
+}
+
+void AddManagerToPackagePromiseContext(const EvalContext *ctx, PackageManagerBody *pm)
+{
+    SeqAppend(ctx->package_promise_context->package_managers_bodies, pm);
+}
+
+PackageManagerBody *GetManagerFromPackagePromiseContext(const EvalContext *ctx,
+        const char *name)
+{
+    if (name == NULL)
+    {
+        return NULL;
+    }
+    
+    for (int i = 0; i < SeqLength(ctx->package_promise_context->package_managers_bodies); i++)
+    {
+        PackageManagerBody *pm = SeqAt(ctx->package_promise_context->package_managers_bodies, i);
+        if (strcmp(name, pm->name) == 0)
+        {
+            return pm;
+        }
+    }
+    return NULL;
+}
+
+PackageManagerBody *GetDefaultManagerFromPackagePromiseContext(const EvalContext *ctx)
+{
+    return GetManagerFromPackagePromiseContext(ctx, 
+                ctx->package_promise_context->package_manager);
+}
+
+Rlist *GetDefaultInventoryFromPackagePromiseContext(const EvalContext *ctx)
+{
+    return ctx->package_promise_context->package_inventory;
+}
+
 
 static StackFrame *LastStackFrame(const EvalContext *ctx, size_t offset)
 {
@@ -729,6 +813,37 @@ static void StackFrameDestroy(StackFrame *frame)
     }
 }
 
+static
+void FreePackageManager(void *manager)
+{
+    PackageManagerBody *pm = (PackageManagerBody*)manager;
+    free(pm->name);
+    RlistDestroy(pm->options);
+    free(pm);
+}
+
+static
+PackagePromiseContext *PackagePromiseConfigNew()
+{
+    PackagePromiseContext *package_promise_defaults = 
+            xmalloc(sizeof(PackagePromiseContext));
+    package_promise_defaults->package_manager = NULL;
+    package_promise_defaults->package_inventory = NULL;
+    package_promise_defaults->package_managers_bodies =
+            SeqNew(5, FreePackageManager);
+    
+    return package_promise_defaults;
+}
+
+static
+void FreePackagePromiseContext(PackagePromiseContext *pp_ctx)
+{
+    SeqDestroy(pp_ctx->package_managers_bodies);
+    free(pp_ctx->package_manager);
+    RlistDestroy(pp_ctx->package_inventory);
+    free(pp_ctx);
+}
+
 EvalContext *EvalContextNew(void)
 {
     EvalContext *ctx = xcalloc(1, sizeof(EvalContext));
@@ -762,6 +877,8 @@ EvalContext *EvalContextNew(void)
 
         LoggingPrivSetContext(pctx);
     }
+                                    
+    ctx->package_promise_context = PackagePromiseConfigNew();
 
     return ctx;
 }
@@ -805,6 +922,8 @@ void EvalContextDestroy(EvalContext *ctx)
             RBTreeIteratorDestroy(it);
             RBTreeDestroy(ctx->function_cache);
         }
+        
+        FreePackagePromiseContext(ctx->package_promise_context);
 
         free(ctx);
     }

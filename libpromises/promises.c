@@ -130,7 +130,27 @@ Promise *DeRefCopyPromise(EvalContext *ctx, const Promise *pp)
 
             if (IsDefinedClass(ctx, cp->classes))
             {
-                PromiseAppendConstraint(pcopy, cp->lval, (Rval) {xstrdup("true"), RVAL_TYPE_SCALAR }, false);
+                /* For new package promises we need to have name of the
+                 * package_manager body. */
+                if (strcmp("packages", pcopy->parent_promise_type->name) == 0 &&
+                        strcmp("package_manager", cp->lval) == 0)
+                {
+                    /* NOTE: We also don't change name of the body inside
+                     * constraints list to bool value as for other promise types. 
+                     * The reason is to store package manager name information
+                     * which is needed later on in package promise evaluation */
+                    PromiseAppendConstraint(pcopy, cp->lval,
+                            (Rval) {xstrdup(bp->name), RVAL_TYPE_SCALAR }, false);
+                    /* We don't need to collect body attributes into promise as
+                       we are doing it elsewhere for package promise. */
+                    EvalContextStackPopFrame(ctx);
+                    continue;
+                }
+                else
+                {
+                    PromiseAppendConstraint(pcopy, cp->lval,
+                            (Rval) {xstrdup("true"), RVAL_TYPE_SCALAR }, false);
+                }
             }
 
             if (bp->args)

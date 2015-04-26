@@ -208,6 +208,16 @@ void NotifyDependantPromises(EvalContext *ctx, const Promise *pp, PromiseResult 
 bool MissingDependencies(EvalContext *ctx, const Promise *pp);
 void cfPS(EvalContext *ctx, LogLevel level, PromiseResult status, const Promise *pp, Attributes attr, const char *fmt, ...) FUNC_ATTR_PRINTF(6, 7);
 
+PackagePromiseContext *GetPackageDefaultsFromCtx(const EvalContext *ctx);
+
+void PackagePromiseAddDefaultPackageManager(const EvalContext *ctx, char *name, bool ovverides_other);
+void PackagePromiseAddDefaultInventory(const EvalContext *ctx, Rlist *inventory, bool ovverides_other);
+
+void AddManagerToPackagePromiseContext(const EvalContext *ctx, PackageManagerBody *pm);
+PackageManagerBody *GetManagerFromPackagePromiseContext(const EvalContext *ctx, const char *name);
+PackageManagerBody *GetDefaultManagerFromPackagePromiseContext(const EvalContext *ctx);
+Rlist *GetDefaultInventoryFromPackagePromiseContext(const EvalContext *ctx);
+
 /* This function is temporarily exported. It needs to be made an detail of
  * evaluator again, once variables promises are no longer specially handled */
 void ClassAuditLog(EvalContext *ctx, const Promise *pp, Attributes attr, PromiseResult status);

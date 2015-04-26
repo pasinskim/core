@@ -1111,11 +1111,27 @@ static void ResolveControlBody(EvalContext *ctx, GenericAgentConfig *config,
                 PROTOCOL_VERSION_STRING[config->protocol_version]);
         }
         
+        /* Those are package_inventory and package_manager common control body options */
         if (strcmp(cp->lval, CFG_CONTROLBODY[COMMON_CONTROL_PACKAGE_INVENTORY].lval) == 0)
         {
-            config->agent_specific.agent.package_inventory = RvalScalarValue(cp->rval);
-            Log(LOG_LEVEL_VERBOSE, "SET common package_inventory: %s", 
+            PackagePromiseAddDefaultInventory(ctx, RvalRlistValue(cp->rval), true);
+            Log(LOG_LEVEL_VERBOSE, "SET common package_inventory list");
+        }
+        if (strcmp(cp->lval, CFG_CONTROLBODY[COMMON_CONTROL_PACKAGE_MANAGER].lval) == 0)
+        {
+            PackagePromiseAddDefaultPackageManager(ctx, RvalScalarValue(cp->rval), true);
+            Log(LOG_LEVEL_VERBOSE, "SET common package_manager: %s", 
                 RvalScalarValue(cp->rval));
+        }
+        
+        /* For default_package_manager control body. */
+        if (strcmp(cp->lval, PACKAGES_CONTROLBODY[PACKAGE_CONTROLL_DEF_INVENTORY].lval) == 0)
+        {
+            PackagePromiseAddDefaultInventory(ctx, RvalRlistValue(cp->rval), false);
+        }
+        if (strcmp(cp->lval, PACKAGES_CONTROLBODY[PACKAGE_CONTROLL_DEF_MANAGER].lval) == 0)
+        {
+            PackagePromiseAddDefaultPackageManager(ctx, RvalScalarValue(cp->rval), false);
         }
 
         if (strcmp(lval, CFG_CONTROLBODY[COMMON_CONTROL_GOALPATTERNS].lval) == 0)
@@ -1130,6 +1146,37 @@ static void ResolveControlBody(EvalContext *ctx, GenericAgentConfig *config,
 
     EvalContextStackPopFrame(ctx);
     free(scope);
+}
+
+static void ResolvePackageManagerBody(EvalContext *ctx, const Body *pm_body)
+{
+    PackageManagerBody *new_manager = xmalloc(sizeof(PackageManagerBody));
+    new_manager->name = SafeStringDuplicate(pm_body->name);
+    
+    for (size_t i = 0; i < SeqLength(pm_body->conlist); i++)
+    {
+        Constraint *cp = SeqAt(pm_body->conlist, i);
+        if (strcmp(cp->lval, "query_installed_ifelapsed") == 0)
+        {
+            new_manager->installed_ifelapesed =
+                    (int)IntFromString(RvalScalarValue(cp->rval));
+        }
+        else if (strcmp(cp->lval, "query_updates_ifelapsed") == 0)
+        {
+            new_manager->updates_ifelapsed =
+                    (int)IntFromString(RvalScalarValue(cp->rval));
+        }
+        else if (strcmp(cp->lval, "default_options") == 0)
+        {
+            new_manager->options = RlistCopy(RvalRlistValue(cp->rval));
+        }
+        else
+        {
+            /* This should be handled by the parser. */
+            assert(0);
+        }
+    }
+    AddManagerToPackagePromiseContext(ctx, new_manager);
 }
 
 void PolicyResolve(EvalContext *ctx, const Policy *policy,
@@ -1164,6 +1211,12 @@ void PolicyResolve(EvalContext *ctx, const Policy *policy,
         if (strcmp(bdp->name, "control") == 0)
         {
             ResolveControlBody(ctx, config, bdp);
+        }
+        /* Collect all package managers data from policy as we don't know yet
+         * which ones we will use. */
+        else if (strcmp(bdp->type, "package_manager") == 0)
+        {
+            ResolvePackageManagerBody(ctx, bdp);
         }
     }
 }

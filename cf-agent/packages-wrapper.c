@@ -30,6 +30,10 @@
 #include <string_lib.h>
 #include <actuator.h>
 
+#include <generic_agent.h>
+#include <file_lib.h>
+#include <known_dirs.h>
+
 static
 void LogPackagePromiseError(PackageError *error)
 {
@@ -221,6 +225,8 @@ static
 int ReadWriteDataToPackageScript(const char *args, const char *request,
         Rlist **response, const PackageManagerWrapper *wrapper)
 {
+    assert(args && request && wrapper);
+    
     char *command = StringFormat("%s %s", wrapper->path, args);
     IOData io = cf_popen_full_duplex(command, true);
     free(command);
@@ -418,7 +424,8 @@ static
 char *GetPackageWrapperRealPath(const char *package_manager_name)
 {
     
-    return strdup("/tmp/dummy");
+    return StringFormat("%s%c%s%c%s", GetWorkDir(), FILE_SEPARATOR, "package_managers",
+            FILE_SEPARATOR, package_manager_name);
 }
 
 static
@@ -639,8 +646,7 @@ PromiseResult InstallPackage(Rlist *options,
         StringFormat("Version=%s\n", version) : NULL;
     char *arch = architecture ? 
         StringFormat("Architecture=%s\n", architecture) : NULL;
-    char *request = StringFormat("%sPackage=%s%s%s\n",
-            options_str, package_to_install, ver ? ver : "", arch ? arch : "");
+    char *request = NULL;
     
     //TODO: figure out result
     PromiseResult res = PROMISE_RESULT_CHANGE;
@@ -649,10 +655,14 @@ PromiseResult InstallPackage(Rlist *options,
     if (type == PACKAGE_TYPE_FILE)
     {
         package_install_command = "file-install";
+        request = StringFormat("%sFile=%s%s%s\n",
+            options_str, package_to_install, ver ? ver : "", arch ? arch : "");
     }
     else if (type == PACKAGE_TYPE_REPO)
     {
         package_install_command = "repo-install";
+        request = StringFormat("%sName=%s%s%s\n",
+            options_str, package_to_install, ver ? ver : "", arch ? arch : "");
     }
     else
     {
@@ -930,26 +940,24 @@ Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION RETURNED: %c", result);
     return result;
 }
 
-PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes *a)
+PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
+        Attributes *a)
 {
     Log(LOG_LEVEL_ERR, "New package promise handler");
-    //TODO: sanity check
-    //absent and something else than name is not supported (how we will figure out that package is file not repo?) -> maybe rung get package info to see this is repo?
     
-    char *package_manager = a->new_packages.package_manager;
-    if (!package_manager)
+    if (!a->new_packages.package_manager ||
+        !a->new_packages.package_manager->name)
     {
-        /* Get default package manager from system */
-        //TODO: implement me
-        package_manager = strdup("apt-get");
+        Log(LOG_LEVEL_ERR, "Can not find package manager body.");
+        return PROMISE_RESULT_FAIL;
     }
-
+    
     PromiseBanner(ctx, pp);
     
     //TODO: lock
     
     PackageManagerWrapper *package_manager_wrapper =
-            GetPackageManagerWrapper(package_manager);
+            GetPackageManagerWrapper(a->new_packages.package_manager->name);
     
     if (!package_manager_wrapper)
     {

@@ -70,9 +70,9 @@ static const ConstraintSyntax package_manager_constraints[] =
 {
     ConstraintSyntaxNewInt("query_installed_ifelapsed", CF_INTRANGE, "The ifelapsed locking time in between updates of the installed package list", SYNTAX_STATUS_NORMAL),
     ConstraintSyntaxNewInt("query_updates_ifelapsed", CF_INTRANGE, "The ifelapsed locking time in between updates of the available updates list", SYNTAX_STATUS_NORMAL),
+    ConstraintSyntaxNewStringList("default_options", "", "Default options passed to package manager wrapper", SYNTAX_STATUS_NORMAL),
     ConstraintSyntaxNewNull()
 };
-
 static const BodySyntax package_manager_body = BodySyntaxNew("package_manager", package_manager_constraints, NULL, SYNTAX_STATUS_NORMAL);
 
 static const ConstraintSyntax packages_constraints[] =
