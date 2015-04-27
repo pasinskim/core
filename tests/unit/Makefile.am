@@ -172,7 +172,8 @@ check_PROGRAMS = \
 	strlist_test \
 	addr_lib_test \
 	libcompat_test \
-	split_process_line_test
+	split_process_line_test \
+        new_packages_promise_test
 
 if HAVE_AVAHI_CLIENT
 if HAVE_AVAHI_COMMON

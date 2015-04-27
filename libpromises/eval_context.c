@@ -198,6 +198,11 @@ Rlist *GetDefaultInventoryFromPackagePromiseContext(const EvalContext *ctx)
         ctx->package_promise_context->default_package_inventory;
 }
 
+PackagePromiseContext *GetPackagePromiseContext(const EvalContext *ctx)
+{
+    return ctx->package_promise_context;
+}
+
 
 static StackFrame *LastStackFrame(const EvalContext *ctx, size_t offset)
 {

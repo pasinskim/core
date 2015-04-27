@@ -220,6 +220,8 @@ PackageManagerBody *GetManagerFromPackagePromiseContext(const EvalContext *ctx, 
 PackageManagerBody *GetDefaultManagerFromPackagePromiseContext(const EvalContext *ctx);
 Rlist *GetDefaultInventoryFromPackagePromiseContext(const EvalContext *ctx);
 
+PackagePromiseContext *GetPackagePromiseContext(const EvalContext *ctx);
+
 /* This function is temporarily exported. It needs to be made an detail of
  * evaluator again, once variables promises are no longer specially handled */
 void ClassAuditLog(EvalContext *ctx, const Promise *pp, Attributes attr, PromiseResult status);
