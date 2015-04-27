@@ -1130,20 +1130,6 @@ NewPackages GetNewPackageConstraints(const EvalContext *ctx, const Promise *pp)
     NewPackages p = {0};
     NewPackages empty = {0};
     
-    /* If we have promise package manager specified. */
-    char *local_promise_manager = 
-            PromiseGetConstraintAsRval(pp, "package_manager", RVAL_TYPE_SCALAR);
-    if (local_promise_manager)
-    {
-        p.package_manager = 
-                GetManagerFromPackagePromiseContext(ctx, local_promise_manager);
-    }
-    else
-    {
-        p.package_manager = GetDefaultManagerFromPackagePromiseContext(ctx);
-    }
-    p.package_inventory = GetDefaultInventoryFromPackagePromiseContext(ctx);
-    
     p.package_version = PromiseGetConstraintAsRval(pp, "version", RVAL_TYPE_SCALAR);
     p.package_architecture = PromiseGetConstraintAsRval(pp, "architecture", RVAL_TYPE_SCALAR);
     p.package_options = PromiseGetConstraintAsList(ctx, "options", pp);
@@ -1163,6 +1149,23 @@ NewPackages GetNewPackageConstraints(const EvalContext *ctx, const Promise *pp)
     {
         p.is_empty = false;
     }
+    
+    /* If we have promise package manager specified. 
+     * IMPORTANT: this must be done after is_empty flag is set as we can have
+     * some default options for new package promise specified and still use
+     * old promise inside policy. */
+    char *local_promise_manager = 
+            PromiseGetConstraintAsRval(pp, "package_manager", RVAL_TYPE_SCALAR);
+    if (local_promise_manager)
+    {
+        p.package_manager =
+                GetManagerFromPackagePromiseContext(ctx, local_promise_manager);
+    }
+    else
+    {
+        p.package_manager = GetDefaultManagerFromPackagePromiseContext(ctx);
+    }
+    p.package_inventory = GetDefaultInventoryFromPackagePromiseContext(ctx);
 
     return p;
 }

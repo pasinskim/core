@@ -113,8 +113,6 @@ int IsReadWriteReady(const IOData *io, int timeout_sec)
     return -1;
 }
 
-#define PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC 5
-
 Rlist *RedDataFromPackageScript(const IOData *io)
 {
     char buff[CF_BUFSIZE] = {0};
@@ -938,8 +936,9 @@ Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION RETURNED: %c", result);
     return result;
 }
 
+//TODO: ifelapsed values can be NO_INT when parsing is failing!!!
 PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
-        Attributes *a)
+                                          Attributes *a)
 {
     Log(LOG_LEVEL_ERR, "New package promise handler");
     

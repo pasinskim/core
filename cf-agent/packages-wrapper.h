@@ -27,6 +27,8 @@
 
 #include <cf3.defs.h>
 
+#define PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC 60
+
 typedef enum
 {
     PACKAGE_TYPE_REPO,

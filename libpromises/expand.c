@@ -1114,12 +1114,12 @@ static void ResolveControlBody(EvalContext *ctx, GenericAgentConfig *config,
         /* Those are package_inventory and package_manager common control body options */
         if (strcmp(cp->lval, CFG_CONTROLBODY[COMMON_CONTROL_PACKAGE_INVENTORY].lval) == 0)
         {
-            PackagePromiseAddDefaultInventory(ctx, RvalRlistValue(cp->rval), true);
+            PackagePromiseAddDefaultInventory(ctx, RvalRlistValue(returnval), true);
             Log(LOG_LEVEL_VERBOSE, "SET common package_inventory list");
         }
         if (strcmp(cp->lval, CFG_CONTROLBODY[COMMON_CONTROL_PACKAGE_MANAGER].lval) == 0)
         {
-            PackagePromiseAddDefaultPackageManager(ctx, RvalScalarValue(cp->rval), true);
+            PackagePromiseAddDefaultPackageManager(ctx, RvalScalarValue(returnval), true);
             Log(LOG_LEVEL_VERBOSE, "SET common package_manager: %s", 
                 RvalScalarValue(cp->rval));
         }
@@ -1127,11 +1127,11 @@ static void ResolveControlBody(EvalContext *ctx, GenericAgentConfig *config,
         /* For default_package_manager control body. */
         if (strcmp(cp->lval, PACKAGES_CONTROLBODY[PACKAGE_CONTROLL_DEF_INVENTORY].lval) == 0)
         {
-            PackagePromiseAddDefaultInventory(ctx, RvalRlistValue(cp->rval), false);
+            PackagePromiseAddDefaultInventory(ctx, RvalRlistValue(returnval), false);
         }
         if (strcmp(cp->lval, PACKAGES_CONTROLBODY[PACKAGE_CONTROLL_DEF_MANAGER].lval) == 0)
         {
-            PackagePromiseAddDefaultPackageManager(ctx, RvalScalarValue(cp->rval), false);
+            PackagePromiseAddDefaultPackageManager(ctx, RvalScalarValue(returnval), false);
         }
 
         if (strcmp(lval, CFG_CONTROLBODY[COMMON_CONTROL_GOALPATTERNS].lval) == 0)
@@ -1156,19 +1156,35 @@ static void ResolvePackageManagerBody(EvalContext *ctx, const Body *pm_body)
     for (size_t i = 0; i < SeqLength(pm_body->conlist); i++)
     {
         Constraint *cp = SeqAt(pm_body->conlist, i);
+        
+        Rval returnval = {0};
+        
+        if (IsDefinedClass(ctx, cp->classes))
+        {
+            returnval = ExpandPrivateRval(ctx, NULL, "body", 
+                                          cp->rval.item, cp->rval.type);
+        }
+        
+        if (returnval.item == NULL || returnval.type == RVAL_TYPE_NOPROMISEE)
+        {
+            Log(LOG_LEVEL_VERBOSE, "have invalid constraint while resolving"
+                    "package promise body: %s", cp->lval);
+            continue;
+        }
+        
         if (strcmp(cp->lval, "query_installed_ifelapsed") == 0)
         {
             new_manager->installed_ifelapesed =
-                    (int)IntFromString(RvalScalarValue(cp->rval));
+                    (int)IntFromString(RvalScalarValue(returnval));
         }
         else if (strcmp(cp->lval, "query_updates_ifelapsed") == 0)
         {
             new_manager->updates_ifelapsed =
-                    (int)IntFromString(RvalScalarValue(cp->rval));
+                    (int)IntFromString(RvalScalarValue(returnval));
         }
         else if (strcmp(cp->lval, "default_options") == 0)
         {
-            new_manager->options = RlistCopy(RvalRlistValue(cp->rval));
+            new_manager->options = RlistCopy(RvalRlistValue(returnval));
         }
         else
         {

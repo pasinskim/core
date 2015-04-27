@@ -1313,9 +1313,15 @@ typedef struct
 
 typedef struct
 {
-    Rlist *package_inventory; /* list of all inventory used package managers names */
-    char *package_manager;    /* policy default package manager name */
-    Seq *package_managers_bodies; /* list of all discovered in policy PackageManagerBody bodies */
+    Rlist *default_package_inventory; /* list of all inventory used package 
+                                       * managers names taken from package_manager control */
+    char *default_package_manager;    /* policy default package manager name taken 
+                                       * from package_manager control */
+    Rlist *control_package_inventory; /* list of all inventory used package managers 
+                                       * names taken from common control */
+    char *control_package_manager;    /* policy default package manager name */
+    Seq *package_managers_bodies; /* list of all discovered in policy PackageManagerBody 
+                                   * bodies taken from common control */
 } PackagePromiseContext;
 
 
