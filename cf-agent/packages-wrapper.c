@@ -401,6 +401,8 @@ PackageInfo *GetPackageData(const char *name, Rlist *options,
     {
         Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
                 "wrapper.");
+        free(options_str);
+        free(request);
         return NULL;
     }
     PackageInfo *package_data = NULL;
@@ -473,7 +475,7 @@ PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name
 /* Returns list of all matching packages (may be more than one if arch or
  * version is not specified). */
 static
-PackageInfoList *IsPackageInCache(const char *name, const char *arch,
+Seq *IsPackageInCache(const char *name, const char *arch,
         const char *ver, PackageType type)
 {
     const char *version = ver;
@@ -492,15 +494,9 @@ PackageInfoList *IsPackageInCache(const char *name, const char *arch,
 }
 
 static
-void PackagesListDestroy(PackageInfoList *list)
+void PackagesListDestroy(Seq *list)
 {
-    while (list)
-    {
-        PackageInfoList *next = list->next;
-        FreePackageInfo(list->package);
-        free(list);
-        list = next;
-    }
+    SeqDestroy(list);
 }
 
 //TOOD:
@@ -513,6 +509,7 @@ bool GetListInstalled(Rlist* options, const PackageManagerWrapper *wrapper)
     {
         Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
                 "wrapper.");
+        free(options_str);
         return false;
     }
     
@@ -539,6 +536,7 @@ bool GetListUpdates(Rlist* options, const PackageManagerWrapper *wrapper)
     {
         Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
                 "wrapper.");
+        free(options_str);
         return false;
     }
     
@@ -609,7 +607,7 @@ PromiseResult HandleAbsentPromiseAction(const char *package_name,
         return PROMISE_RESULT_FAIL;
     }
     
-    PackageInfoList *packages_from_cache = NULL;
+    Seq *packages_from_cache = NULL;
     /* Check if package exists in cache */
     if ((packages_from_cache = IsPackageInCache(package_name,
             policy_data->package_architecture,
@@ -693,7 +691,7 @@ PromiseResult InstallPackage(Rlist *options,
 PromiseResult FileInstallPackage(const char *package_file_path, 
         const NewPackages *new_packages,
         const PackageManagerWrapper *wrapper,
-        PackageInfoList *cached_packages)
+        Seq *cached_packages)
 {
     Log(LOG_LEVEL_ERR, "FILE INSTALL PACKAGE");
     
@@ -710,7 +708,7 @@ PromiseResult FileInstallPackage(const char *package_file_path,
 }
 
 //TODO: implement me
-PackageInfoList *GetVersionsFromUpdates(const PackageInfo *package_info)
+Seq *GetVersionsFromUpdates(const PackageInfo *package_info)
 {
     //TODO: what if architecture will not be provided
     //if more than one entry here return error and stop
@@ -721,7 +719,7 @@ PackageInfoList *GetVersionsFromUpdates(const PackageInfo *package_info)
 
 PromiseResult RepoInstallPackage(const PackageInfo *package_info,
         const NewPackages *policy_data, const PackageManagerWrapper *wrapper,
-        PackageInfoList *cached_packages)
+        Seq *cached_packages)
 {
     Log(LOG_LEVEL_ERR, "REPO INSTALL PACKAGE");
     
@@ -750,7 +748,7 @@ PromiseResult RepoInstallPackage(const PackageInfo *package_info,
         
         /* This can return more than one latest version if we have packages
          * for different architectures installed. */
-        PackageInfoList *latest_versions = GetVersionsFromUpdates(package_info);
+        Seq *latest_versions = GetVersionsFromUpdates(package_info);
         if(!latest_versions)
         {
             Log(LOG_LEVEL_ERR, "Can not find exact package version(s) for "
@@ -761,14 +759,14 @@ PromiseResult RepoInstallPackage(const PackageInfo *package_info,
         }
         
         PromiseResult res = PROMISE_RESULT_NOOP;
-        
+
         /* Loop through all currently installed packages and possible  updates. */
-        for (PackageInfoList *ver = latest_versions; ver != NULL; ver = ver->next)
+        for (int i = 0; i < SeqLength(latest_versions); i++)
         {
-            PackageInfo *update_package = ver->package;
-            for (PackageInfoList *curr = cached_packages; curr != NULL; curr = curr->next)
+            PackageInfo *update_package = SeqAt(latest_versions, i);
+            for (int j = 0; j < SeqLength(cached_packages); j++)
             {
-                PackageInfo *current_package = curr->package;
+                PackageInfo *current_package = SeqAt(cached_packages, j);
                 if (!current_package->arch || !current_package->version ||
                     !update_package->arch || !update_package->version)
                 {
@@ -895,7 +893,7 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
         }
         
         /* Check if package exists in cache */
-        PackageInfoList *cached_packages = IsPackageInCache(package_info->name,
+        Seq *cached_packages = IsPackageInCache(package_info->name,
             package_info->arch, package_info->version,
             package_info->type);
         

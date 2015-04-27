@@ -43,12 +43,6 @@ typedef struct
     PackageType type;
 } PackageInfo;
 
-typedef struct _PackageInfoList
-{
-    PackageInfo *package;
-    struct _PackageInfoList *next;
-} PackageInfoList;
-
 typedef struct
 {
     char *type;
