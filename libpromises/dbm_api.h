@@ -50,6 +50,8 @@ typedef enum
     dbid_value,
     dbid_agent_execution,
     dbid_bundles,   // Deprecated
+    dbid_packages_installed, //new package promise installed packages list
+    dbid_packages_updates,   //new package promise list of available updates
 
     dbid_max
 } dbid;
@@ -63,6 +65,8 @@ typedef DBCursor CF_DBC;
 void DBSetMaximumConcurrentTransactions(int max_txn);
 
 bool OpenDB(CF_DB **dbp, dbid db);
+bool OpenSubDB(DBHandle **dbp, dbid id, const char *sub_name);
+bool CleanDB(DBHandle *handle);
 void CloseDB(CF_DB *dbp);
 
 bool HasKeyDB(CF_DB *dbp, const char *key, int key_size);

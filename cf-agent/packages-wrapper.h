@@ -27,19 +27,20 @@
 
 #include <cf3.defs.h>
 
-#define PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC 60
+#define PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC 1
 
 typedef enum
 {
     PACKAGE_TYPE_REPO,
-    PACKAGE_TYPE_FILE
+    PACKAGE_TYPE_FILE,
+    PACKAGE_TYPE_NONE
 } PackageType;
 
 typedef struct 
 {
-    const char *name;
-    const char *version;
-    const char *arch;
+    char *name;
+    char *version;
+    char *arch;
     PackageType type;
 } PackageInfo;
 
@@ -56,7 +57,16 @@ typedef struct
     int supported_api_version;
 } PackageManagerWrapper;
 
+typedef enum {
+    UPDATE_TYPE_INSTALLED,
+    UPDATE_TYPE_UPDATES,        
+} UpdateType;
+
+
 PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
                                           Attributes *a);
+
+bool UpdateCache(Rlist* options, const PackageManagerWrapper *wrapper,
+                 UpdateType type);
 
 #endif

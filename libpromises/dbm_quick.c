@@ -182,6 +182,11 @@ void DBPrivCommit(ARG_UNUSED DBPriv *db)
 {
 }
 
+bool DBPrivClean(DBPriv *db)
+{
+
+}
+
 bool DBPrivRead(DBPriv *db, const void *key, int key_size, void *dest, int dest_size)
 {
     if (!Lock(db))

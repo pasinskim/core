@@ -221,6 +221,11 @@ void DBPrivCommit(ARG_UNUSED DBPriv *db)
 {
 }
 
+bool DBPrivClean(DBPriv *db)
+{
+
+}
+
 bool DBPrivHasKey(DBPriv *db, const void *key, int key_size)
 {
     // FIXME: distinguish between "entry not found" and "error occurred"
