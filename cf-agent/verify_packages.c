@@ -234,7 +234,7 @@ PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, A
         VarRefDestroy(var_ref);
     }
     
-    if (!PromiseBundleConstraintExists(ctx, "package_method", pp))
+    if (!PromiseBundleOrBodyConstraintExists(ctx, "package_method", pp))
     {
         Log(LOG_LEVEL_VERBOSE, 
             "Package promise %s failed sanity check due to lack of 'package_method' attribute", 

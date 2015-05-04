@@ -2393,7 +2393,7 @@ int ConstraintsGetAsBoolean(const EvalContext *ctx, const char *lval, const Seq 
 
 /*****************************************************************************/
 
-bool PromiseBundleConstraintExists(const EvalContext *ctx, const char *lval, const Promise *pp)
+bool PromiseBundleOrBodyConstraintExists(const EvalContext *ctx, const char *lval, const Promise *pp)
 {
     int retval = CF_UNDEFINED;
 
