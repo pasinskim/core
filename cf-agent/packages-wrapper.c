@@ -487,7 +487,7 @@ PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name
     struct stat sb;
     if (!wrapper->path || (stat(wrapper->path, &sb) != 0))
     {
-        Log(LOG_LEVEL_VERBOSE,
+        Log(LOG_LEVEL_ERR,
             "can not find package wrapper in provided location: %s",
             wrapper->path);
         FreePackageManageWrapper(wrapper);
@@ -1174,7 +1174,7 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
         return PROMISE_RESULT_FAIL;
     }
     
-    const char *lockname = "new_packages_promise_lock";
+    const char *lockname = GLOBAL_PACKAGE_PROMISE_LOCK_NAME;
     CfLock package_promise_global_lock;
     CfLock package_promise_lock;
     

@@ -235,8 +235,6 @@ IOData cf_popen_full_duplex(const char *command, bool capture_stderr)
     }
     else // child
     {
-        int fd;
-
         close(child_pipe[READ]);
         close(parent_pipe[WRITE]);
 

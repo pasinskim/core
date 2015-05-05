@@ -263,7 +263,7 @@ PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, A
 
 // Now verify the package itself
     
-    const char *global_lockname = "new_packages_promise_lock";
+    const char *global_lockname = GLOBAL_PACKAGE_PROMISE_LOCK_NAME;
     CfLock package_promise_global_lock;
     package_promise_global_lock =
             AcquireLock(ctx, global_lockname, VUQNAME, CFSTARTTIME,
