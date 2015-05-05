@@ -411,6 +411,7 @@ typedef enum
     COMMON_CONTROL_PROTOCOL_VERSION,
     COMMON_CONTROL_TLS_CIPHERS,
     COMMON_CONTROL_TLS_MIN_VERSION,
+    COMMON_CONTROL_PACKAGE_INVENTORY,
     COMMON_CONTROL_PACKAGE_MANAGER,
     COMMON_CONTROL_MAX
 } CommonControl;
@@ -1313,10 +1314,6 @@ typedef struct
 
 typedef struct
 {
-    Rlist *default_package_inventory; /* list of all inventory used package 
-                                       * managers names taken from package_manager control */
-    char *default_package_manager;    /* policy default package manager name taken 
-                                       * from package_manager control */
     Rlist *control_package_inventory; /* list of all inventory used package managers 
                                        * names taken from common control */
     char *control_package_manager;    /* policy default package manager name */

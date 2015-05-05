@@ -210,10 +210,8 @@ void cfPS(EvalContext *ctx, LogLevel level, PromiseResult status, const Promise 
 
 PackagePromiseContext *GetPackageDefaultsFromCtx(const EvalContext *ctx);
 
-void PackagePromiseAddDefaultPackageManager(const EvalContext *ctx, char *name,
-                                            bool is_from_common_control);
-void PackagePromiseAddDefaultInventory(const EvalContext *ctx, Rlist *inventory,
-                                       bool is_from_common_control);
+void PackagePromiseAddDefaultPackageManager(const EvalContext *ctx, char *name);
+void PackagePromiseAddDefaultInventory(const EvalContext *ctx, Rlist *inventory);
 
 void AddManagerToPackagePromiseContext(const EvalContext *ctx, PackageManagerBody *pm);
 PackageManagerBody *GetManagerFromPackagePromiseContext(const EvalContext *ctx, const char *name);

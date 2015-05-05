@@ -102,44 +102,24 @@ struct EvalContext_
 };
 
 
-void PackagePromiseAddDefaultPackageManager(const EvalContext *ctx, char *name, 
-        bool is_from_common_control)
+void PackagePromiseAddDefaultPackageManager(const EvalContext *ctx, char *name)
 {
-    if (ctx && ctx->package_promise_context)
-    {
-        if (is_from_common_control)
-        {
-            free(ctx->package_promise_context->control_package_manager);
-            ctx->package_promise_context->control_package_manager =
-                    SafeStringDuplicate(name);
-        }
-        else
-        {
-            free(ctx->package_promise_context->default_package_manager);
-            ctx->package_promise_context->default_package_manager =
-                    SafeStringDuplicate(name);
-        }
-    }
+    assert(ctx);
+    assert(ctx->package_promise_context);
+    
+    free(ctx->package_promise_context->control_package_manager);
+    ctx->package_promise_context->control_package_manager =
+            SafeStringDuplicate(name);
 }
 
-void PackagePromiseAddDefaultInventory(const EvalContext *ctx, Rlist *inventory, 
-        bool is_from_common_control)
+void PackagePromiseAddDefaultInventory(const EvalContext *ctx, Rlist *inventory)
 {
-    if (ctx && ctx->package_promise_context)
-    {
-        if (is_from_common_control)
-        {
-            RlistDestroy(ctx->package_promise_context->control_package_inventory);
-            ctx->package_promise_context->control_package_inventory =
-                    RlistCopy(inventory);
-        }
-        else
-        {
-            RlistDestroy(ctx->package_promise_context->default_package_inventory);
-            ctx->package_promise_context->default_package_inventory =
-                    RlistCopy(inventory);
-        }
-    }
+    assert(ctx);
+    assert(ctx->package_promise_context);
+    
+    RlistDestroy(ctx->package_promise_context->control_package_inventory);
+    ctx->package_promise_context->control_package_inventory =
+            RlistCopy(inventory);
 }
 
 static
@@ -185,17 +165,13 @@ PackageManagerBody *GetManagerFromPackagePromiseContext(const EvalContext *ctx,
 
 PackageManagerBody *GetDefaultManagerFromPackagePromiseContext(const EvalContext *ctx)
 {
-    char *def_pm_name = ctx->package_promise_context->control_package_manager ?
-        ctx->package_promise_context->control_package_manager :
-        ctx->package_promise_context->default_package_manager;
+    char *def_pm_name = ctx->package_promise_context->control_package_manager;
     return GetManagerFromPackagePromiseContext(ctx, def_pm_name);
 }
 
 Rlist *GetDefaultInventoryFromPackagePromiseContext(const EvalContext *ctx)
 {
-    return ctx->package_promise_context->control_package_inventory ?
-        ctx->package_promise_context->control_package_inventory :
-        ctx->package_promise_context->default_package_inventory;
+    return ctx->package_promise_context->control_package_inventory;
 }
 
 PackagePromiseContext *GetPackagePromiseContext(const EvalContext *ctx)
@@ -849,8 +825,6 @@ PackagePromiseContext *PackagePromiseConfigNew()
 {
     PackagePromiseContext *package_promise_defaults = 
             xmalloc(sizeof(PackagePromiseContext));
-    package_promise_defaults->default_package_manager = NULL;
-    package_promise_defaults->default_package_inventory = NULL;
     package_promise_defaults->control_package_manager = NULL;
     package_promise_defaults->control_package_inventory = NULL;
     package_promise_defaults->package_managers_bodies =
@@ -863,8 +837,6 @@ static
 void FreePackagePromiseContext(PackagePromiseContext *pp_ctx)
 {
     SeqDestroy(pp_ctx->package_managers_bodies);
-    free(pp_ctx->default_package_manager);
-    RlistDestroy(pp_ctx->default_package_inventory);
     free(pp_ctx->control_package_manager);
     RlistDestroy(pp_ctx->control_package_inventory);
     free(pp_ctx);
