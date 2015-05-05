@@ -181,7 +181,8 @@ Rlist *RedDataFromPackageScript(const IOData *io)
     return response_lines;
 }
 
-int WriteScriptData(const char *data, const IOData *io)
+static
+int WriteScriptData(const char *data, IOData *io)
 {
     if (strlen(data) == 0)
     {
@@ -189,6 +190,10 @@ int WriteScriptData(const char *data, const IOData *io)
     }
     
     ssize_t wrt = write(io->write_fd, data, strlen(data));
+    
+    /* Make sure to close write_fd after sending all data. */
+    close(io->write_fd);
+    io->write_fd = -1;
     
     return wrt;
 }
@@ -542,13 +547,21 @@ int IsPackageInCache(const char *pm_name, const char *name, const char *arch,
     {
         key = StringFormat("N<%s>A<%s>", name, arch);
     }
+    else
+    {
+         key = StringFormat("N<%s>", name);
+    }
     
     int is_in_cache = 0;
     char buff[1];
+    
+    Log(LOG_LEVEL_ERR, "looking for package in cache: %s", key);
+    
     if (ReadDB(db_cached, key, buff, 1))
     {
+        Log(LOG_LEVEL_ERR, "have value in cache: %c", buff[0]);
         /* Just make sure DB is not corrupted. */
-        if (buff[0] == 1)
+        if (buff[0] == '1')
         {
             is_in_cache = 1;
         }
@@ -883,12 +896,12 @@ PromiseResult InstallPackage(Rlist *options,
 PromiseResult FileInstallPackage(const char *package_file_path, 
         const PackageInfo *info, const NewPackages *new_packages,
         const PackageManagerWrapper *wrapper,
-        bool is_in_cache)
+        int is_in_cache)
 {
     Log(LOG_LEVEL_ERR, "FILE INSTALL PACKAGE");
     
     /* We have some packages matching file package promise in cache. */
-    if (is_in_cache)
+    if (is_in_cache == 1)
     {
         Log(LOG_LEVEL_ERR, "Package exists in cache. Exiting");
         return PROMISE_RESULT_NOOP;
@@ -953,11 +966,11 @@ Seq *GetVersionsFromUpdates(const PackageInfo *info, const char *pm_name)
 
 PromiseResult RepoInstall(const PackageInfo *package_info,
         const NewPackages *policy_data, const PackageManagerWrapper *wrapper,
-        bool is_in_cache)
+        int is_in_cache)
 {
     Log(LOG_LEVEL_ERR, "REPO INSTALL PACKAGE: %d", is_in_cache);
     
-    if (!is_in_cache)
+    if (is_in_cache == 0)
     {
         const char *version = package_info->version;
         if (package_info->version &&
@@ -1030,7 +1043,7 @@ PromiseResult RepoInstall(const PackageInfo *package_info,
 
 PromiseResult RepoInstallPackage(const PackageInfo *package_info,
         const NewPackages *policy_data, const PackageManagerWrapper *wrapper,
-        bool is_in_cache)
+        int is_in_cache)
 {
     PromiseResult res = RepoInstall(package_info, policy_data, wrapper,
                                     is_in_cache);
@@ -1118,6 +1131,13 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
         int is_in_cache = IsPackageInCache(package_manager_wrapper->name,
             package_info->name,
             package_info->arch, package_info->version);
+        
+        if (is_in_cache == -1)
+        {
+            Log(LOG_LEVEL_ERR, "Some error occurred while looking for package "
+                    "'%s' in cache.", package_name);
+            return PROMISE_RESULT_FAIL;
+        }
         
         switch (package_info->type)
         {

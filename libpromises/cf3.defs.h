@@ -1250,6 +1250,8 @@ typedef struct
 
 /*************************************************************************/
 
+#define GLOBAL_PACKAGE_PROMISE_LOCK_NAME "new_packages_promise_lock"
+
 typedef struct
 {
     PackageAction package_policy;

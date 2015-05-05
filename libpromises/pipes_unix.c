@@ -693,8 +693,12 @@ int PipeCloseGeneric(int pipes[2])
 {
     if (!ThreadLock(cft_count))
     {
-        close(pipes[0]);
-        if (pipes[1] != 0)
+        if (pipes[0] >= 0)
+        {
+            close(pipes[0]);
+        }
+        
+        if (pipes[1] >= 0)
         {
             close(pipes[1]);
         }
@@ -704,8 +708,12 @@ int PipeCloseGeneric(int pipes[2])
     if (CHILDREN == NULL)       /* popen hasn't been called */
     {
         ThreadUnlock(cft_count);
-        close(pipes[0]);
-        if (pipes[1] != 0)
+        if (pipes[0] >= 0)
+        {
+            close(pipes[0]);
+        }
+        
+        if (pipes[1] >= 0)
         {
             close(pipes[1]);
         }
@@ -715,7 +723,7 @@ int PipeCloseGeneric(int pipes[2])
     ALARM_PID = -1;
     pid_t pid = 0;
 
-    /* Safe as pipes[1] is 0 if not initialized */
+    /* Safe as pipes[1] is -1 if not initialized */
     if (pipes[0] >= MAX_FD || pipes[1] >= MAX_FD)
     {
         ThreadUnlock(cft_count);
@@ -726,7 +734,7 @@ int PipeCloseGeneric(int pipes[2])
     else
     {
         pid = CHILDREN[pipes[0]];
-        if (pipes[1] != 0)
+        if (pipes[1] >= 0)
         {
             assert(pid == CHILDREN[pipes[1]]);
             CHILDREN[pipes[1]] = 0;
@@ -735,7 +743,7 @@ int PipeCloseGeneric(int pipes[2])
         ThreadUnlock(cft_count);
     }
     
-    if (close(pipes[0]) != 0 || (pipes[1] != 0 && close(pipes[1]) != 0) || pid == 0)
+    if (close(pipes[0]) != 0 || (pipes[1] >= 0 && close(pipes[1]) != 0) || pid == 0)
     {
         return -1;
     }
@@ -746,7 +754,7 @@ int PipeCloseGeneric(int pipes[2])
 int cf_pclose(FILE *pp)
 {
     int fd = fileno(pp);
-    return PipeCloseGeneric((int[2]){fd, 0});
+    return PipeCloseGeneric((int[2]){fd, -1});
 }
 
 int cf_pclose_full_duplex(IOData *data)
