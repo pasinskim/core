@@ -262,6 +262,21 @@ PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, A
     PromiseBanner(ctx, pp);
 
 // Now verify the package itself
+    
+    const char *global_lockname = "new_packages_promise_lock";
+    CfLock package_promise_global_lock;
+    package_promise_global_lock =
+            AcquireLock(ctx, global_lockname, VUQNAME, CFSTARTTIME,
+                        (TransactionContext) {.ifelapsed = 0, .expireafter = 0},
+                        pp, false);
+    if (package_promise_global_lock.lock == NULL)
+    {
+        Log(LOG_LEVEL_VERBOSE, 
+            "Can not aquire global lock for package promise. Skipping promise "
+            "evaluation");
+        result = PROMISE_RESULT_SKIPPED;
+        goto end;
+    }
 
     snprintf(lockname, CF_BUFSIZE - 1, "package-%s-%s", pp->promiser, a.packages.package_list_command);
 
@@ -285,6 +300,8 @@ PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, A
     {
         cfPS_HELPER_0ARG(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a, "Unable to obtain default architecture for package manager - aborting");
         YieldCurrentLock(thislock);
+        YieldCurrentLockAndRemoveFromCache(ctx, package_promise_global_lock,
+                                           global_lockname, pp);
         result = PROMISE_RESULT_FAIL;
         goto end;
     }
@@ -295,6 +312,8 @@ PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, A
         cfPS_HELPER_0ARG(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a, "Unable to obtain a list of installed packages - aborting");
         free(default_arch);
         YieldCurrentLock(thislock);
+        YieldCurrentLockAndRemoveFromCache(ctx, package_promise_global_lock,
+                                           global_lockname, pp);
         result = PROMISE_RESULT_FAIL;
         goto end;
     }
@@ -315,6 +334,8 @@ PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, A
     }
 
     YieldCurrentLock(thislock);
+    YieldCurrentLockAndRemoveFromCache(ctx, package_promise_global_lock,
+                                       global_lockname, pp);
 
 end:
     if (!REPORT_THIS_PROMISE(pp))

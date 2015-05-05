@@ -838,6 +838,20 @@ void YieldCurrentLock(CfLock lock)
     free(lock.log);
 }
 
+void YieldCurrentLockAndRemoveFromCache(EvalContext *ctx, CfLock lock,
+        const char *operand, const Promise *pp)
+{
+    unsigned char digest[EVP_MAX_MD_SIZE + 1];
+    PromiseRuntimeHash(pp, operand, digest, CF_DEFAULT_DIGEST);
+    char str_digest[CF_HOSTKEY_STRING_SIZE];
+    HashPrintSafe(str_digest, sizeof(str_digest), digest,
+                  CF_DEFAULT_DIGEST, true);
+    
+    YieldCurrentLock(lock);
+    EvalContextPromiseLockCacheRemove(ctx, str_digest);
+}
+
+
 void GetLockName(char *lockname, const char *locktype, const char *base, const Rlist *params)
 {
     int max_sample, count = 0;

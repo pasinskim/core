@@ -32,9 +32,9 @@
 
 typedef enum
 {
+    PACKAGE_TYPE_NONE,
     PACKAGE_TYPE_REPO,
-    PACKAGE_TYPE_FILE,
-    PACKAGE_TYPE_NONE
+    PACKAGE_TYPE_FILE
 } PackageType;
 
 typedef struct 

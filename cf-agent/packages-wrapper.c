@@ -29,9 +29,9 @@
 #include <ornaments.h>
 #include <string_lib.h>
 #include <actuator.h>
-
 #include <file_lib.h>
 #include <known_dirs.h>
+#include <locks.h>
 
 static
 void LogPackagePromiseError(PackageError *error)
@@ -347,7 +347,7 @@ PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data,
             else
             {
                 Log(LOG_LEVEL_ERR, "unsupported package type: %s", type);
-                continue;
+                return NULL;
             }
         }
         else if (StringStartsWith(line, "Name="))
@@ -1163,8 +1163,6 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
     
     PromiseBanner(ctx, pp);
     
-    //TODO: lock
-    
     PackageManagerWrapper *package_manager_wrapper =
             GetPackageManagerWrapper(a->new_packages.package_manager->name);
     
@@ -1174,6 +1172,39 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
             "Some error occurred while evaluating package promise: %s",
             pp->promiser);
         return PROMISE_RESULT_FAIL;
+    }
+    
+    const char *lockname = "new_packages_promise_lock";
+    CfLock package_promise_global_lock;
+    CfLock package_promise_lock;
+    
+    char promise_lock[CF_BUFSIZE];
+    snprintf(promise_lock, CF_BUFSIZE - 1, "new-package-%s-%s",
+             pp->promiser, a->new_packages.package_manager->name);
+
+    package_promise_global_lock =
+            AcquireLock(ctx, lockname, VUQNAME, CFSTARTTIME,
+                        (TransactionContext) {.ifelapsed = 0, .expireafter = 0},
+                        pp, false);
+    if (package_promise_global_lock.lock == NULL)
+    {
+        Log(LOG_LEVEL_ERR, 
+            "Can not aquire global lock for package promise. Skipping promise "
+            "evaluation");
+        return PROMISE_RESULT_SKIPPED;
+    }
+    
+    package_promise_lock =
+            AcquireLock(ctx, promise_lock, VUQNAME, CFSTARTTIME,
+            a->transaction, pp, false);
+    if (package_promise_lock.lock == NULL)
+    {
+        Log(LOG_LEVEL_ERR, 
+            "Can not aquire lock for '%s' package promise. Skipping promise "
+            "evaluation",  pp->promiser);
+        YieldCurrentLockAndRemoveFromCache(ctx, package_promise_global_lock,
+                                           lockname, pp);
+        return PROMISE_RESULT_SKIPPED;
     }
     
     PromiseResult result = PROMISE_RESULT_FAIL;
@@ -1196,9 +1227,12 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
             result = PROMISE_RESULT_FAIL;
             break;
     }
-    //TODO: unlock
     
     FreePackageManageWrapper(package_manager_wrapper);
+    
+    YieldCurrentLock(package_promise_lock);
+    YieldCurrentLockAndRemoveFromCache(ctx, package_promise_global_lock,
+                                       lockname, pp);
     
     return result;
 }
