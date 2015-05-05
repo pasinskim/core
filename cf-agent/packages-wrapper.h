@@ -27,7 +27,8 @@
 
 #include <cf3.defs.h>
 
-#define PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC 1
+#define PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC 3600 /* one hour timeout */
+#define PACKAGE_PROMISE_TERMINATION_CHECK_SEC 1
 
 typedef enum
 {

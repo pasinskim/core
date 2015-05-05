@@ -259,15 +259,7 @@ IOData cf_popen_full_duplex(const char *command, bool capture_stderr)
         }
         else
         {
-            /* Close stderr */
-            if ((fd = open(NULLFILE, O_WRONLY)) == -1 || (dup2(fd, 2) == -1))
-            {
-                Log(LOG_LEVEL_ERR, 
-                    "Can not execute dup2 while closing stderr: %s",
-                    GetErrorStr());
-                _Exit(EXIT_FAILURE);
-            }
-            close(fd);
+            /* leave stderr open */
         }
         
         close(child_pipe[WRITE]);

@@ -126,9 +126,11 @@ Rlist *RedDataFromPackageScript(const IOData *io)
         return NULL;
     }
     
-    while(!IsPendingTermination())
+    int timeout_seconds_left = PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC;
+    
+    while(!IsPendingTermination() && timeout_seconds_left > 0)
     {
-        int fd = IsReadWriteReady(io, PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC);
+        int fd = IsReadWriteReady(io, PACKAGE_PROMISE_TERMINATION_CHECK_SEC);
         
         if (fd < 0)
         {
@@ -165,10 +167,10 @@ Rlist *RedDataFromPackageScript(const IOData *io)
             BufferAppendString(data, buff);
             memset(buff, 0, sizeof(buff));
         }
-        else if (fd == 0)
+        else if (fd == 0) /* timeout */
         {
-            break;
-            //continue;
+            timeout_seconds_left -= PACKAGE_PROMISE_TERMINATION_CHECK_SEC;
+            continue;
         }
     }
     
@@ -195,7 +197,7 @@ int WriteDataToPackageScript(const char *args, const char *data,
                              const PackageManagerWrapper *wrapper)
 {
     char *command = StringFormat("%s %s", wrapper->path, args);
-    IOData io = cf_popen_full_duplex(command, true);
+    IOData io = cf_popen_full_duplex(command, false);
     free(command);
     
     if (io.write_fd == 0 || io.read_fd == 0)
@@ -454,8 +456,9 @@ static
 char *GetPackageWrapperRealPath(const char *package_manager_name)
 {
     
-    return StringFormat("%s%c%s%c%s", GetWorkDir(), FILE_SEPARATOR, "package_managers",
-            FILE_SEPARATOR, package_manager_name);
+    //return StringFormat("%s%c%s%c%s", GetWorkDir(), FILE_SEPARATOR, "package_managers",
+    //        FILE_SEPARATOR, package_manager_name);
+    return SafeStringDuplicate("/tmp/dummy");
 }
 
 static
@@ -601,11 +604,11 @@ void WritePackageDataToDB(CF_DB *db_installed,
     }
 }
 
-//TODO: error handling
 int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)
 {
     assert(pm_name);
     
+    PackageError error = {0};
     CF_DB *db_cached;
     dbid db_id = type == UPDATE_TYPE_INSTALLED ? dbid_packages_installed :
                                                  dbid_packages_updates;
@@ -630,6 +633,8 @@ int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)
                 {
                     WritePackageDataToDB(db_cached, package_data[0],
                                          package_data[1], package_data[2], type);
+                    
+                    //TODO: add list of all packages for inventory
 
                     package_data[1] = NULL;
                     package_data[2] = NULL;
@@ -655,13 +660,14 @@ int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)
             }
             else if (StringStartsWith(line, "Error="))
             {
-                //TODO:
+                error.type = SafeStringDuplicate(line + strlen("Error="));
             }
             else if (StringStartsWith(line, "ErrorMessage="))
             {
-                
+                error.message =
+                        SafeStringDuplicate(line + strlen("ErrorMessage="));
+                LogPackagePromiseError(&error);
             }
-            
         }
         /* We have one more entry left. */
         if (package_data[0] && package_data[1] && package_data[2])
@@ -671,8 +677,10 @@ int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)
         }
         
         CloseDB(db_cached);
+        return 0;
     }
-    return 0;
+    /* Unable to open database. */
+    return -1;
 }
 
 
@@ -697,7 +705,6 @@ bool UpdateCache(Rlist* options, const PackageManagerWrapper *wrapper,
         return false;
     }
     
-    PackageError error = {0};
     if (UpdatePackagesDB(response, wrapper->name, type) != 0)
     {
         Log(LOG_LEVEL_ERR, "error parsing and caching 'list-installed'");
@@ -870,8 +877,6 @@ PromiseResult InstallPackage(Rlist *options,
     free(ver);
     free(arch);
     
-    /* We assume that at this point package is installed correctly. */
-    Log(LOG_LEVEL_ERR, "Package '%s' should be correctly installed.", package_to_install);
     return res;
 }
 
