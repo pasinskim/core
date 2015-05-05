@@ -1140,7 +1140,7 @@ static void ResolveControlBody(EvalContext *ctx, GenericAgentConfig *config,
 
 static void ResolvePackageManagerBody(EvalContext *ctx, const Body *pm_body)
 {
-    PackageManagerBody *new_manager = xmalloc(sizeof(PackageManagerBody));
+    PackageManagerBody *new_manager = xcalloc(1, sizeof(PackageManagerBody));
     new_manager->name = SafeStringDuplicate(pm_body->name);
     
     for (size_t i = 0; i < SeqLength(pm_body->conlist); i++)
