@@ -521,8 +521,8 @@ PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name
 }
 
 static
-int IsPackageInCache(const char *pm_name, const char *name, const char *arch,
-                      const char *ver)
+int IsPackageInCache(const char *pm_name, const char *name, const char *ver,
+                     const char *arch)
 {
     assert(pm_name);
     
@@ -602,13 +602,13 @@ void WritePackageDataToDB(CF_DB *db_installed,
         char buff[val_size + strlen(arch) + strlen(ver) + 8];
         
         ReadDB(db_installed, package_key, buff, val_size);
-        xsnprintf(buff + val_size, sizeof(package_key), "A<%s>V<%s>\n", arch, ver);
+        xsnprintf(buff + val_size, sizeof(package_key), "V<%s>A<%s>\n", ver, arch);
         WriteDB(db_installed, package_key, buff, strlen(buff));
     }
     else if (type == UPDATE_TYPE_UPDATES)
     {
         char buff[strlen(arch) + strlen(ver) + 8];
-        xsnprintf(buff, sizeof(package_key), "A<%s>V<%s>\n", arch, ver);
+        xsnprintf(buff, sizeof(package_key), "V<%s>A<%s>\n", ver, arch);
         WriteDB(db_installed, package_key, buff, strlen(buff));
     }
     else /* UPDATE_TYPE_INSTALLED */
@@ -763,7 +763,7 @@ PromiseResult ValidateChangedPackage(const NewPackages *policy_data,
     }
 
     if (IsPackageInCache(wrapper->name, package_info->name,
-                         package_info->arch, package_info->version))
+                         package_info->version, package_info->arch))
     {
         return action_type == NEW_PACKAGE_ACTION_PRESENT ? 
             PROMISE_RESULT_CHANGE : PROMISE_RESULT_FAIL;
@@ -829,7 +829,8 @@ PromiseResult HandleAbsentPromiseAction(char *package_name,
     
     /* Check if package exists in cache */
     if ((IsPackageInCache(wrapper->name, package_name,
-         policy_data->package_architecture, policy_data->package_version)) == 1)
+                          policy_data->package_version,
+                          policy_data->package_architecture)) == 1)
     {
         /* Remove package(s) */
         PromiseResult res = RemovePackage(package_name,
@@ -979,7 +980,7 @@ Seq *GetVersionsFromUpdates(const PackageInfo *info, const char *pm_name)
                 char version[strlen(package_line)];
                 char arch[strlen(package_line)];
 
-                if (sscanf(package_line, "A<%[^>]>V<%[^>]>", version, arch) == 2)
+                if (sscanf(package_line, "V<%[^>]>A<%[^>]>", version, arch) == 2)
                 {
                     package->version = SafeStringDuplicate(version);
                     package->arch = SafeStringDuplicate(arch);
@@ -1044,12 +1045,13 @@ PromiseResult RepoInstall(const PackageInfo *package_info,
         {
             PackageInfo *update_package = SeqAt(latest_versions, i);
             
-            Log(LOG_LEVEL_ERR, "Checking for package '%s' version '%s' from "
+            Log(LOG_LEVEL_ERR, "Checking for package '%s' version '%s' in "
                     "available updates", package_info->name,
                     update_package->version);
             
             if (IsPackageInCache(wrapper->name, package_info->name,
-                    update_package->arch, update_package->version))
+                                 update_package->version,
+                                 update_package->arch))
             {
                 Log(LOG_LEVEL_ERR, "Package version from updates matches "
                         "one installed. Skipping package instalation.");
@@ -1171,8 +1173,9 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
         
         /* Check if package exists in cache */
         int is_in_cache = IsPackageInCache(package_manager_wrapper->name,
-            package_info->name,
-            package_info->arch, package_info->version);
+                                           package_info->name,
+                                           package_info->version,
+                                           package_info->arch);
         
         if (is_in_cache == -1)
         {
