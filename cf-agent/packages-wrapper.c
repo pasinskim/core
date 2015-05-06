@@ -161,7 +161,8 @@ Rlist *RedDataFromPackageScript(const IOData *io)
             {
                 break;
             }
-            Log(LOG_LEVEL_ERR, "red: %zu [%s]", res, buff);
+            Log(LOG_LEVEL_DEBUG, "Data red from package module: %zu [%s]",
+                res, buff);
             red_data_size += res;
 
             BufferAppendString(data, buff);
@@ -468,9 +469,8 @@ static
 char *GetPackageWrapperRealPath(const char *package_manager_name)
 {
     
-    //return StringFormat("%s%c%s%c%s", GetWorkDir(), FILE_SEPARATOR, "package_managers",
-    //        FILE_SEPARATOR, package_manager_name);
-    return SafeStringDuplicate("/tmp/dummy");
+    return StringFormat("%s%c%s%c%s", GetWorkDir(), FILE_SEPARATOR, "package_managers",
+                        FILE_SEPARATOR, package_manager_name);
 }
 
 static
@@ -566,7 +566,6 @@ int IsPackageInCache(const char *pm_name, const char *name, const char *arch,
     
     if (ReadDB(db_cached, key, buff, 1))
     {
-        Log(LOG_LEVEL_ERR, "have value in cache: %c", buff[0]);
         /* Just make sure DB is not corrupted. */
         if (buff[0] == '1')
         {
@@ -578,6 +577,9 @@ int IsPackageInCache(const char *pm_name, const char *name, const char *arch,
         }
     }
     
+    Log(LOG_LEVEL_ERR, "package %s in cache", 
+        is_in_cache == 0 ? "not found" : "found");
+    
     CloseDB(db_cached);
     
     return is_in_cache;
@@ -588,37 +590,37 @@ void WritePackageDataToDB(CF_DB *db_installed,
         UpdateType type)
 {
     char package_key[strlen(name) + strlen(ver) +
-                     strlen(arch) + 10];
+                     strlen(arch) + 11];
     
     xsnprintf(package_key, sizeof(package_key),
               "N<%s>", name);
     if (type == UPDATE_TYPE_UPDATES && 
-            HasKeyDB(db_installed, package_key, strlen(package_key)))
+            HasKeyDB(db_installed, package_key, strlen(package_key) + 1))
     {
         size_t val_size =
                 ValueSizeDB(db_installed, package_key, strlen(package_key));
-        char buff[val_size + strlen(arch) + strlen(ver) + 7];
+        char buff[val_size + strlen(arch) + strlen(ver) + 8];
         
         ReadDB(db_installed, package_key, buff, val_size);
         xsnprintf(buff + val_size, sizeof(package_key), "A<%s>V<%s>\n", arch, ver);
-        WriteDB(db_installed, package_key, buff, sizeof(buff));
+        WriteDB(db_installed, package_key, buff, strlen(buff));
     }
     else if (type == UPDATE_TYPE_UPDATES)
     {
-        char buff[strlen(arch) + strlen(ver) + 7];
+        char buff[strlen(arch) + strlen(ver) + 8];
         xsnprintf(buff, sizeof(package_key), "A<%s>V<%s>\n", arch, ver);
-        WriteDB(db_installed, package_key, buff, sizeof(buff));
+        WriteDB(db_installed, package_key, buff, strlen(buff));
     }
     else /* UPDATE_TYPE_INSTALLED */
     {
         WriteDB(db_installed, package_key, "1", 1);
-        xsnprintf(package_key, sizeof (package_key),
+        xsnprintf(package_key, sizeof(package_key),
                 "N<%s>V<%s>", name, ver);
         WriteDB(db_installed, package_key, "1", 1);
-        xsnprintf(package_key, sizeof (package_key),
+        xsnprintf(package_key, sizeof(package_key),
                 "N<%s>A<%s>", name, arch);
         WriteDB(db_installed, package_key, "1", 1);
-        xsnprintf(package_key, sizeof (package_key),
+        xsnprintf(package_key, sizeof(package_key),
                 "N<%s>V<%s>A<%s>", name, ver, arch);
         WriteDB(db_installed, package_key, "1", 1);
     }
@@ -709,7 +711,17 @@ bool UpdateCache(Rlist* options, const PackageManagerWrapper *wrapper,
 {
     char *options_str = ParseOptions(options);
     Rlist *response = NULL;
-    if (ReadWriteDataToPackageScript("list-installed", options_str, &response,
+    
+    const char *req_type = NULL;
+    if (type == UPDATE_TYPE_INSTALLED)
+    {
+        req_type = "list-installed";
+    }
+    else if (type == UPDATE_TYPE_UPDATES)
+    {
+        req_type = "list-updates";
+    }
+    if (ReadWriteDataToPackageScript(req_type, options_str, &response,
             wrapper) != 0)
     {
         Log(LOG_LEVEL_ERR, "Some error occurred while communicating with "
@@ -720,14 +732,14 @@ bool UpdateCache(Rlist* options, const PackageManagerWrapper *wrapper,
     
     if (!response)
     {
-        Log(LOG_LEVEL_ERR, "error reading 'list-installed'");
+        Log(LOG_LEVEL_ERR, "error reading %s", req_type);
         free(options_str);
         return false;
     }
     
     if (UpdatePackagesDB(response, wrapper->name, type) != 0)
     {
-        Log(LOG_LEVEL_ERR, "error parsing and caching 'list-installed'");
+        Log(LOG_LEVEL_ERR, "error parsing cache data");
         free(options_str);
         return false;
     }
@@ -931,18 +943,25 @@ Seq *GetVersionsFromUpdates(const PackageInfo *info, const char *pm_name)
     
     CF_DB *db_updates;
     dbid db_id = dbid_packages_updates;
-    Seq *updates_list = SeqNew(100, FreePackageInfo);
+    Seq *updates_list = NULL;
     
     if (OpenSubDB(&db_updates, db_id, pm_name))
     {
-        char package_key[strlen(info->name) + 3];
+        char package_key[strlen(info->name) + 4];
 
         xsnprintf(package_key, sizeof(package_key),
                 "N<%s>", info->name);
-        if (HasKeyDB(db_updates, package_key, strlen(package_key)))
+        
+        Log(LOG_LEVEL_ERR, "looking for key in updates: %s %zu",
+            package_key, strlen(package_key));
+         
+        if (HasKeyDB(db_updates, package_key, sizeof(package_key)))
         {
+            Log(LOG_LEVEL_ERR, "found key in updates database");
+            
+            updates_list = SeqNew(3, FreePackageInfo);
             size_t val_size =
-                    ValueSizeDB(db_updates, package_key, strlen(package_key));
+                    ValueSizeDB(db_updates, package_key, sizeof(package_key));
             char buff[val_size + 1];
             buff[val_size] = '\0';
 
@@ -955,18 +974,27 @@ Seq *GetVersionsFromUpdates(const PackageInfo *info, const char *pm_name)
 
                 char *package_line = SeqAt(updates, i);
                 
-                if (sscanf(package_line, "A<%s>V<%s>", package->arch,
-                        package->version) == 2)
+                Log(LOG_LEVEL_DEBUG, "inside updates: %s", package_line);
+                
+                char version[strlen(package_line)];
+                char arch[strlen(package_line)];
+
+                if (sscanf(package_line, "A<%[^>]>V<%[^>]>", version, arch) == 2)
                 {
+                    package->version = SafeStringDuplicate(version);
+                    package->arch = SafeStringDuplicate(arch);
                     SeqAppend(updates_list, package);
                 }
                 else
                 {
+                    Log(LOG_LEVEL_ERR, "not able to parse available updates "
+                        "line: %s", package_line);
                     /* Some error occurred while scanning package updates. */
                     FreePackageInfo(package);
                 }
             }
         }
+        CloseDB(db_updates);
     }
     return updates_list;
 }
@@ -1015,9 +1043,16 @@ PromiseResult RepoInstall(const PackageInfo *package_info,
         for (int i = 0; i < SeqLength(latest_versions); i++)
         {
             PackageInfo *update_package = SeqAt(latest_versions, i);
+            
+            Log(LOG_LEVEL_ERR, "Checking for package '%s' version '%s' from "
+                    "available updates", package_info->name,
+                    update_package->version);
+            
             if (IsPackageInCache(wrapper->name, package_info->name,
                     update_package->arch, update_package->version))
             {
+                Log(LOG_LEVEL_ERR, "Package version from updates matches "
+                        "one installed. Skipping package instalation.");
                 res = PromiseResultUpdate(res, PROMISE_RESULT_NOOP);
                 continue;
             }
@@ -1262,4 +1297,123 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
                                        lockname, pp);
     
     return result;
+}
+
+void UpdatePackagesCache(EvalContext *ctx)
+{
+    Log(LOG_LEVEL_ERR, "Updating package cache.");
+    const char *lockname = GLOBAL_PACKAGE_PROMISE_LOCK_NAME;
+    CfLock package_promise_global_lock;
+    
+    Bundle bundle = {.name = "package_cache"};
+    PromiseType promie_type = {.name = "package_cache",
+                               .parent_bundle = &bundle};
+    Promise pp = {.promiser = "package_cache",
+                  .parent_promise_type = &promie_type};
+
+    package_promise_global_lock =
+            AcquireLock(ctx, lockname, VUQNAME, CFSTARTTIME,
+                        (TransactionContext) {.ifelapsed = 0, .expireafter = 0},
+                        &pp, false);
+                        
+    if (package_promise_global_lock.lock == NULL)
+    {
+        Log(LOG_LEVEL_ERR, "Can not aquire global lock for package promise. "
+            "Skipping updating cache.");
+        return;
+    }
+                        
+    Rlist *default_inventory = GetDefaultInventoryFromPackagePromiseContext(ctx);
+    
+    for (const Rlist *rp = default_inventory; rp != NULL; rp = rp->next)
+    {
+        const char *pm_name =  RlistScalarValue(rp);
+        PackageManagerBody *module =
+                GetManagerFromPackagePromiseContext(ctx, pm_name);
+        
+        if (!module)
+        {
+            Log(LOG_LEVEL_ERR, "Can not find body for package module: %s",
+                pm_name);
+            continue;
+        }
+        if (module->installed_ifelapesed == CF_NOINT ||
+            module->updates_ifelapsed == CF_NOINT)
+        {
+            Log(LOG_LEVEL_ERR, "Package module body constraints error: %s %d %d",
+                pm_name, module->installed_ifelapesed, module->updates_ifelapsed);
+            continue;
+        }
+        
+        PackageManagerWrapper *module_wrapper =
+                GetPackageManagerWrapper(pm_name);
+        
+        if (!module_wrapper)
+        {
+            Log(LOG_LEVEL_ERR, "Can not set up wrapper for module: %s", pm_name);
+            continue;
+        }
+        
+         CfLock cache_updates_lock;
+         CfLock cache_installed_lock;
+         char cache_updates_lock_name[CF_BUFSIZE];
+         char cache_installed_lock_name[CF_BUFSIZE];
+
+         snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,
+                  "package-cache-updates-%s", pm_name);
+         snprintf(cache_installed_lock_name, CF_BUFSIZE - 1,
+                  "package-cache-installed-%s", pm_name);
+         
+         cache_updates_lock = 
+                 AcquireLock(ctx, cache_updates_lock_name, VUQNAME, CFSTARTTIME,
+                        (TransactionContext) {.ifelapsed = module->updates_ifelapsed, .expireafter = 0},
+                        &pp, false);
+                        
+        if (cache_updates_lock.lock != NULL)
+        {
+            /* Update available updates cache. */
+            if (!UpdateCache(module->options, module_wrapper,
+                     UPDATE_TYPE_UPDATES))
+            {
+                Log(LOG_LEVEL_ERR, "Some error occurred while updating available "
+                    "updates cache.");
+            }
+            
+            YieldCurrentLock(cache_updates_lock);
+        }
+        else
+        {
+            Log(LOG_LEVEL_ERR, "Skipping available updates package cache update "
+                "due to ifelapesed.");
+        }
+                        
+        cache_installed_lock = 
+                 AcquireLock(ctx, cache_installed_lock_name, VUQNAME, CFSTARTTIME,
+                        (TransactionContext) {.ifelapsed = module->installed_ifelapesed, .expireafter = 0},
+                        &pp, false);
+                        
+        if (cache_installed_lock.lock != NULL)
+        {
+            /* Update installed packages cache. */
+            if (!UpdateCache(module->options, module_wrapper,
+                     UPDATE_TYPE_INSTALLED))
+            {
+                Log(LOG_LEVEL_ERR, "Some error occurred while updating available "
+                    "updates cache.");
+            }
+            
+            YieldCurrentLock(cache_installed_lock);
+        }
+        else
+        {
+            Log(LOG_LEVEL_ERR, "Skipping installed packages package cache update "
+                "due to ifelapesed.");
+        }
+        
+        FreePackageManageWrapper(module_wrapper);
+        
+    }
+    YieldCurrentLockAndRemoveFromCache(ctx, package_promise_global_lock,
+                                       lockname, &pp);
+
 }

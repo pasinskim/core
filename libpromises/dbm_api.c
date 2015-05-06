@@ -187,15 +187,21 @@ char *DBIdToPath(dbid id)
     return native_filename;
 }
 
+static
+bool IsSubHandle(DBHandle *handle, dbid id, const char *name)
+{
+    return StringSafeEqual(handle->filename, DBIdToSubPath(id, name));
+}
+
 static DBHandle *DBHandleGetSubDB(dbid id, const char *name)
 {
     ThreadLock(&db_handles_lock);
     
-    DynamicDBHandles *handles_list = NULL;
+    DynamicDBHandles *handles_list = db_dynamic_handles;
     
-    while ((handles_list = db_dynamic_handles))
+    while (handles_list)
     {
-        if (StringSafeEqual(handles_list->handle->subname, name))
+        if (IsSubHandle(handles_list->handle, id, name))
         {
             ThreadUnlock(&db_handles_lock);
             return handles_list->handle;

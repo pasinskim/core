@@ -67,7 +67,4 @@ typedef enum {
 PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
                                           Attributes *a);
 
-bool UpdateCache(Rlist* options, const PackageManagerWrapper *wrapper,
-                 UpdateType type);
-
 #endif
