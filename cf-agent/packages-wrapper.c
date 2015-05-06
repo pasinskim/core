@@ -237,7 +237,7 @@ int ReadWriteDataToPackageScript(const char *args, const char *request,
     assert(args && request && wrapper);
     
     char *command = StringFormat("%s %s", wrapper->path, args);
-    IOData io = cf_popen_full_duplex(command, true);
+    IOData io = cf_popen_full_duplex(command, false);
     free(command);
     
     if (io.write_fd == 0 || io.read_fd == 0)
