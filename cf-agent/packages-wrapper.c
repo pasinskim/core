@@ -184,17 +184,24 @@ Rlist *RedDataFromPackageScript(const IOData *io)
 static
 int WriteScriptData(const char *data, IOData *io)
 {
-    if (strlen(data) == 0)
+    if (data == NULL || strlen(data) == 0)
     {
+        if (io->write_fd >= 0)
+        {
+            close(io->write_fd);
+            io->write_fd = -1;
+        }
         return 0;
     }
     
     ssize_t wrt = write(io->write_fd, data, strlen(data));
     
     /* Make sure to close write_fd after sending all data. */
-    close(io->write_fd);
-    io->write_fd = -1;
-    
+    if (io->write_fd >= 0)
+    {
+        close(io->write_fd);
+        io->write_fd = -1;
+    }
     return wrt;
 }
 
@@ -234,7 +241,7 @@ static
 int ReadWriteDataToPackageScript(const char *args, const char *request,
         Rlist **response, const PackageManagerWrapper *wrapper)
 {
-    assert(args && request && wrapper);
+    assert(args && wrapper);
     
     char *command = StringFormat("%s %s", wrapper->path, args);
     IOData io = cf_popen_full_duplex(command, false);
