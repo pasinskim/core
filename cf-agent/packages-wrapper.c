@@ -477,8 +477,8 @@ static
 char *GetPackageWrapperRealPath(const char *package_manager_name)
 {
     
-    return StringFormat("%s%c%s%c%s", GetWorkDir(), FILE_SEPARATOR, "package_managers",
-                        FILE_SEPARATOR, package_manager_name);
+    return StringFormat("%s%c%s%c%s", GetWorkDir(), FILE_SEPARATOR, "package_modules",
+            FILE_SEPARATOR, package_manager_name);
 }
 
 static
