@@ -1215,7 +1215,8 @@ Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION RETURNED: %c", result);
 
 //TODO: ifelapsed values can be NO_INT when parsing is failing!!!
 PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
-                                          Attributes *a)
+                                          Attributes *a, char **promise_log_msg,
+                                          LogLevel *log_lvl)
 {
     Log(LOG_LEVEL_ERR, "New package promise handler");
     
@@ -1223,6 +1224,9 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
         !a->new_packages.package_manager->name)
     {
         Log(LOG_LEVEL_ERR, "Can not find package manager body.");
+        *promise_log_msg =
+                SafeStringDuplicate("Can not find package manager body.");
+        *log_lvl = LOG_LEVEL_ERR;
         return PROMISE_RESULT_FAIL;
     }
     
@@ -1234,8 +1238,12 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
     if (!package_manager_wrapper)
     {
         Log(LOG_LEVEL_ERR, 
-            "Some error occurred while evaluating package promise: %s",
+            "Some error occurred while contacting package module for promise: %s",
             pp->promiser);
+        *promise_log_msg =
+                StringFormat("Some error occurred while contacting package "
+                             "module for promise: %s", pp->promiser);
+        *log_lvl = LOG_LEVEL_ERR;
         return PROMISE_RESULT_FAIL;
     }
     
@@ -1256,6 +1264,12 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
         Log(LOG_LEVEL_ERR, 
             "Can not aquire global lock for package promise. Skipping promise "
             "evaluation");
+        
+        *promise_log_msg =
+                SafeStringDuplicate("Can not aquire global lock for package "
+                                    "promise. Skipping promise evaluation");
+        *log_lvl = LOG_LEVEL_VERBOSE;
+        
         return PROMISE_RESULT_SKIPPED;
     }
     
@@ -1269,6 +1283,12 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
             "evaluation",  pp->promiser);
         YieldCurrentLockAndRemoveFromCache(ctx, package_promise_global_lock,
                                            lockname, pp);
+        
+        *promise_log_msg =
+                StringFormat("Can not aquire lock for '%s' package promise. "
+                             "Skipping promise evaluation",  pp->promiser);
+        *log_lvl = LOG_LEVEL_VERBOSE;
+        
         return PROMISE_RESULT_SKIPPED;
     }
     
@@ -1280,16 +1300,32 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
             result = HandleAbsentPromiseAction(pp->promiser, 
                                                &a->new_packages,
                                                package_manager_wrapper);
+            *log_lvl = result == PROMISE_RESULT_FAIL ?
+                                 LOG_LEVEL_ERR : LOG_LEVEL_VERBOSE;
+            *promise_log_msg = result == PROMISE_RESULT_FAIL ?
+                StringFormat("Error removing package '%s'", pp->promiser) :
+                StringFormat("Successfully removed package '%s'", pp->promiser);
             break;
         case NEW_PACKAGE_ACTION_PRESENT:
             result = HandlePresentPromiseAction(pp->promiser, 
                                                 &a->new_packages,
                                                 package_manager_wrapper);
+            *log_lvl = result == PROMISE_RESULT_FAIL ?
+                                 LOG_LEVEL_ERR : LOG_LEVEL_VERBOSE;
+            *promise_log_msg = result == PROMISE_RESULT_FAIL ?
+                StringFormat("Error installing package '%s'", pp->promiser) :
+                StringFormat("Successfully installed package '%s'", pp->promiser);
             break;
         case NEW_PACKAGE_ACTION_NONE:
         default:
             Log(LOG_LEVEL_ERR, "Unsupported or missing package promise policy.");
             result = PROMISE_RESULT_FAIL;
+            
+            *promise_log_msg =
+                SafeStringDuplicate("Unsupported or missing package promise "
+                                    "policy.");
+            *log_lvl = LOG_LEVEL_ERR;
+
             break;
     }
     

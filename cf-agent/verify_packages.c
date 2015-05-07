@@ -194,25 +194,37 @@ PromiseResult VerifyPackagesPromise(EvalContext *ctx, const Promise *pp)
         Log(LOG_LEVEL_VERBOSE, 
             "Package promise %s failed sanity check due to arguments error: %d", 
             pp->promiser, package_promise_type);
-        result = PROMISE_RESULT_FAIL;
         
-        if (!REPORT_THIS_PROMISE(pp))
-        {
-            // This will not be reported elsewhere, so give it kept outcome.
-            result = PROMISE_RESULT_NOOP;
-            cfPS(ctx, LOG_LEVEL_DEBUG, result, pp, a, "Giving dummy package kept outcome");
-        }
-        return result;
+        cfPS_HELPER_0ARG(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a, 
+                         "Mixed old and new package promise attributes iside "
+                         "one package promise.");
+        return PROMISE_RESULT_FAIL;
     }
-    
     else if (package_promise_type == PACKAGE_PROMISE_TYPE_OLD)
     {
-        return HandleOldPackagePromiseType(ctx, pp, a);
+        result = HandleOldPackagePromiseType(ctx, pp, a);
+        
+        /* Update new package promise cache in case we have mixed old and new 
+         * package promises in policy. */
+        if (result == PROMISE_RESULT_CHANGE || result == PROMISE_RESULT_FAIL ||
+            result == PROMISE_RESULT_WARN)
+        {
+            
+        }
     }
     else
     {
-        return HandleNewPackagePromiseType(ctx, pp, &a);
+        char *promise_log_message;
+        LogLevel level;
+        result = HandleNewPackagePromiseType(ctx, pp, &a, &promise_log_message,
+                                          &level);
+        if (result != PROMISE_RESULT_SKIPPED)
+        {
+            cfPS(ctx, level, result, pp, a, promise_log_message);
+        }
+        free(promise_log_message);
     }
+    return result;
 }
 
 PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, Attributes a)

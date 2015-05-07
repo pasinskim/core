@@ -26,6 +26,7 @@
 #define PACKAGES_WRAPPER_H
 
 #include <cf3.defs.h>
+#include <logging.h>
 
 #define PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC 3600 /* one hour timeout */
 #define PACKAGE_PROMISE_TERMINATION_CHECK_SEC 1
@@ -65,6 +66,7 @@ typedef enum {
 
 
 PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
-                                          Attributes *a);
+                                          Attributes *a, char **promise_log_msg,
+                                          LogLevel *log_lvl);
 
 #endif
