@@ -842,7 +842,7 @@ PromiseResult RemovePackage(const char *name, Rlist* options,
         StringFormat("Version=%s\n", version) : NULL;
     char *arch = architecture ? 
         StringFormat("Architecture=%s\n", architecture) : NULL;
-    char *request = StringFormat("%sName=%s%s%s\n",
+    char *request = StringFormat("%sName=%s\n%s%s",
             options_str, name, ver ? ver : "", arch ? arch : "");
     
     PromiseResult res = PROMISE_RESULT_CHANGE;
@@ -933,13 +933,13 @@ PromiseResult InstallPackage(Rlist *options,
     if (type == PACKAGE_TYPE_FILE)
     {
         package_install_command = "file-install";
-        request = StringFormat("%sFile=%s%s%s\n",
+        request = StringFormat("%sFile=%s\n%s%s",
             options_str, package_to_install, ver ? ver : "", arch ? arch : "");
     }
     else if (type == PACKAGE_TYPE_REPO)
     {
         package_install_command = "repo-install";
-        request = StringFormat("%sName=%s%s%s\n",
+        request = StringFormat("%sName=%s\n%s%s",
             options_str, package_to_install, ver ? ver : "", arch ? arch : "");
     }
     else
