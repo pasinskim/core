@@ -1194,7 +1194,7 @@ bool CheckPolicyAndPackageInfoMatch(const NewPackages *packages_policy,
             return false;
         }
         if (packages_policy->package_version && 
-            !StringSafeEqual(info->arch, packages_policy->package_architecture))
+            !StringSafeEqual(info->version, packages_policy->package_version))
         {
             Log(LOG_LEVEL_ERR,
                 "package version and one specified in policy doesn't match: %s -> %s",
