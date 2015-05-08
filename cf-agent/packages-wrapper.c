@@ -594,7 +594,7 @@ void WritePackageDataToDB(CF_DB *db_installed,
     
     xsnprintf(package_key, sizeof(package_key),
               "N<%s>", name);
-    if (type == UPDATE_TYPE_UPDATES && 
+    if ((type == UPDATE_TYPE_UPDATES || type == UPDATE_TYPE_LOCAL_UPDATES) && 
             HasKeyDB(db_installed, package_key, strlen(package_key) + 1))
     {
         size_t val_size =
@@ -605,7 +605,7 @@ void WritePackageDataToDB(CF_DB *db_installed,
         xsnprintf(buff + val_size, sizeof(package_key), "V<%s>A<%s>\n", ver, arch);
         WriteDB(db_installed, package_key, buff, strlen(buff));
     }
-    else if (type == UPDATE_TYPE_UPDATES)
+    else if (type == UPDATE_TYPE_UPDATES || type == UPDATE_TYPE_LOCAL_UPDATES)
     {
         char buff[strlen(arch) + strlen(ver) + 8];
         xsnprintf(buff, sizeof(package_key), "V<%s>A<%s>\n", ver, arch);
@@ -721,6 +721,12 @@ bool UpdateCache(Rlist* options, const PackageManagerWrapper *wrapper,
     {
         req_type = "list-updates";
     }
+    else if (type == UPDATE_TYPE_LOCAL_UPDATES)
+    {
+        //TODO:
+        //req_type = "list-updates-locally";
+        req_type = "list-updates";
+    }
     if (ReadWriteDataToPackageScript(req_type, options_str, &response,
             wrapper) != 0)
     {
@@ -759,6 +765,14 @@ PromiseResult ValidateChangedPackage(const NewPackages *policy_data,
                      UPDATE_TYPE_INSTALLED))
     {
         Log(LOG_LEVEL_ERR, "Can not update cache after package installation");
+        return PROMISE_RESULT_FAIL;
+    }
+    
+    if (!UpdateCache(policy_data->package_options, wrapper,
+                     UPDATE_TYPE_LOCAL_UPDATES))
+    {
+        Log(LOG_LEVEL_ERR, "Can not update available updates cache after "
+            "package installation");
         return PROMISE_RESULT_FAIL;
     }
 
@@ -1032,10 +1046,10 @@ PromiseResult RepoInstall(const PackageInfo *package_info,
                 GetVersionsFromUpdates(package_info, wrapper->name);
         if (!latest_versions)
         {
-            Log(LOG_LEVEL_ERR, "Can not find exact package version(s) for "
-                    "package '%s' with version latest", package_info->name);
+            Log(LOG_LEVEL_ERR, "Package '%s' is already in the latest version.",
+                package_info->name);
 
-            return PROMISE_RESULT_FAIL;
+            return PROMISE_RESULT_NOOP;
         }
         
         PromiseResult res = PROMISE_RESULT_NOOP;
@@ -1049,6 +1063,8 @@ PromiseResult RepoInstall(const PackageInfo *package_info,
                     "available updates", package_info->name,
                     update_package->version);
             
+            /* Just in case some package managers will report highest possible 
+               version in updates list */
             if (IsPackageInCache(wrapper->name, package_info->name,
                                  update_package->version,
                                  update_package->arch))
@@ -1232,21 +1248,6 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
     
     PromiseBanner(ctx, pp);
     
-    PackageManagerWrapper *package_manager_wrapper =
-            GetPackageManagerWrapper(a->new_packages.package_manager->name);
-    
-    if (!package_manager_wrapper)
-    {
-        Log(LOG_LEVEL_ERR, 
-            "Some error occurred while contacting package module for promise: %s",
-            pp->promiser);
-        *promise_log_msg =
-                StringFormat("Some error occurred while contacting package "
-                             "module for promise: %s", pp->promiser);
-        *log_lvl = LOG_LEVEL_ERR;
-        return PROMISE_RESULT_FAIL;
-    }
-    
     const char *lockname = GLOBAL_PACKAGE_PROMISE_LOCK_NAME;
     CfLock package_promise_global_lock;
     CfLock package_promise_lock;
@@ -1290,6 +1291,21 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
         *log_lvl = LOG_LEVEL_VERBOSE;
         
         return PROMISE_RESULT_SKIPPED;
+    }
+    
+    PackageManagerWrapper *package_manager_wrapper =
+            GetPackageManagerWrapper(a->new_packages.package_manager->name);
+    
+    if (!package_manager_wrapper)
+    {
+        Log(LOG_LEVEL_ERR, 
+            "Some error occurred while contacting package module for promise: %s",
+            pp->promiser);
+        *promise_log_msg =
+                StringFormat("Some error occurred while contacting package "
+                             "module for promise: %s", pp->promiser);
+        *log_lvl = LOG_LEVEL_ERR;
+        return PROMISE_RESULT_FAIL;
     }
     
     PromiseResult result = PROMISE_RESULT_FAIL;
@@ -1338,7 +1354,7 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
     return result;
 }
 
-void UpdatePackagesCache(EvalContext *ctx)
+void UpdatePackagesCache(EvalContext *ctx, bool ignore_ifelapsed)
 {
     Log(LOG_LEVEL_ERR, "Updating package cache.");
     const char *lockname = GLOBAL_PACKAGE_PROMISE_LOCK_NAME;
@@ -1369,7 +1385,7 @@ void UpdatePackagesCache(EvalContext *ctx)
         const char *pm_name =  RlistScalarValue(rp);
         PackageManagerBody *module =
                 GetManagerFromPackagePromiseContext(ctx, pm_name);
-        
+
         if (!module)
         {
             Log(LOG_LEVEL_ERR, "Can not find body for package module: %s",
@@ -1383,41 +1399,44 @@ void UpdatePackagesCache(EvalContext *ctx)
                 pm_name, module->installed_ifelapesed, module->updates_ifelapsed);
             continue;
         }
-        
+
         PackageManagerWrapper *module_wrapper =
                 GetPackageManagerWrapper(pm_name);
-        
+
         if (!module_wrapper)
         {
             Log(LOG_LEVEL_ERR, "Can not set up wrapper for module: %s", pm_name);
             continue;
         }
-        
-         CfLock cache_updates_lock;
-         CfLock cache_installed_lock;
-         char cache_updates_lock_name[CF_BUFSIZE];
-         char cache_installed_lock_name[CF_BUFSIZE];
 
-         snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,
-                  "package-cache-updates-%s", pm_name);
-         snprintf(cache_installed_lock_name, CF_BUFSIZE - 1,
-                  "package-cache-installed-%s", pm_name);
-         
-         cache_updates_lock = 
+        CfLock cache_updates_lock;
+        CfLock cache_installed_lock;
+        char cache_updates_lock_name[CF_BUFSIZE];
+        char cache_installed_lock_name[CF_BUFSIZE];
+
+        snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,
+                 "package-cache-updates-%s", pm_name);
+        snprintf(cache_installed_lock_name, CF_BUFSIZE - 1,
+                 "package-cache-installed-%s", pm_name);
+
+        if (!ignore_ifelapsed)
+        {
+            cache_updates_lock = 
                  AcquireLock(ctx, cache_updates_lock_name, VUQNAME, CFSTARTTIME,
                         (TransactionContext) {.ifelapsed = module->updates_ifelapsed, .expireafter = 0},
                         &pp, false);
-                        
-        if (cache_updates_lock.lock != NULL)
+        }
+
+        if (ignore_ifelapsed || cache_updates_lock.lock != NULL)
         {
             /* Update available updates cache. */
             if (!UpdateCache(module->options, module_wrapper,
-                     UPDATE_TYPE_UPDATES))
+                     ignore_ifelapsed ? UPDATE_TYPE_LOCAL_UPDATES : UPDATE_TYPE_UPDATES))
             {
                 Log(LOG_LEVEL_ERR, "Some error occurred while updating available "
                     "updates cache.");
             }
-            
+
             YieldCurrentLock(cache_updates_lock);
         }
         else
@@ -1425,13 +1444,16 @@ void UpdatePackagesCache(EvalContext *ctx)
             Log(LOG_LEVEL_ERR, "Skipping available updates package cache update "
                 "due to ifelapesed.");
         }
-                        
-        cache_installed_lock = 
+
+        if (!ignore_ifelapsed)
+        {
+            cache_installed_lock = 
                  AcquireLock(ctx, cache_installed_lock_name, VUQNAME, CFSTARTTIME,
                         (TransactionContext) {.ifelapsed = module->installed_ifelapesed, .expireafter = 0},
                         &pp, false);
-                        
-        if (cache_installed_lock.lock != NULL)
+        }
+
+        if (ignore_ifelapsed || cache_installed_lock.lock != NULL)
         {
             /* Update installed packages cache. */
             if (!UpdateCache(module->options, module_wrapper,
@@ -1440,7 +1462,7 @@ void UpdatePackagesCache(EvalContext *ctx)
                 Log(LOG_LEVEL_ERR, "Some error occurred while updating available "
                     "updates cache.");
             }
-            
+
             YieldCurrentLock(cache_installed_lock);
         }
         else
@@ -1448,7 +1470,7 @@ void UpdatePackagesCache(EvalContext *ctx)
             Log(LOG_LEVEL_ERR, "Skipping installed packages package cache update "
                 "due to ifelapesed.");
         }
-        
+
         FreePackageManageWrapper(module_wrapper);
         
     }

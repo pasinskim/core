@@ -61,7 +61,8 @@ typedef struct
 
 typedef enum {
     UPDATE_TYPE_INSTALLED,
-    UPDATE_TYPE_UPDATES,        
+    UPDATE_TYPE_UPDATES,
+    UPDATE_TYPE_LOCAL_UPDATES,
 } UpdateType;
 
 

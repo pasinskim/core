@@ -1151,7 +1151,7 @@ static void KeepPromiseBundles(EvalContext *ctx, const Policy *policy, GenericAg
     WriterClose(w);
     
     /* Update package promise cache. */
-    UpdatePackagesCache(ctx);
+    UpdatePackagesCache(ctx, false);
 
 /* If all is okay, go ahead and evaluate */
 

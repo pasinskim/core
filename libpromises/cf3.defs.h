@@ -1341,7 +1341,7 @@ typedef enum {
     PACKAGE_CONTROLL_DEF_MANAGER
 } PackageControll;
 
-void UpdatePackagesCache(EvalContext *ctx);
+void UpdatePackagesCache(EvalContext *ctx, bool ignore_ifelapsed);
 
 /*************************************************************************/
 

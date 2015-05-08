@@ -206,10 +206,9 @@ PromiseResult VerifyPackagesPromise(EvalContext *ctx, const Promise *pp)
         
         /* Update new package promise cache in case we have mixed old and new 
          * package promises in policy. */
-        if (result == PROMISE_RESULT_CHANGE || result == PROMISE_RESULT_FAIL ||
-            result == PROMISE_RESULT_WARN)
+        if (result == PROMISE_RESULT_CHANGE || result == PROMISE_RESULT_FAIL)
         {
-            
+            UpdatePackagesCache(ctx, true);
         }
     }
     else
