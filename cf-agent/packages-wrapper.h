@@ -56,6 +56,7 @@ typedef struct
 {
     char *name;
     char *path;
+    PackageManagerBody *package_module;
     int supported_api_version;
 } PackageManagerWrapper;
 

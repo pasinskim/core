@@ -34,6 +34,11 @@
 #include <locks.h>
 
 static
+bool UpdateSinglePackageModuleCache(EvalContext *ctx,
+                                    const PackageManagerWrapper *module_wrapper,
+                                    UpdateType type, bool force_update);
+
+static
 void LogPackagePromiseError(PackageError *error)
 {
     if (error)
@@ -482,8 +487,9 @@ void FreePackageManageWrapper(PackageManagerWrapper *wrapper)
 }
 
 static
-PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name)
+PackageManagerWrapper *GetPackageManagerWrapper(PackageManagerBody *package_module)
 {
+    assert(package_module && package_module->name);
     //TODO: add cache where managers are already initialized from previous runs
     PackageManagerWrapper *wrapper = malloc(sizeof(PackageManagerWrapper));
     
@@ -492,8 +498,9 @@ PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name
         return NULL;
     }
     
-    wrapper->path = GetPackageWrapperRealPath(package_manager_name);
-    wrapper->name = SafeStringDuplicate(package_manager_name);
+    wrapper->path = GetPackageWrapperRealPath(package_module->name);
+    wrapper->name = SafeStringDuplicate(package_module->name);
+    wrapper->package_module = package_module;
     
     /* Check if file exists */
     struct stat sb;
@@ -521,8 +528,9 @@ PackageManagerWrapper *GetPackageManagerWrapper(const char *package_manager_name
 }
 
 static
-int IsPackageInCache(const char *pm_name, const char *name, const char *ver,
-                     const char *arch)
+int IsPackageInCache(EvalContext *ctx,
+                     const PackageManagerWrapper *module_wrapper,
+                     const char *name, const char *ver, const char *arch)
 {
     assert(pm_name);
     
@@ -535,8 +543,19 @@ int IsPackageInCache(const char *pm_name, const char *name, const char *ver,
         version = NULL;
     }
     
+    /* Make sure cache is updated. */
+    if (ctx)
+    {
+        if (!UpdateSinglePackageModuleCache(ctx, module_wrapper,
+                                            UPDATE_TYPE_INSTALLED, false))
+        {
+            Log(LOG_LEVEL_ERR, "Can not update cache");
+        }
+    }
+    
     CF_DB *db_cached;
-    if (!OpenSubDB(&db_cached, dbid_packages_installed, pm_name))
+    if (!OpenSubDB(&db_cached, dbid_packages_installed,
+                   module_wrapper->package_module->name))
     {
         return -1;
     }
@@ -776,7 +795,7 @@ PromiseResult ValidateChangedPackage(const NewPackages *policy_data,
         return PROMISE_RESULT_FAIL;
     }
 
-    if (IsPackageInCache(wrapper->name, package_info->name,
+    if (IsPackageInCache(NULL, wrapper, package_info->name,
                          package_info->version, package_info->arch))
     {
         return action_type == NEW_PACKAGE_ACTION_PRESENT ? 
@@ -829,8 +848,10 @@ PromiseResult RemovePackage(const char *name, Rlist* options,
     return res;    
 }
 
-PromiseResult HandleAbsentPromiseAction(char *package_name,
-        const NewPackages *policy_data, const PackageManagerWrapper *wrapper)
+PromiseResult HandleAbsentPromiseAction(EvalContext *ctx,
+                                        char *package_name,
+                                        const NewPackages *policy_data, 
+                                        const PackageManagerWrapper *wrapper)
 {
     /* Check if we are not having 'latest' version. */
     if (policy_data->package_version &&
@@ -842,7 +863,7 @@ PromiseResult HandleAbsentPromiseAction(char *package_name,
     }
     
     /* Check if package exists in cache */
-    if ((IsPackageInCache(wrapper->name, package_name,
+    if ((IsPackageInCache(ctx, wrapper, package_name,
                           policy_data->package_version,
                           policy_data->package_architecture)) == 1)
     {
@@ -952,7 +973,8 @@ PromiseResult FileInstallPackage(const char *package_file_path,
 }
 
 
-Seq *GetVersionsFromUpdates(const PackageInfo *info, const char *pm_name)
+Seq *GetVersionsFromUpdates(EvalContext *ctx, const PackageInfo *info,
+                            const PackageManagerWrapper *module_wrapper)
 {
     assert(pm_name);
     
@@ -960,7 +982,17 @@ Seq *GetVersionsFromUpdates(const PackageInfo *info, const char *pm_name)
     dbid db_id = dbid_packages_updates;
     Seq *updates_list = NULL;
     
-    if (OpenSubDB(&db_updates, db_id, pm_name))
+    /* Make sure cache is updated. */
+    if (ctx)
+    {
+        if (!UpdateSinglePackageModuleCache(ctx, module_wrapper,
+                                            UPDATE_TYPE_UPDATES, false))
+        {
+            Log(LOG_LEVEL_ERR, "Can not update cache");
+        }
+    }
+    
+    if (OpenSubDB(&db_updates, db_id, module_wrapper->package_module->name))
     {
         char package_key[strlen(info->name) + 4];
 
@@ -1014,9 +1046,11 @@ Seq *GetVersionsFromUpdates(const PackageInfo *info, const char *pm_name)
     return updates_list;
 }
 
-PromiseResult RepoInstall(const PackageInfo *package_info,
-        const NewPackages *policy_data, const PackageManagerWrapper *wrapper,
-        int is_in_cache)
+PromiseResult RepoInstall(EvalContext *ctx,
+                          PackageInfo *package_info,
+                          const NewPackages *policy_data,
+                          const PackageManagerWrapper *wrapper,
+                          int is_in_cache)
 {
     Log(LOG_LEVEL_ERR, "REPO INSTALL PACKAGE: %d", is_in_cache);
     
@@ -1043,7 +1077,7 @@ PromiseResult RepoInstall(const PackageInfo *package_info,
         /* This can return more than one latest version if we have packages
          * for different architectures installed. */
         Seq *latest_versions = 
-                GetVersionsFromUpdates(package_info, wrapper->name);
+                GetVersionsFromUpdates(ctx, package_info, wrapper);
         if (!latest_versions)
         {
             Log(LOG_LEVEL_ERR, "Package '%s' is already in the latest version.",
@@ -1065,7 +1099,7 @@ PromiseResult RepoInstall(const PackageInfo *package_info,
             
             /* Just in case some package managers will report highest possible 
                version in updates list */
-            if (IsPackageInCache(wrapper->name, package_info->name,
+            if (IsPackageInCache(ctx, wrapper, package_info->name,
                                  update_package->version,
                                  update_package->arch))
             {
@@ -1084,6 +1118,9 @@ PromiseResult RepoInstall(const PackageInfo *package_info,
                         PACKAGE_TYPE_REPO, package_info->name,
                         NULL, package_info->arch, wrapper);
                 res = PromiseResultUpdate(res, upgrade_res);
+                //TODO: discuss with Kristian
+                package_info->version =
+                        SafeStringDuplicate(update_package->version);
             }
         }
         SeqDestroy(latest_versions);
@@ -1101,11 +1138,13 @@ PromiseResult RepoInstall(const PackageInfo *package_info,
     return PROMISE_RESULT_FAIL;
 }
 
-PromiseResult RepoInstallPackage(const PackageInfo *package_info,
-        const NewPackages *policy_data, const PackageManagerWrapper *wrapper,
-        int is_in_cache)
+PromiseResult RepoInstallPackage(EvalContext *ctx, 
+                                 PackageInfo *package_info,
+                                 const NewPackages *policy_data,
+                                 const PackageManagerWrapper *wrapper,
+                                 int is_in_cache)
 {
-    PromiseResult res = RepoInstall(package_info, policy_data, wrapper,
+    PromiseResult res = RepoInstall(ctx, package_info, policy_data, wrapper,
                                     is_in_cache);
     if (res == PROMISE_RESULT_CHANGE)
     {
@@ -1148,9 +1187,10 @@ bool CheckPolicyAndPackageInfoMatch(const NewPackages *packages_policy,
     return true;
 }
 
-PromiseResult HandlePresentPromiseAction(const char *package_name,
-                           const NewPackages *new_packages,
-                           const PackageManagerWrapper *package_manager_wrapper)
+PromiseResult HandlePresentPromiseAction(EvalContext *ctx, 
+                                         const char *package_name,
+                                         const NewPackages *new_packages,
+                                         const PackageManagerWrapper *package_manager_wrapper)
 {
     Log(LOG_LEVEL_ERR, "PRESENT PROMISE ACTION");
     
@@ -1188,7 +1228,7 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
         }
         
         /* Check if package exists in cache */
-        int is_in_cache = IsPackageInCache(package_manager_wrapper->name,
+        int is_in_cache = IsPackageInCache(ctx, package_manager_wrapper,
                                            package_info->name,
                                            package_info->version,
                                            package_info->arch);
@@ -1209,7 +1249,7 @@ PromiseResult HandlePresentPromiseAction(const char *package_name,
                                             is_in_cache);
                 break;
             case PACKAGE_TYPE_REPO:
-                result = RepoInstallPackage(package_info, new_packages,
+                result = RepoInstallPackage(ctx, package_info, new_packages,
                                             package_manager_wrapper,
                                             is_in_cache);
                 break;
@@ -1294,7 +1334,7 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
     }
     
     PackageManagerWrapper *package_manager_wrapper =
-            GetPackageManagerWrapper(a->new_packages.package_manager->name);
+            GetPackageManagerWrapper(a->new_packages.package_manager);
     
     if (!package_manager_wrapper)
     {
@@ -1313,7 +1353,7 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
     switch (a->new_packages.package_policy)
     {
         case NEW_PACKAGE_ACTION_ABSENT:
-            result = HandleAbsentPromiseAction(pp->promiser, 
+            result = HandleAbsentPromiseAction(ctx, pp->promiser, 
                                                &a->new_packages,
                                                package_manager_wrapper);
             *log_lvl = result == PROMISE_RESULT_FAIL ?
@@ -1323,7 +1363,7 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
                 StringFormat("Successfully removed package '%s'", pp->promiser);
             break;
         case NEW_PACKAGE_ACTION_PRESENT:
-            result = HandlePresentPromiseAction(pp->promiser, 
+            result = HandlePresentPromiseAction(ctx, pp->promiser, 
                                                 &a->new_packages,
                                                 package_manager_wrapper);
             *log_lvl = result == PROMISE_RESULT_FAIL ?
@@ -1354,7 +1394,79 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
     return result;
 }
 
-void UpdatePackagesCache(EvalContext *ctx, bool ignore_ifelapsed)
+/* This must be called under protection of GLOBAL_PACKAGE_PROMISE_LOCK_NAME lock! */
+bool UpdateSinglePackageModuleCache(EvalContext *ctx,
+                                    const PackageManagerWrapper *module_wrapper,
+                                    UpdateType type, bool force_update)
+{
+    assert(module_wrapper->package_module->name);
+    
+    if (!force_update)
+    {
+        if (module_wrapper->package_module->installed_ifelapesed == CF_NOINT ||
+            module_wrapper->package_module->updates_ifelapsed == CF_NOINT)
+        {
+            Log(LOG_LEVEL_ERR, "Package module body constraints error: %s %d %d",
+                module_wrapper->package_module->name, 
+                module_wrapper->package_module->installed_ifelapesed,
+                module_wrapper->package_module->updates_ifelapsed);
+            return false;
+        }
+    }
+    
+    Bundle bundle = {.name = "package_cache"};
+    PromiseType promie_type = {.name = "package_cache",
+                               .parent_bundle = &bundle};
+    Promise pp = {.promiser = "package_cache",
+                  .parent_promise_type = &promie_type};
+
+    CfLock cache_updates_lock;
+    char cache_updates_lock_name[CF_BUFSIZE];
+
+    if (type == UPDATE_TYPE_INSTALLED)
+    {
+        snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,
+                 "package-cache-installed-%s", module_wrapper->package_module->name);
+    }
+    else
+    {
+        snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,
+                "package-cache-updates-%s", module_wrapper->package_module->name);
+    }
+
+    if (!force_update)
+    {
+        cache_updates_lock =
+                AcquireLock(ctx, cache_updates_lock_name, VUQNAME, CFSTARTTIME,
+                (TransactionContext) {.ifelapsed = module_wrapper->package_module->updates_ifelapsed, .expireafter = 0},
+                &pp, false);
+    }
+    
+    bool ret = true;
+
+    if (force_update || cache_updates_lock.lock != NULL)
+    {
+        /* Update available updates cache. */
+        if (!UpdateCache(module_wrapper->package_module->options, module_wrapper, type))
+        {
+            Log(LOG_LEVEL_ERR, "Some error occurred while updating available "
+                               "updates cache.");
+            ret = false;
+        }
+        if (!force_update)
+        {
+            YieldCurrentLock(cache_updates_lock);
+        }
+    }
+    else
+    {
+        Log(LOG_LEVEL_ERR, "Skipping available updates package cache update "
+                           "due to ifelapesed.");
+    }
+    return ret;
+}
+
+void UpdatePackagesCache(EvalContext *ctx, bool force_update)
 {
     Log(LOG_LEVEL_ERR, "Updating package cache.");
     const char *lockname = GLOBAL_PACKAGE_PROMISE_LOCK_NAME;
@@ -1398,16 +1510,9 @@ void UpdatePackagesCache(EvalContext *ctx, bool ignore_ifelapsed)
                 pm_name);
             continue;
         }
-        if (module->installed_ifelapesed == CF_NOINT ||
-            module->updates_ifelapsed == CF_NOINT)
-        {
-            Log(LOG_LEVEL_ERR, "Package module body constraints error: %s %d %d",
-                pm_name, module->installed_ifelapesed, module->updates_ifelapsed);
-            continue;
-        }
 
         PackageManagerWrapper *module_wrapper =
-                GetPackageManagerWrapper(pm_name);
+                GetPackageManagerWrapper(module);
 
         if (!module_wrapper)
         {
@@ -1415,72 +1520,16 @@ void UpdatePackagesCache(EvalContext *ctx, bool ignore_ifelapsed)
             continue;
         }
 
-        CfLock cache_updates_lock;
-        CfLock cache_installed_lock;
-        char cache_updates_lock_name[CF_BUFSIZE];
-        char cache_installed_lock_name[CF_BUFSIZE];
-
-        snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,
-                 "package-cache-updates-%s", pm_name);
-        snprintf(cache_installed_lock_name, CF_BUFSIZE - 1,
-                 "package-cache-installed-%s", pm_name);
-
-        if (!ignore_ifelapsed)
-        {
-            cache_updates_lock = 
-                 AcquireLock(ctx, cache_updates_lock_name, VUQNAME, CFSTARTTIME,
-                        (TransactionContext) {.ifelapsed = module->updates_ifelapsed, .expireafter = 0},
-                        &pp, false);
-        }
-
-        if (ignore_ifelapsed || cache_updates_lock.lock != NULL)
-        {
-            /* Update available updates cache. */
-            if (!UpdateCache(module->options, module_wrapper,
-                     ignore_ifelapsed ? UPDATE_TYPE_LOCAL_UPDATES : UPDATE_TYPE_UPDATES))
-            {
-                Log(LOG_LEVEL_ERR, "Some error occurred while updating available "
-                    "updates cache.");
-            }
-
-            YieldCurrentLock(cache_updates_lock);
-        }
-        else
-        {
-            Log(LOG_LEVEL_ERR, "Skipping available updates package cache update "
-                "due to ifelapesed.");
-        }
-
-        if (!ignore_ifelapsed)
-        {
-            cache_installed_lock = 
-                 AcquireLock(ctx, cache_installed_lock_name, VUQNAME, CFSTARTTIME,
-                        (TransactionContext) {.ifelapsed = module->installed_ifelapesed, .expireafter = 0},
-                        &pp, false);
-        }
-
-        if (ignore_ifelapsed || cache_installed_lock.lock != NULL)
-        {
-            /* Update installed packages cache. */
-            if (!UpdateCache(module->options, module_wrapper,
-                     UPDATE_TYPE_INSTALLED))
-            {
-                Log(LOG_LEVEL_ERR, "Some error occurred while updating available "
-                    "updates cache.");
-            }
-
-            YieldCurrentLock(cache_installed_lock);
-        }
-        else
-        {
-            Log(LOG_LEVEL_ERR, "Skipping installed packages package cache update "
-                "due to ifelapesed.");
-        }
+        UpdateSinglePackageModuleCache(ctx, module_wrapper,
+                                       UPDATE_TYPE_INSTALLED, force_update);
+        UpdateSinglePackageModuleCache(ctx, module_wrapper,
+                                       force_update ? UPDATE_TYPE_LOCAL_UPDATES : 
+                                           UPDATE_TYPE_UPDATES,
+                                       force_update);
 
         FreePackageManageWrapper(module_wrapper);
         
     }
     YieldCurrentLockAndRemoveFromCache(ctx, package_promise_global_lock,
                                        lockname, &pp);
-
 }
