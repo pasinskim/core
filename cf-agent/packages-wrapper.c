@@ -1383,6 +1383,12 @@ void UpdatePackagesCache(EvalContext *ctx, bool ignore_ifelapsed)
     for (const Rlist *rp = default_inventory; rp != NULL; rp = rp->next)
     {
         const char *pm_name =  RlistScalarValue(rp);
+        
+        /* We don't want inventory to be reported. */
+        if (StringSafeEqual(pm_name, "cf_null"))
+        {
+            break;
+        }
         PackageManagerBody *module =
                 GetManagerFromPackagePromiseContext(ctx, pm_name);
 

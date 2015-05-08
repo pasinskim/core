@@ -1134,12 +1134,6 @@ NewPackages GetNewPackageConstraints(const EvalContext *ctx, const Promise *pp)
     p.package_architecture = PromiseGetConstraintAsRval(pp, "architecture", RVAL_TYPE_SCALAR);
     p.package_options = PromiseGetConstraintAsList(ctx, "options", pp);
     
-    /* If global options are not override by promise specific ones. */
-    if (!p.package_options && p.package_manager)
-    {
-        p.package_options = p.package_manager->options;
-    }
-    
     p.is_empty = (memcmp(&p, &empty, sizeof(NewPackages)) == 0);
     p.package_policy = GetNewPackagePolicy(PromiseGetConstraintAsRval(pp, "policy", RVAL_TYPE_SCALAR),
                                            new_packages_actions);
@@ -1166,6 +1160,12 @@ NewPackages GetNewPackageConstraints(const EvalContext *ctx, const Promise *pp)
         p.package_manager = GetDefaultManagerFromPackagePromiseContext(ctx);
     }
     p.package_inventory = GetDefaultInventoryFromPackagePromiseContext(ctx);
+    
+    /* If global options are not override by promise specific ones. */
+    if (!p.package_options && p.package_manager)
+    {
+        p.package_options = p.package_manager->options;
+    }
 
     return p;
 }

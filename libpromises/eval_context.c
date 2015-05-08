@@ -144,7 +144,7 @@ void AddManagerToPackagePromiseContext(const EvalContext *ctx, PackageManagerBod
 PackageManagerBody *GetManagerFromPackagePromiseContext(const EvalContext *ctx,
         const char *name)
 {
-    if (name == NULL)
+    if (name == NULL || StringSafeEqual("cf_null", name))
     {
         return NULL;
     }
