@@ -219,7 +219,7 @@ PromiseResult VerifyPackagesPromise(EvalContext *ctx, const Promise *pp)
                                           &level);
         if (result != PROMISE_RESULT_SKIPPED)
         {
-            cfPS(ctx, level, result, pp, a, promise_log_message);
+            cfPS(ctx, level, result, pp, a, "%s", promise_log_message);
         }
         free(promise_log_message);
     }

@@ -1149,9 +1149,6 @@ static void KeepPromiseBundles(EvalContext *ctx, const Policy *policy, GenericAg
     RlistWrite(w, bundlesequence);
     Log(LOG_LEVEL_VERBOSE, "%s", StringWriterData(w));
     WriterClose(w);
-    
-    /* Update package promise cache. */
-    UpdatePackagesCache(ctx, false);
 
 /* If all is okay, go ahead and evaluate */
 
