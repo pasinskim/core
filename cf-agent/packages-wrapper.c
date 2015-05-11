@@ -998,9 +998,7 @@ PromiseResult FileInstallPackage(const char *package_file_path,
 
 Seq *GetVersionsFromUpdates(EvalContext *ctx, const PackageInfo *info,
                             const PackageManagerWrapper *module_wrapper)
-{
-    assert(pm_name);
-    
+{   
     CF_DB *db_updates;
     dbid db_id = dbid_packages_updates;
     Seq *updates_list = NULL;
