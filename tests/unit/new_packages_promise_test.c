@@ -23,26 +23,10 @@ PackageManagerBody *make_mock_package_manager(const char *name, int updates_ifel
 
 void tests_setup(void)
 {
-    static char env[] = /* Needs to be static for putenv() */
-        "CFENGINE_TEST_OVERRIDE_WORKDIR=/tmp/CFENGINE_eval_context_test.XXXXXX";
-    char *workdir = strchr(env, '=');
-    assert(workdir && workdir[1] == '/');
-    workdir++;
-
-    mkdtemp(workdir);
-    strlcpy(CFWORKDIR, workdir, CF_BUFSIZE);
-    putenv(env);
-
-    char state_dir[PATH_MAX];
-    xsnprintf(state_dir, PATH_MAX, "%s/state", workdir);
-    mkdir(state_dir, 0766);
 }
 
 void tests_teardown(void)
 {
-    char cmd[CF_BUFSIZE];
-    xsnprintf(cmd, CF_BUFSIZE, "rm -rf '%s'", CFWORKDIR);
-    system(cmd);
 }
 
 static void test_add_manager_to_context()
@@ -92,23 +76,11 @@ static void test_default_package_manager_settings()
     PackageManagerBody *pm3 = make_mock_package_manager("yum_2", 220, 440, NULL);
     AddManagerToPackagePromiseContext(ctx, pm3);
 
-    PackagePromiseAddDefaultPackageManager(ctx, "apt_get", false);
+    PackagePromiseAddDefaultPackageManager(ctx, "apt_get");
     PackageManagerBody *def_pm = GetDefaultManagerFromPackagePromiseContext(ctx);
     assert_string_equal("apt_get", def_pm->name);
     
-    PackagePromiseAddDefaultPackageManager(ctx, "yum", false);
-    def_pm = GetDefaultManagerFromPackagePromiseContext(ctx);
-    assert_string_equal("yum", def_pm->name);
-    
-    PackagePromiseAddDefaultPackageManager(ctx, "yum_2", true);
-    def_pm = GetDefaultManagerFromPackagePromiseContext(ctx);
-    assert_string_equal("yum_2", def_pm->name);
-    
-    PackagePromiseAddDefaultPackageManager(ctx, "yum", true);
-    def_pm = GetDefaultManagerFromPackagePromiseContext(ctx);
-    assert_string_equal("yum", def_pm->name);
-    
-    PackagePromiseAddDefaultPackageManager(ctx, "apt_get", false);
+    PackagePromiseAddDefaultPackageManager(ctx, "yum");
     def_pm = GetDefaultManagerFromPackagePromiseContext(ctx);
     assert_string_equal("yum", def_pm->name);
 

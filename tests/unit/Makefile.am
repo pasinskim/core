@@ -302,7 +302,7 @@ lastseen_migration_test_LDADD = libdb.la ../../libpromises/libpromises.la
 
 CLEANFILES = *.gcno *.gcda cfengine-enterprise.so
 
-package_versions_compare_test_SOURCES = package_versions_compare_test.c ../../cf-agent/verify_packages.c ../../cf-agent/vercmp.c ../../cf-agent/vercmp_internal.c ../../cf-agent/retcode.c ../../cf-agent/match_scope.c
+package_versions_compare_test_SOURCES = package_versions_compare_test.c ../../cf-agent/verify_packages.c ../../cf-agent/vercmp.c ../../cf-agent/vercmp_internal.c ../../cf-agent/retcode.c ../../cf-agent/match_scope.c ../../cf-agent/packages-wrapper.c
 
 #package_versions_compare_test_CPPFLAGS = $(AM_CPPFLAGS)
 package_versions_compare_test_LDADD = ../../libpromises/libpromises.la libtest.la

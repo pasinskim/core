@@ -71,4 +71,6 @@ PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,
                                           Attributes *a, char **promise_log_msg,
                                           LogLevel *log_lvl);
 
+void UpdatePackagesCache(EvalContext *ctx, bool force_update);
+
 #endif
