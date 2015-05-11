@@ -535,8 +535,6 @@ int IsPackageInCache(EvalContext *ctx,
                      const PackageManagerWrapper *module_wrapper,
                      const char *name, const char *ver, const char *arch)
 {
-    assert(pm_name);
-    
     const char *version = ver;
     /* Handle latest version in specific way for repo packages. 
      * Please note that for file packages 'latest' version is not supported
