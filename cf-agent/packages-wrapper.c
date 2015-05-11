@@ -33,6 +33,9 @@
 #include <known_dirs.h>
 #include <locks.h>
 
+#define INVENTORY_LIST_BUFFER_SIZE 100 * 80 /* 100 entries with 80 characters 
+                                             * per line */
+
 static
 bool UpdateSinglePackageModuleCache(EvalContext *ctx,
                                     const PackageManagerWrapper *module_wrapper,
@@ -653,12 +656,13 @@ int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)
     CF_DB *db_cached;
     dbid db_id = type == UPDATE_TYPE_INSTALLED ? dbid_packages_installed :
                                                  dbid_packages_updates;
-    
     if (OpenSubDB(&db_cached, db_id, pm_name))
     {
         /* Clean db opens read transaction in case when lmdb is used. Make sure
            that emptying db is locked while using alternate db. */
         CleanDB(db_cached);
+        
+        Buffer *inventory_data = BufferNewWithCapacity(INVENTORY_LIST_BUFFER_SIZE);
 
         char *package_data[3] = {NULL, NULL, NULL};
 
@@ -675,7 +679,14 @@ int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)
                     WritePackageDataToDB(db_cached, package_data[0],
                                          package_data[1], package_data[2], type);
                     
-                    //TODO: add list of all packages for inventory
+                    char inventory_line[strlen(package_data[0]) +
+                                        strlen(package_data[1]) +
+                                        strlen(package_data[2]) + 4];
+                    
+                    xsnprintf(inventory_line, sizeof(inventory_line),
+                              "%s,%s,%s\n", package_data[0], package_data[1],
+                              strlen(package_data[2]));                    
+                    BufferAppendString(inventory_data, inventory_line);
 
                     package_data[1] = NULL;
                     package_data[2] = NULL;
@@ -715,7 +726,21 @@ int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)
         {
             WritePackageDataToDB(db_cached, package_data[0],
                              package_data[1], package_data[2], type);
+            
+            char inventory_line[strlen(package_data[0]) +
+                                strlen(package_data[1]) +
+                                strlen(package_data[2]) + 4];
+
+            xsnprintf(inventory_line, sizeof(inventory_line),
+                      "%s,%s,%s\n", package_data[0], package_data[1],
+                      strlen(package_data[2]));
+            BufferAppendString(inventory_data, inventory_line);
         }
+        
+        char *inventory_key = "<inventory>";
+        char *inventory_list = BufferClose(inventory_data);
+        WriteDB(db_cached, inventory_key, inventory_list, strlen(inventory_list));
+        free(inventory_list);
         
         CloseDB(db_cached);
         return 0;
@@ -1110,17 +1135,14 @@ PromiseResult RepoInstall(EvalContext *ctx,
             }
             else
             {
-                /* We are not sending 'update_package->version' to 
-                 * wrapper as without version specified it should 
-                 * install latest */
+                package_info->version =
+                        SafeStringDuplicate(update_package->version);
+                
                 PromiseResult upgrade_res =
                         InstallPackage(policy_data->package_options,
                         PACKAGE_TYPE_REPO, package_info->name,
-                        NULL, package_info->arch, wrapper);
+                        package_info->version, package_info->arch, wrapper);
                 res = PromiseResultUpdate(res, upgrade_res);
-                //TODO: discuss with Kristian
-                package_info->version =
-                        SafeStringDuplicate(update_package->version);
             }
         }
         SeqDestroy(latest_versions);
@@ -1446,6 +1468,7 @@ bool UpdateSinglePackageModuleCache(EvalContext *ctx,
 
     if (force_update || cache_updates_lock.lock != NULL)
     {
+        
         /* Update available updates cache. */
         if (!UpdateCache(module_wrapper->package_module->options, module_wrapper, type))
         {
