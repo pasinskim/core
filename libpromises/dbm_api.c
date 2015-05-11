@@ -139,7 +139,6 @@ static const char *const DB_PATHS_WORKDIR[sizeof(DB_PATHS_STATEDIR) / sizeof(con
 
 /******************************************************************************/
 
-static
 char *DBIdToSubPath(dbid id, const char *subdb_name)
 {
     char *filename;

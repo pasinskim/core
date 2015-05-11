@@ -93,6 +93,7 @@ bool DBCursorWriteEntry(CF_DBC *cursor, const void *value, int value_size);
 bool DeleteDBCursor(CF_DBC *dbcp);
 
 char *DBIdToPath(dbid id);
+char *DBIdToSubPath(dbid id, const char *subdb_name);
 
 StringMap *LoadDatabaseToStringMap(dbid database_id);
 #endif  /* NOT CFENGINE_DBM_API_H */

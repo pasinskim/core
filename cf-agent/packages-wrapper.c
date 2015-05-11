@@ -1441,16 +1441,31 @@ bool UpdateSinglePackageModuleCache(EvalContext *ctx,
     CfLock cache_updates_lock;
     char cache_updates_lock_name[CF_BUFSIZE];
 
+    dbid dbid_val;
+
     if (type == UPDATE_TYPE_INSTALLED)
     {
+        dbid_val = dbid_packages_installed;
         snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,
                  "package-cache-installed-%s", module_wrapper->package_module->name);
     }
     else
     {
+        dbid_val = dbid_packages_updates;
         snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,
                 "package-cache-updates-%s", module_wrapper->package_module->name);
     }
+
+    char *db_name = DBIdToSubPath(dbid_val, module_wrapper->name);
+    struct stat statbuf;
+    if (!force_update && stat(db_name, &statbuf) == -1 && errno == ENOENT)
+    {
+        // Force update if database file doesn't exist. Not strictly necessary
+        // with the locks we have, but good to have for tests that delete the
+        // database.
+        force_update = true;
+    }
+    free(db_name);
 
     if (!force_update)
     {
@@ -1459,7 +1474,7 @@ bool UpdateSinglePackageModuleCache(EvalContext *ctx,
                 (TransactionContext) {.ifelapsed = module_wrapper->package_module->updates_ifelapsed, .expireafter = 0},
                 &pp, false);
     }
-    
+
     bool ret = true;
 
     if (force_update || cache_updates_lock.lock != NULL)
