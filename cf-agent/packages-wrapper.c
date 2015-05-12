@@ -683,7 +683,7 @@ int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)
                     
                     xsnprintf(inventory_line, sizeof(inventory_line),
                               "%s,%s,%s\n", package_data[0], package_data[1],
-                              strlen(package_data[2]));                    
+                              package_data[2]);
                     BufferAppendString(inventory_data, inventory_line);
 
                     package_data[1] = NULL;
@@ -731,7 +731,7 @@ int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)
 
             xsnprintf(inventory_line, sizeof(inventory_line),
                       "%s,%s,%s\n", package_data[0], package_data[1],
-                      strlen(package_data[2]));
+                      package_data[2]);
             BufferAppendString(inventory_data, inventory_line);
         }
         
