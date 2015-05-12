@@ -6,7 +6,7 @@
 static inline
 PackageManagerBody *make_mock_package_manager(const char *name, int updates_ifel, int installed_ifel, Rlist *options)
 {
-    PackageManagerBody *pm = xmalloc(sizeof(pm));
+    PackageManagerBody *pm = xmalloc(sizeof(PackageManagerBody));
     pm->name = SafeStringDuplicate(name);
     pm->installed_ifelapesed = installed_ifel;
     pm->updates_ifelapsed = updates_ifel;

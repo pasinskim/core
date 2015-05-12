@@ -132,7 +132,7 @@ void AddManagerToPackagePromiseContext(const EvalContext *ctx, PackageManagerBod
 {
     /* First check if the body is there added from previous pre-evaluation 
      * iteration. If it is there update it as we can have new expanded variables. */
-    int pm_seq_index;
+    ssize_t pm_seq_index;
     if ((pm_seq_index = SeqIndexOf(ctx->package_promise_context->package_managers_bodies, 
             pm->name, PackageManagerSeqCompare)) != -1)
     {
@@ -812,12 +812,11 @@ static void StackFrameDestroy(StackFrame *frame)
 }
 
 static
-void FreePackageManager(void *manager)
+void FreePackageManager(PackageManagerBody *manager)
 {
-    PackageManagerBody *pm = (PackageManagerBody*)manager;
-    free(pm->name);
-    RlistDestroy(pm->options);
-    free(pm);
+    free(manager->name);
+    RlistDestroy(manager->options);
+    free(manager);
 }
 
 static
