@@ -3,14 +3,7 @@
 #include <eval_context.h>
 #include <string_lib.h>
 
-static
-EvalContext *make_mock_eval_context()
-{
-     EvalContext *ctx = EvalContextNew();
-     return ctx;
-}
-
-static
+static inline
 PackageManagerBody *make_mock_package_manager(const char *name, int updates_ifel, int installed_ifel, Rlist *options)
 {
     PackageManagerBody *pm = xmalloc(sizeof(pm));
@@ -21,17 +14,9 @@ PackageManagerBody *make_mock_package_manager(const char *name, int updates_ifel
     return pm;
 }
 
-void tests_setup(void)
-{
-}
-
-void tests_teardown(void)
-{
-}
-
 static void test_add_manager_to_context()
 {
-    EvalContext *ctx = make_mock_eval_context();
+    EvalContext *ctx = EvalContextNew();
 
     PackageManagerBody *pm = make_mock_package_manager("apt_get", 120, 240, NULL);
     AddManagerToPackagePromiseContext(ctx, pm);
@@ -65,7 +50,7 @@ static void test_add_manager_to_context()
 
 static void test_default_package_manager_settings()
 {
-    EvalContext *ctx = make_mock_eval_context();
+    EvalContext *ctx = EvalContextNew();
 
     PackageManagerBody *pm = make_mock_package_manager("apt_get", 120, 240, NULL);
     AddManagerToPackagePromiseContext(ctx, pm);
@@ -91,17 +76,14 @@ static void test_default_package_manager_settings()
 int main()
 {
     PRINT_TEST_BANNER();
-    tests_setup();
 
     const UnitTest tests[] =
     {
-        unit_test(test_add_manager_to_context),
         unit_test(test_default_package_manager_settings),
+        unit_test(test_add_manager_to_context),
     };
 
     int ret = run_tests(tests);
-
-    tests_teardown();
 
     return ret;
 }
