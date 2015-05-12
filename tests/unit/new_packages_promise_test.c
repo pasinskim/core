@@ -79,8 +79,8 @@ int main()
 
     const UnitTest tests[] =
     {
-        //unit_test(test_default_package_manager_settings),
-        //unit_test(test_add_manager_to_context),
+        unit_test(test_default_package_manager_settings),
+        unit_test(test_add_manager_to_context),
     };
 
     int ret = run_tests(tests);

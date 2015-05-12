@@ -837,7 +837,6 @@ static
 void FreePackagePromiseContext(PackagePromiseContext *pp_ctx)
 {
     SeqDestroy(pp_ctx->package_managers_bodies);
-    free(pp_ctx->control_package_manager);
     RlistDestroy(pp_ctx->control_package_inventory);
     free(pp_ctx);
 }
