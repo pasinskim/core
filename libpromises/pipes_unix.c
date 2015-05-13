@@ -689,33 +689,77 @@ static int cf_pwait(pid_t pid)
 
 /*******************************************************************/
 
-int PipeCloseGeneric(int pipes[2])
+int cf_pclose(FILE *pp)
 {
+    int fd = fileno(pp);
+    pid_t pid;
+
     if (!ThreadLock(cft_count))
     {
-        if (pipes[0] >= 0)
-        {
-            close(pipes[0]);
-        }
-        
-        if (pipes[1] >= 0)
-        {
-            close(pipes[1]);
-        }
+        fclose(pp);
         return -1;
     }
 
     if (CHILDREN == NULL)       /* popen hasn't been called */
     {
         ThreadUnlock(cft_count);
-        if (pipes[0] >= 0)
+        fclose(pp);
+        return -1;
+    }
+
+    ALARM_PID = -1;
+
+    if (fd >= MAX_FD)
+    {
+        ThreadUnlock(cft_count);
+        Log(LOG_LEVEL_ERR,
+            "File descriptor %d of child higher than MAX_FD in cf_pclose!",
+            fd);
+        pid = 0;
+    }
+    else
+    {
+        pid = CHILDREN[fd];
+        CHILDREN[fd] = 0;
+        ThreadUnlock(cft_count);
+    }
+    
+    if (fclose(pp) == EOF || pid == 0)
+    {
+        return -1;
+    }
+
+    return cf_pwait(pid);
+}
+
+/* We are assuming that read_fd part will be always open at this point. */
+int cf_pclose_full_duplex(IOData *data)
+{
+    if (!ThreadLock(cft_count))
+    {
+        if (data->read_fd >= 0)
         {
-            close(pipes[0]);
+            close(data->read_fd);
         }
         
-        if (pipes[1] >= 0)
+        if (data->write_fd >= 0)
         {
-            close(pipes[1]);
+            close(data->write_fd);
+        }
+        return -1;
+    }
+
+    if (CHILDREN == NULL)
+    {
+        ThreadUnlock(cft_count);
+        if (data->read_fd >= 0)
+        {
+            close(data->read_fd);
+        }
+        
+        if (data->write_fd >= 0)
+        {
+            close(data->write_fd);
         }
         return -1;
     }
@@ -724,42 +768,30 @@ int PipeCloseGeneric(int pipes[2])
     pid_t pid = 0;
 
     /* Safe as pipes[1] is -1 if not initialized */
-    if (pipes[0] >= MAX_FD || pipes[1] >= MAX_FD)
+    if (data->read_fd >= MAX_FD || data->write_fd >= MAX_FD)
     {
         ThreadUnlock(cft_count);
         Log(LOG_LEVEL_ERR,
             "File descriptor %d of child higher than MAX_FD in cf_pclose!",
-            pipes[0] > pipes[1] ? pipes[0] : pipes[1]);
+            data->read_fd > data->write_fd ? data->read_fd : data->write_fd);
     }
     else
     {
-        pid = CHILDREN[pipes[0]];
-        if (pipes[1] >= 0)
+        pid = CHILDREN[data->read_fd];
+        if (data->write_fd >= 0)
         {
-            assert(pid == CHILDREN[pipes[1]]);
-            CHILDREN[pipes[1]] = 0;
+            assert(pid == CHILDREN[data->write_fd]);
         }
-        CHILDREN[pipes[0]] = 0;
+        CHILDREN[data->read_fd] = 0;
         ThreadUnlock(cft_count);
     }
     
-    if (close(pipes[0]) != 0 || (pipes[1] >= 0 && close(pipes[1]) != 0) || pid == 0)
+    if (close(data->read_fd) != 0 || (data->write_fd >= 0 && close(data->write_fd) != 0) || pid == 0)
     {
         return -1;
     }
 
     return cf_pwait(pid);
-}
-
-int cf_pclose(FILE *pp)
-{
-    int fd = fileno(pp);
-    return PipeCloseGeneric((int[2]){fd, -1});
-}
-
-int cf_pclose_full_duplex(IOData *data)
-{
-    return PipeCloseGeneric((int[2]){data->read_fd, data->write_fd});
 }
 
 bool PipeToPid(pid_t *pid, FILE *pp)
