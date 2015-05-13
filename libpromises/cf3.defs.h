@@ -1336,11 +1336,6 @@ typedef struct
     bool is_empty;
 } NewPackages;
 
-typedef enum {
-    PACKAGE_CONTROLL_DEF_INVENTORY,
-    PACKAGE_CONTROLL_DEF_MANAGER
-} PackageControll;
-
 /*************************************************************************/
 
 typedef enum
@@ -1602,7 +1597,6 @@ extern const PromiseTypeSyntax CF_COMMON_PROMISE_TYPES[];
 extern const ConstraintSyntax CF_CLASSBODY[];
 extern const ConstraintSyntax CFA_CONTROLBODY[];
 extern const ConstraintSyntax CFEX_CONTROLBODY[];
-extern const ConstraintSyntax PACKAGES_CONTROLBODY[];
 
 typedef struct ServerConnectionState_ ServerConnectionState;
 

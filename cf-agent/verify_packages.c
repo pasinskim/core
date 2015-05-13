@@ -239,7 +239,7 @@ PromiseResult HandleOldPackagePromiseType(EvalContext *ctx, const Promise *pp, A
         VarRef *var_ref = VarRefParseFromScope(reserved, "this");
         if (EvalContextVariableGet(ctx, var_ref, NULL))
         {
-            Log(LOG_LEVEL_ERR, "$(%s) variable has a special meaning in packages promises. "
+            Log(LOG_LEVEL_WARNING, "$(%s) variable has a special meaning in packages promises. "
                 "Things may not work as expected if it is already defined.", reserved);
         }
         VarRefDestroy(var_ref);
