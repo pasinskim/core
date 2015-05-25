@@ -259,6 +259,9 @@ IOData cf_popen_full_duplex(const char *command, bool capture_stderr)
         else
         {
             /* leave stderr open */
+            int nullfd = open(NULLFILE, O_WRONLY);
+            dup2(nullfd, 2);
+            close(nullfd);
         }
         
         close(child_pipe[WRITE]);
@@ -700,7 +703,7 @@ int cf_pclose(FILE *pp)
         fclose(pp);
         return -1;
     }
-
+    
     if (CHILDREN == NULL)       /* popen hasn't been called */
     {
         ThreadUnlock(cft_count);
@@ -732,6 +735,37 @@ int cf_pclose(FILE *pp)
 
     return cf_pwait(pid);
 }
+
+int cf_pclose_full_duplex_side(int fd)
+{
+    if (!ThreadLock(cft_count))
+    {
+        close(fd);
+        return -1;
+    }
+    
+    if (CHILDREN == NULL)       /* popen hasn't been called */
+    {
+        ThreadUnlock(cft_count);
+        close(fd);
+        return -1;
+    }
+    
+    if (fd >= MAX_FD)
+    {
+        ThreadUnlock(cft_count);
+        Log(LOG_LEVEL_ERR,
+            "File descriptor %d of child higher than MAX_FD in cf_pclose_full_duplex_side!",
+            fd);
+    }
+    else
+    {
+        CHILDREN[fd] = 0;
+        ThreadUnlock(cft_count);
+    }
+    return close(fd);
+}
+
 
 /* We are assuming that read_fd part will be always open at this point. */
 int cf_pclose_full_duplex(IOData *data)
@@ -782,6 +816,7 @@ int cf_pclose_full_duplex(IOData *data)
         if (data->write_fd >= 0)
         {
             assert(pid == CHILDREN[data->write_fd]);
+            CHILDREN[data->write_fd] = 0;
         }
         CHILDREN[data->read_fd] = 0;
         ThreadUnlock(cft_count);
