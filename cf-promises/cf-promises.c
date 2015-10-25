@@ -122,6 +122,8 @@ static const char *const HINTS[] =
 
 int main(int argc, char *argv[])
 {
+    //cf-promises is only AGENT_TYPE_COMMON
+    
     GenericAgentConfig *config = CheckOpts(argc, argv);
     EvalContext *ctx = EvalContextNew();
     GenericAgentConfigApply(ctx, config);

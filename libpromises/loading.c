@@ -117,6 +117,7 @@ static Policy *Cf3ParseFile(const GenericAgentConfig *config, const char *input_
     }
     else
     {
+        //TODO:
         if (config->agent_type == AGENT_TYPE_COMMON)
         {
             policy = ParserParseFile(config->agent_type, input_path, config->agent_specific.common.parser_warnings, config->agent_specific.common.parser_warnings_error);
@@ -519,6 +520,7 @@ Policy *LoadPolicy(EvalContext *ctx, GenericAgentConfig *config)
         if (!config->bundlesequence && config->check_runnable)
         {
             // only verify policy-defined bundlesequence for cf-agent, cf-promises
+            //not affecting cf-promises removal
             if ((config->agent_type == AGENT_TYPE_AGENT) ||
                 (config->agent_type == AGENT_TYPE_COMMON))
             {

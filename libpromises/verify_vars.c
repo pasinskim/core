@@ -222,6 +222,7 @@ PromiseResult VerifyVarPromise(EvalContext *ctx, const Promise *pp, bool allow_d
         {
             if (!opts.ok_redefine)    /* only on second iteration, else we ignore broken promises */
             {
+                //TODO:
                 if (THIS_AGENT_TYPE == AGENT_TYPE_COMMON &&
                      !CompareRval(existing_value, DataTypeToRvalType(existing_value_type),
                                   rval.item, rval.type))

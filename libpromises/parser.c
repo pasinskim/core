@@ -38,6 +38,7 @@ extern FILE *yyin;
 
 static void ParserStateReset(ParserState *p, bool discard)
 {
+    //this one is not affecting policy evaluation with cf-promises
     p->agent_type = AGENT_TYPE_COMMON;
     p->warnings = PARSER_WARNING_ALL;
     p->policy = NULL;

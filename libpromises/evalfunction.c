@@ -1706,6 +1706,7 @@ static FnCallResult FnCallReadTcp(ARG_UNUSED EvalContext *ctx,
     char *sendstring = RlistScalarValue(finalargs->next->next);
     ssize_t maxbytes = IntFromString(RlistScalarValue(finalargs->next->next->next));
 
+    //TODO:
     if (THIS_AGENT_TYPE == AGENT_TYPE_COMMON)
     {
         return FnFailure();
@@ -4670,6 +4671,7 @@ static FnCallResult FnCallRemoteScalar(EvalContext *ctx,
         server = "127.0.0.1";
     }
 
+    //TODO:
     if (THIS_AGENT_TYPE == AGENT_TYPE_COMMON)
     {
         return FnReturn("<remote scalar>");
@@ -4760,6 +4762,7 @@ static FnCallResult FnCallRemoteClassesMatching(EvalContext *ctx,
         server = "127.0.0.1";
     }
 
+    //TODO:
     if (THIS_AGENT_TYPE == AGENT_TYPE_COMMON)
     {
         return FnReturn("remote_classes");
@@ -6623,6 +6626,7 @@ static char *CfReadFile(const char *filename, int maxsize)
     struct stat sb;
     if (stat(filename, &sb) == -1)
     {
+        //TODO:
         if (THIS_AGENT_TYPE == AGENT_TYPE_COMMON)
         {
             Log(LOG_LEVEL_INFO, "CfReadFile: Could not examine file '%s'", filename);

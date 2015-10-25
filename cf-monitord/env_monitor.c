@@ -1138,6 +1138,7 @@ static void GatherPromisedMeasures(EvalContext *ctx, const Policy *policy)
         const Bundle *bp = SeqAt(policy->bundles, i);
         EvalContextStackPushBundleFrame(ctx, bp, NULL, false);
 
+        //not affecting cf-promises removal; CF_AGENTTYPES[AGENT_TYPE_COMMON] equals to "common"
         if ((strcmp(bp->type, CF_AGENTTYPES[AGENT_TYPE_MONITOR]) == 0) || (strcmp(bp->type, CF_AGENTTYPES[AGENT_TYPE_COMMON]) == 0))
         {
             for (size_t j = 0; j < SeqLength(bp->promise_types); j++)

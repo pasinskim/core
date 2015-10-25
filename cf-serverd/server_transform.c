@@ -638,6 +638,8 @@ static void KeepPromiseBundles(EvalContext *ctx, const Policy *policy)
     {
         Bundle *bp = SeqAt(policy->bundles, i);
         bool server_bundle = strcmp(bp->type, CF_AGENTTYPES[AGENT_TYPE_SERVER]) == 0;
+        //this is only weird way of defining common bundles
+        // CF_AGENTTYPES[AGENT_TYPE_COMMON] ALWAYS equals to "common"
         bool common_bundle = strcmp(bp->type, CF_AGENTTYPES[AGENT_TYPE_COMMON]) == 0;
 
         if (server_bundle || common_bundle)

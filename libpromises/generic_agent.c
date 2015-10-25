@@ -559,11 +559,11 @@ bool GenericAgentArePromisesValid(const GenericAgentConfig *config)
 
     Log(LOG_LEVEL_VERBOSE, "Checking policy with command '%s'", cmd);
 
-    if (!ShellCommandReturnsZero(cmd, true))
-    {
-        Log(LOG_LEVEL_ERR, "Policy failed validation with command '%s'", cmd);
-        return false;
-    }
+    //if (!ShellCommandReturnsZero(cmd, true))
+    //{
+    //    Log(LOG_LEVEL_ERR, "Policy failed validation with command '%s'", cmd);
+    //    return false;
+    //}
 
     return true;
 }
@@ -1528,8 +1528,10 @@ GenericAgentConfig *GenericAgentConfigNewDefault(AgentType agent_type)
     config->input_file = NULL;
     config->input_dir = NULL;
 
+    //TODO:
     config->check_not_writable_by_others = agent_type != AGENT_TYPE_COMMON && !config->tty_interactive;
     config->check_runnable = agent_type != AGENT_TYPE_COMMON;
+    
     config->ignore_missing_bundles = false;
     config->ignore_missing_inputs = false;
 
@@ -1546,6 +1548,7 @@ GenericAgentConfig *GenericAgentConfigNewDefault(AgentType agent_type)
 
     switch (agent_type)
     {
+    //TODO:
     case AGENT_TYPE_COMMON:
         config->agent_specific.common.eval_functions = true;
         config->agent_specific.common.show_classes = false;
@@ -1618,6 +1621,7 @@ void GenericAgentConfigApply(EvalContext *ctx, const GenericAgentConfig *config)
 
     switch (config->agent_type)
     {
+    //TODO:
     case AGENT_TYPE_COMMON:
         EvalContextSetEvalOption(ctx, EVAL_OPTION_FULL, false);
         if (config->agent_specific.common.eval_functions)
