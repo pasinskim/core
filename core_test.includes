@@ -1,0 +1,15 @@
+.
+3rdparty/peg-0.1.13/src
+3rdparty/peg-0.1.13/win
+cf-agent
+cf-execd
+cf-key
+cf-monitord
+cf-serverd
+cf-upgrade
+libcfnet
+libcompat
+libenv
+libpromises
+libutils
+tests/unit

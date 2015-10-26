@@ -520,6 +520,7 @@ Policy *LoadPolicy(EvalContext *ctx, GenericAgentConfig *config)
         if (!config->bundlesequence && config->check_runnable)
         {
             // only verify policy-defined bundlesequence for cf-agent, cf-promises
+            
             //not affecting cf-promises removal
             if ((config->agent_type == AGENT_TYPE_AGENT) ||
                 (config->agent_type == AGENT_TYPE_COMMON))

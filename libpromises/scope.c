@@ -291,7 +291,7 @@ void ScopeMapBodyArgs(EvalContext *ctx, const Body *body, const Rlist *args)
             FnCallResult res = FnCallEvaluate(ctx, body->parent_policy, fp, NULL);
 
             //TODO: 
-           if (res.status == FNCALL_FAILURE && THIS_AGENT_TYPE != AGENT_TYPE_COMMON)
+            if (res.status == FNCALL_FAILURE && THIS_AGENT_TYPE != AGENT_TYPE_COMMON)
             {
                 Log(LOG_LEVEL_VERBOSE, "Embedded function argument does not resolve to a name - probably too many evaluation levels for '%s'",
                     fp->name);

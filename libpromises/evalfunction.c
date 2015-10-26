@@ -6626,7 +6626,7 @@ static char *CfReadFile(const char *filename, int maxsize)
     struct stat sb;
     if (stat(filename, &sb) == -1)
     {
-        //TODO:
+        //just a log message printing
         if (THIS_AGENT_TYPE == AGENT_TYPE_COMMON)
         {
             Log(LOG_LEVEL_INFO, "CfReadFile: Could not examine file '%s'", filename);

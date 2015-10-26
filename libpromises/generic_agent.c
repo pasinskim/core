@@ -1528,7 +1528,8 @@ GenericAgentConfig *GenericAgentConfigNewDefault(AgentType agent_type)
     config->input_file = NULL;
     config->input_dir = NULL;
 
-    //TODO:
+    //TODO: this is false in case of cf-promises and might be true for agent
+    //not affecting cf-promises removal as cf-promises -c will be followed by cf-agent
     config->check_not_writable_by_others = agent_type != AGENT_TYPE_COMMON && !config->tty_interactive;
     config->check_runnable = agent_type != AGENT_TYPE_COMMON;
     
@@ -1548,7 +1549,7 @@ GenericAgentConfig *GenericAgentConfigNewDefault(AgentType agent_type)
 
     switch (agent_type)
     {
-    //TODO:
+    //TODO: parser_warnings parser_warnings_error
     case AGENT_TYPE_COMMON:
         config->agent_specific.common.eval_functions = true;
         config->agent_specific.common.show_classes = false;
@@ -1621,7 +1622,8 @@ void GenericAgentConfigApply(EvalContext *ctx, const GenericAgentConfig *config)
 
     switch (config->agent_type)
     {
-    //TODO:
+    //not affecting cf-promises removal as this is cf-promises specific
+    //option not used by cf-agent
     case AGENT_TYPE_COMMON:
         EvalContextSetEvalOption(ctx, EVAL_OPTION_FULL, false);
         if (config->agent_specific.common.eval_functions)
