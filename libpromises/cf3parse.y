@@ -1300,7 +1300,6 @@ static void ParseWarningV(unsigned int warning, const char *s, va_list ap)
 
     free(errmsg);
 
-    P.warning_count++;
 
     if ((P.warnings_error & warning) != 0)
     {
