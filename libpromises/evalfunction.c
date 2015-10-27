@@ -3059,6 +3059,7 @@ static FnCallResult FnCallSelectServers(EvalContext *ctx,
         maxbytes = CF_BUFSIZE - 1;
     }
 
+    //cf-promises will return here
     if (THIS_AGENT_TYPE != AGENT_TYPE_AGENT)
     {
         free(array_lval);
@@ -4714,6 +4715,7 @@ static FnCallResult FnCallHubKnowledge(EvalContext *ctx,
 {
     char *handle = RlistScalarValue(finalargs);
 
+    //skipped in cf-promises
     if (THIS_AGENT_TYPE != AGENT_TYPE_AGENT)
     {
         return FnReturn("<inaccessible remote scalar>");

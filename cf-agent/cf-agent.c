@@ -226,6 +226,7 @@ int main(int argc, char *argv[])
     GenericAgentDiscoverContext(ctx, config);
 
     Policy *policy = NULL;
+    //this is specific to cf-agent and is not there in cf-promises
     if (GenericAgentCheckPolicy(config, ALWAYS_VALIDATE, true))
     {
         policy = LoadPolicy(ctx, config);
@@ -234,6 +235,7 @@ int main(int argc, char *argv[])
     {
         exit(EXIT_FAILURE);
     }
+    //this is the issue we need to consider in case of removing cf-promises -c
     else
     {
         Log(LOG_LEVEL_ERR, "CFEngine was not able to get confirmation of promises from cf-promises, so going to failsafe");

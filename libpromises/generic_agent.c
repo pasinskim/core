@@ -144,6 +144,8 @@ void GenericAgentDiscoverContext(EvalContext *ctx, GenericAgentConfig *config)
         config->agent_specific.agent.bootstrap_policy_server;
 
     /* Are we bootstrapping the agent? */
+    
+    //no bootstrap in cf-promises
     if (config->agent_type == AGENT_TYPE_AGENT && bootstrap_arg != NULL)
     {
         EvalContextClassPutHard(ctx, "bootstrap_mode", "source=environment");
@@ -1533,6 +1535,7 @@ GenericAgentConfig *GenericAgentConfigNewDefault(AgentType agent_type)
 
     //TODO: this is false in case of cf-promises and might be true for agent
     //not affecting cf-promises removal as cf-promises -c will be followed by cf-agent
+    //check is stricter in agent and cf-promises can be still used as standalone tool.
     config->check_not_writable_by_others = agent_type != AGENT_TYPE_COMMON && !config->tty_interactive;
     //this is true for agent and false for cf-promises
     //but cf-agent is calling cf-promises -c and sets this option

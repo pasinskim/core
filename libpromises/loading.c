@@ -485,6 +485,7 @@ Policy *LoadPolicy(EvalContext *ctx, GenericAgentConfig *config)
         ShowContext(ctx);
     }
 
+    //just a log message
     if (config->agent_type == AGENT_TYPE_AGENT)
     {
         Banner("Preliminary variable/class-context convergence");
