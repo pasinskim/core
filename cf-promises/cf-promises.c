@@ -64,6 +64,8 @@ enum
 
 static const struct option OPTIONS[] =
 {
+    //this is a basic difference
+    //cf-promises is not using cache
     {"eval-functions", optional_argument, 0, OPT_EVAL_FUNCTIONS },
     {"show-classes", no_argument, 0, OPT_SHOW_CLASSES },
     {"show-vars", no_argument, 0, OPT_SHOW_VARS },

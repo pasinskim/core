@@ -1445,6 +1445,7 @@ bool GenericAgentConfigParseWarningOptions(GenericAgentConfig *config, const cha
 
     if (strcmp("error", warning_options) == 0)
     {
+        //no impact
         config->agent_specific.common.parser_warnings_error |= PARSER_WARNING_ALL;
         return true;
     }
@@ -1473,10 +1474,12 @@ bool GenericAgentConfigParseWarningOptions(GenericAgentConfig *config, const cha
 
         if (warnings_as_errors)
         {
+            //no impact
             config->agent_specific.common.parser_warnings_error |= warning;
         }
         else
         {
+            //no impact
             config->agent_specific.common.parser_warnings |= warning;
         }
     }
@@ -1531,6 +1534,8 @@ GenericAgentConfig *GenericAgentConfigNewDefault(AgentType agent_type)
     //TODO: this is false in case of cf-promises and might be true for agent
     //not affecting cf-promises removal as cf-promises -c will be followed by cf-agent
     config->check_not_writable_by_others = agent_type != AGENT_TYPE_COMMON && !config->tty_interactive;
+    //this is true for agent and false for cf-promises
+    //but cf-agent is calling cf-promises -c and sets this option
     config->check_runnable = agent_type != AGENT_TYPE_COMMON;
     
     config->ignore_missing_bundles = false;
@@ -1550,7 +1555,9 @@ GenericAgentConfig *GenericAgentConfigNewDefault(AgentType agent_type)
     switch (agent_type)
     {
     //TODO: parser_warnings parser_warnings_error
+    //not affecting cf-promises removal in standard configuration
     case AGENT_TYPE_COMMON:
+        //we are evaluating functions
         config->agent_specific.common.eval_functions = true;
         config->agent_specific.common.show_classes = false;
         config->agent_specific.common.show_variables = false;
@@ -1622,10 +1629,10 @@ void GenericAgentConfigApply(EvalContext *ctx, const GenericAgentConfig *config)
 
     switch (config->agent_type)
     {
-    //not affecting cf-promises removal as this is cf-promises specific
-    //option not used by cf-agent
+    //this is causing that cf-promises will not respect caching. 
     case AGENT_TYPE_COMMON:
         EvalContextSetEvalOption(ctx, EVAL_OPTION_FULL, false);
+        //this is set by default so functions will be evaluated
         if (config->agent_specific.common.eval_functions)
             EvalContextSetEvalOption(ctx, EVAL_OPTION_EVAL_FUNCTIONS, true);
         break;
