@@ -214,7 +214,7 @@ static const char *const HINTS[] =
 
 int main(int argc, char *argv[])
 {
-#ifdef HAVE_LIBXML2
+   #ifdef HAVE_LIBXML2
         xmlInitParser();
 #endif
     struct timespec start = BeginMeasure();
@@ -224,26 +224,46 @@ int main(int argc, char *argv[])
     GenericAgentConfigApply(ctx, config);
 
     GenericAgentDiscoverContext(ctx, config);
-
+    
     Policy *policy = NULL;
-    //this is specific to cf-agent and is not there in cf-promises
-    if (GenericAgentCheckPolicy(config, ALWAYS_VALIDATE, true))
+    
+    GenericAgentCheckPolicy(config, false, false);
+    //from GenericAgentCheckPolicy
+    if (!MissingInputFile(config->input_file))
     {
+        Log(LOG_LEVEL_ERR, "we have input file");
         policy = LoadPolicy(ctx, config);
     }
-    else if (config->tty_interactive)
+    
+    if (!policy)
+    {
+        Log(LOG_LEVEL_ERR, "policy empty");
+    }
+
+
+    if (!policy && config->tty_interactive)
     {
         exit(EXIT_FAILURE);
     }
     //this is the issue we need to consider in case of removing cf-promises -c
-    else
+    else if (!policy)//!policy && !config->tty_interactive
     {
         Log(LOG_LEVEL_ERR, "CFEngine was not able to get confirmation of promises from cf-promises, so going to failsafe");
         EvalContextClassPutHard(ctx, "failsafe_fallback", "attribute_name=Errors,source=agent");
         GenericAgentConfigSetInputFile(config, GetInputDir(), "failsafe.cf");
         policy = LoadPolicy(ctx, config);
     }
+    
     assert(policy);
+    
+    /*if (policy)
+    {
+       //this is specific to cf-agent and is not there in cf-promises
+        if (GenericAgentCheckPolicy(config, ALWAYS_VALIDATE, true))
+        {
+            
+        }
+    }*/
 
     GenericAgentPostLoadInit(ctx);
     ThisAgentInit();

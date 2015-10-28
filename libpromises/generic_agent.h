@@ -95,6 +95,7 @@ const char *GenericAgentResolveInputPath(const GenericAgentConfig *config, const
 void MarkAsPolicyServer(EvalContext *ctx);
 void GenericAgentDiscoverContext(EvalContext *ctx, GenericAgentConfig *config);
 bool GenericAgentCheckPolicy(GenericAgentConfig *config, bool force_validation, bool write_validated_file);
+bool MissingInputFile(const char *input_file);
 
 ENTERPRISE_VOID_FUNC_1ARG_DECLARE(void, GenericAgentAddEditionClasses, EvalContext *, ctx);
 void GenericAgentInitialize(EvalContext *ctx, GenericAgentConfig *config);

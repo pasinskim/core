@@ -79,8 +79,6 @@ static bool GeneratePolicyReleaseID(char *release_id_out, size_t out_size,
                                     const char *policy_dir);
 static char* ReadReleaseIdFromReleaseIdFileMasterfiles(const char *maybe_dirname);
 
-static bool MissingInputFile(const char *input_file);
-
 #if !defined(__MINGW32__)
 static void OpenLog(int facility);
 #endif
@@ -237,25 +235,25 @@ void GenericAgentDiscoverContext(EvalContext *ctx, GenericAgentConfig *config)
 
 static bool IsPolicyPrecheckNeeded(GenericAgentConfig *config, bool force_validation)
 {
-    bool check_policy = false;
-
-    if (IsFileOutsideDefaultRepository(config->input_file))
-    {
-        check_policy = true;
-        Log(LOG_LEVEL_VERBOSE, "Input file is outside default repository, validating it");
-    }
-    if (GenericAgentIsPolicyReloadNeeded(config))
-    {
-        check_policy = true;
-        Log(LOG_LEVEL_VERBOSE, "Input file is changed since last validation, validating it");
-    }
     if (force_validation)
     {
-        check_policy = true;
         Log(LOG_LEVEL_VERBOSE, "always_validate is set, forcing policy validation");
+        return true;
     }
 
-    return check_policy;
+    if (GenericAgentIsPolicyReloadNeeded(config))
+    {
+        Log(LOG_LEVEL_VERBOSE, "Input file is changed since last validation, validating it");
+        return true;
+    }
+    
+    if (IsFileOutsideDefaultRepository(config->input_file))
+    {
+        Log(LOG_LEVEL_VERBOSE, "Input file is outside default repository, validating it");
+        return true;
+    }
+
+    return false;
 }
 
 bool GenericAgentCheckPolicy(GenericAgentConfig *config, bool force_validation, bool write_validated_file)
@@ -271,6 +269,8 @@ bool GenericAgentCheckPolicy(GenericAgentConfig *config, bool force_validation, 
                 config->agent_specific.daemon.last_validated_at = validated_at;
             }
         }
+        
+         Log(LOG_LEVEL_ERR, "chekc input dirs %s %s", config->input_dir, GetInputDir());
 
         if (IsPolicyPrecheckNeeded(config, force_validation))
         {
@@ -321,40 +321,35 @@ static JsonElement *ReadJsonFile(const char *filename)
     return doc;
 }
 
-static JsonElement *ReadPolicyValidatedFile(const char *filename)
+static JsonElement *ReadPolicyValidatedFile(const char *filename, JsonElement** validated_timeout)
 {
-    bool missing = true;
     struct stat sb;
     if (stat(filename, &sb) != -1)
     {
-        missing = false;
+        return false;
     }
 
     JsonElement *validated_doc = ReadJsonFile(filename);
     if (NULL == validated_doc)
     {
-        Log(missing ? LOG_LEVEL_DEBUG : LOG_LEVEL_VERBOSE, "Could not parse policy_validated JSON file '%s', using dummy data", filename);
-        validated_doc = JsonObjectCreate(2);
-        if (missing)
-        {
-            JsonObjectAppendInteger(validated_doc, "timestamp", 0);
-        }
-        else
-        {
-            JsonObjectAppendInteger(validated_doc, "timestamp", sb.st_mtime);
-        }
+        Log(LOG_LEVEL_DEBUG, "Could not parse policy_validated JSON file '%s', using dummy data", filename);
+        return false;
     }
-
-    return validated_doc;
+    
+    *validated_timeout = validated_doc;
+    return true;
 }
 
-static JsonElement *ReadPolicyValidatedFileFromMasterfiles(const GenericAgentConfig *config, const char *maybe_dirname)
+static bool *ReadPolicyValidatedFile(const GenericAgentConfig *config, const char *maybe_dirname,
+                                                            JsonElement** validated_timeout)
 {
     char filename[CF_MAXVARSIZE];
 
     GetPromisesValidatedFile(filename, sizeof(filename), config, maybe_dirname);
-
-    return ReadPolicyValidatedFile(filename);
+    
+    Log(LOG_LEVEL_ERR, "have file to validate: %s", filename);
+    
+    return ReadPolicyValidatedFile(filename, validated_timeout);
 }
 
 /**
@@ -789,7 +784,7 @@ void GenericAgentFinalize(EvalContext *ctx, GenericAgentConfig *config)
     EvalContextDestroy(ctx);
 }
 
-static bool MissingInputFile(const char *input_file)
+bool MissingInputFile(const char *input_file)
 {
     struct stat sb;
 
@@ -942,7 +937,7 @@ static void GetPromisesValidatedFile(char *filename, size_t max_size, const Gene
  */
 static void GetAutotagDir(char *dirname, size_t max_size, const char *maybe_dirname)
 {
-    if (NULL != maybe_dirname)
+    if (NULL != maybe_dirname && strcmp(maybe_dirname, GetInputDir()) != 0)
     {
         strlcpy(dirname, maybe_dirname, max_size);
     }
@@ -1005,8 +1000,8 @@ time_t ReadTimestampFromPolicyValidatedFile(const GenericAgentConfig *config, co
 {
     time_t validated_at = 0;
     {
-        JsonElement *validated_doc = ReadPolicyValidatedFileFromMasterfiles(config, maybe_dirname);
-        if (validated_doc)
+        JsonElement *validated_doc = NULL;
+        if (ReadPolicyValidatedFile(config, maybe_dirname, &validated_doc))
         {
             JsonElement *timestamp = JsonObjectGet(validated_doc, "timestamp");
             if (timestamp)
@@ -1020,34 +1015,15 @@ time_t ReadTimestampFromPolicyValidatedFile(const GenericAgentConfig *config, co
     return validated_at;
 }
 
-// TODO: refactor Read*FromPolicyValidatedMasterfiles
-char* ReadChecksumFromPolicyValidatedMasterfiles(const GenericAgentConfig *config, const char *maybe_dirname)
-{
-    char *checksum_str = NULL;
-
-    {
-        JsonElement *validated_doc = ReadPolicyValidatedFileFromMasterfiles(config, maybe_dirname);
-        if (validated_doc)
-        {
-            JsonElement *checksum = JsonObjectGet(validated_doc, "checksum");
-            if (checksum )
-            {
-                checksum_str = xstrdup(JsonPrimitiveGetAsString(checksum));
-            }
-            JsonDestroy(validated_doc);
-        }
-    }
-
-    return checksum_str;
-}
-
 /**
  * @NOTE Updates the config->agent_specific.daemon.last_validated_at timestamp
  *       used by serverd, execd etc daemons when checking for new policies.
  */
 bool GenericAgentIsPolicyReloadNeeded(const GenericAgentConfig *config)
 {
-    time_t validated_at = ReadTimestampFromPolicyValidatedFile(config, NULL);
+    Log(LOG_LEVEL_ERR, "chekc input dirs %s %s", config->input_dir, GetInputDir());
+    
+    time_t validated_at = ReadTimestampFromPolicyValidatedFile(config, config->input_dir);
     time_t now = time(NULL);
 
     if (validated_at > now)
