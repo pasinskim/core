@@ -1,0 +1,699 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/dbm_api.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - dbm_api.c<span style="font-size: 80%;"> (source / <a href="dbm_api.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">96</td>
+            <td class="headerCovTableEntry">216</td>
+            <td class="headerCovTableEntryLo">44.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">31</td>
+            <td class="headerCovTableEntryLo">51.6 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;file_lib.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;mutex.h&gt;                                            /* ThreadLock */
+<span class="lineNum">      28 </span>            : #include &lt;dbm_api.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;dbm_priv.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;dbm_migration.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;atexit.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;logging.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;known_dirs.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : static int DBPathLock(const char *filename);
+<span class="lineNum">      39 </span>            : static void DBPathUnLock(int fd);
+<span class="lineNum">      40 </span>            : static void DBPathMoveBroken(const char *filename);
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : struct DBHandle_
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span>            :     /* Filename of database file */
+<span class="lineNum">      45 </span>            :     char *filename;
+<span class="lineNum">      46 </span>            :     
+<span class="lineNum">      47 </span>            :     /* Name of specific sub-db */
+<span class="lineNum">      48 </span>            :     char *subname;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            :     /* Actual database-specific data */
+<span class="lineNum">      51 </span>            :     DBPriv *priv;
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            :     int refcount;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            :     /* This lock protects initialization of .priv element, and .refcount manipulation */
+<span class="lineNum">      56 </span>            :     pthread_mutex_t lock;
+<span class="lineNum">      57 </span>            : };
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : struct DBCursor_
+<span class="lineNum">      60 </span>            : {
+<span class="lineNum">      61 </span>            :     DBCursorPriv *cursor;
+<span class="lineNum">      62 </span>            : };
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : typedef struct dynamic_db_handles_
+<span class="lineNum">      65 </span>            : {
+<span class="lineNum">      66 </span>            :     DBHandle *handle;
+<span class="lineNum">      67 </span>            :     struct dynamic_db_handles_ *next;
+<span class="lineNum">      68 </span>            : } DynamicDBHandles;
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : /******************************************************************************/
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : /*
+<span class="lineNum">      73 </span>            :  * This lock protects on-demand initialization of db_handles[i].lock and
+<span class="lineNum">      74 </span>            :  * db_handles[i].name.
+<span class="lineNum">      75 </span>            :  */
+<span class="lineNum">      76 </span>            : static pthread_mutex_t db_handles_lock = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP; /* GLOBAL_T */
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : static DBHandle db_handles[dbid_max] = { { 0 } }; /* GLOBAL_X */
+<span class="lineNum">      79 </span>            : static DynamicDBHandles *db_dynamic_handles;
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : static pthread_once_t db_shutdown_once = PTHREAD_ONCE_INIT; /* GLOBAL_T */
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : /******************************************************************************/
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : static const char *const DB_PATHS_STATEDIR[] = {
+<span class="lineNum">      86 </span>            :     [dbid_classes] = &quot;cf_classes&quot;,
+<span class="lineNum">      87 </span>            :     [dbid_variables] = &quot;cf_variables&quot;,
+<span class="lineNum">      88 </span>            :     [dbid_performance] = &quot;performance&quot;,
+<span class="lineNum">      89 </span>            :     [dbid_checksums] = &quot;checksum_digests&quot;,
+<span class="lineNum">      90 </span>            :     [dbid_filestats] = &quot;stats&quot;,
+<span class="lineNum">      91 </span>            :     [dbid_changes] = &quot;cf_changes&quot;,
+<span class="lineNum">      92 </span>            :     [dbid_observations] = &quot;cf_observations&quot;,
+<span class="lineNum">      93 </span>            :     [dbid_state] = &quot;cf_state&quot;,
+<span class="lineNum">      94 </span>            :     [dbid_lastseen] = &quot;cf_lastseen&quot;,
+<span class="lineNum">      95 </span>            :     [dbid_audit] = &quot;cf_audit&quot;,
+<span class="lineNum">      96 </span>            :     [dbid_locks] = &quot;cf_lock&quot;,
+<span class="lineNum">      97 </span>            :     [dbid_history] = &quot;history&quot;,
+<span class="lineNum">      98 </span>            :     [dbid_measure] = &quot;nova_measures&quot;,
+<span class="lineNum">      99 </span>            :     [dbid_static] = &quot;nova_static&quot;,
+<span class="lineNum">     100 </span>            :     [dbid_scalars] = &quot;nova_pscalar&quot;,
+<span class="lineNum">     101 </span>            :     [dbid_windows_registry] = &quot;mswin&quot;,
+<span class="lineNum">     102 </span>            :     [dbid_cache] = &quot;nova_cache&quot;,
+<span class="lineNum">     103 </span>            :     [dbid_license] = &quot;nova_track&quot;,
+<span class="lineNum">     104 </span>            :     [dbid_value] = &quot;nova_value&quot;,
+<span class="lineNum">     105 </span>            :     [dbid_agent_execution] = &quot;nova_agent_execution&quot;,
+<span class="lineNum">     106 </span>            :     [dbid_bundles] = &quot;bundles&quot;,
+<span class="lineNum">     107 </span>            :     [dbid_packages_installed] = &quot;packages_installed&quot;,
+<span class="lineNum">     108 </span>            :     [dbid_packages_updates] = &quot;packages_updates&quot;
+<span class="lineNum">     109 </span>            : };
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            : /*
+<span class="lineNum">     112 </span>            :   These are the old (pre 3.7) paths in workdir, supported for installations that
+<span class="lineNum">     113 </span>            :   still have them. We will never create a database here. NULL means that the
+<span class="lineNum">     114 </span>            :   database was always in the state directory.
+<span class="lineNum">     115 </span>            : */
+<span class="lineNum">     116 </span>            : static const char *const DB_PATHS_WORKDIR[sizeof(DB_PATHS_STATEDIR) / sizeof(const char * const)] = {
+<span class="lineNum">     117 </span>            :     [dbid_classes] = &quot;cf_classes&quot;,
+<span class="lineNum">     118 </span>            :     [dbid_variables] = NULL,
+<span class="lineNum">     119 </span>            :     [dbid_performance] = &quot;performance&quot;,
+<span class="lineNum">     120 </span>            :     [dbid_checksums] = &quot;checksum_digests&quot;,
+<span class="lineNum">     121 </span>            :     [dbid_filestats] = &quot;stats&quot;,
+<span class="lineNum">     122 </span>            :     [dbid_changes] = NULL,
+<span class="lineNum">     123 </span>            :     [dbid_observations] = NULL,
+<span class="lineNum">     124 </span>            :     [dbid_state] = NULL,
+<span class="lineNum">     125 </span>            :     [dbid_lastseen] = &quot;cf_lastseen&quot;,
+<span class="lineNum">     126 </span>            :     [dbid_audit] = &quot;cf_audit&quot;,
+<span class="lineNum">     127 </span>            :     [dbid_locks] = NULL,
+<span class="lineNum">     128 </span>            :     [dbid_history] = NULL,
+<span class="lineNum">     129 </span>            :     [dbid_measure] = NULL,
+<span class="lineNum">     130 </span>            :     [dbid_static] = NULL,
+<span class="lineNum">     131 </span>            :     [dbid_scalars] = NULL,
+<span class="lineNum">     132 </span>            :     [dbid_windows_registry] = &quot;mswin&quot;,
+<span class="lineNum">     133 </span>            :     [dbid_cache] = &quot;nova_cache&quot;,
+<span class="lineNum">     134 </span>            :     [dbid_license] = &quot;nova_track&quot;,
+<span class="lineNum">     135 </span>            :     [dbid_value] = &quot;nova_value&quot;,
+<span class="lineNum">     136 </span>            :     [dbid_agent_execution] = &quot;nova_agent_execution&quot;,
+<span class="lineNum">     137 </span>            :     [dbid_bundles] = &quot;bundles&quot;,
+<span class="lineNum">     138 </span>            : };
+<span class="lineNum">     139 </span>            : 
+<a name="140"><span class="lineNum">     140 </span>            : /******************************************************************************/</a>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 : char *DBIdToSubPath(dbid id, const char *subdb_name)</span>
+<span class="lineNum">     143 </span>            : {
+<span class="lineNum">     144 </span>            :     char *filename;
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     if (xasprintf(&amp;filename, &quot;%s/%s_%s.%s&quot;, GetStateDir(), DB_PATHS_STATEDIR[id],</span>
+<span class="lineNum">     146 </span>            :             subdb_name, DBPrivGetFileExtension()) == -1)
+<span class="lineNum">     147 </span>            :     {
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;Unable to construct sub database filename for file&quot;</span>
+<span class="lineNum">     149 </span>            :                 &quot;%s_%s&quot;, DB_PATHS_STATEDIR[id], subdb_name);
+<span class="lineNum">     150 </span>            :     }
+<span class="lineNum">     151 </span>            :     
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     char *native_filename = MapNameCopy(filename);</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     free(filename);</span>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     return native_filename;</span>
+<a name="156"><span class="lineNum">     156 </span>            : }</a>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineCov">          5 : char *DBIdToPath(dbid id)</span>
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span><span class="lineCov">          5 :     assert(DB_PATHS_STATEDIR[id] != NULL);</span>
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineCov">          5 :     char *filename = NULL;</span>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">          5 :     if (DB_PATHS_WORKDIR[id])</span>
+<span class="lineNum">     165 </span>            :     {
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         xasprintf(&amp;filename, &quot;%s/%s.%s&quot;, GetWorkDir(), DB_PATHS_WORKDIR[id],</span>
+<span class="lineNum">     167 </span>            :                   DBPrivGetFileExtension());
+<span class="lineNum">     168 </span>            :         struct stat statbuf;
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         if (stat(filename, &amp;statbuf) == -1)</span>
+<span class="lineNum">     170 </span>            :         {
+<span class="lineNum">     171 </span>            :             // Old database in workdir is not there. Use new database in statedir.
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :             free(filename);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :             filename = NULL;</span>
+<span class="lineNum">     174 </span>            :         }
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineCov">          5 :     if (!filename)</span>
+<span class="lineNum">     178 </span>            :     {
+<span class="lineNum">     179 </span><span class="lineCov">          5 :         xasprintf(&amp;filename, &quot;%s/%s.%s&quot;, GetStateDir(), DB_PATHS_STATEDIR[id],</span>
+<span class="lineNum">     180 </span>            :                   DBPrivGetFileExtension());
+<span class="lineNum">     181 </span>            :     }
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineCov">          5 :     char *native_filename = MapNameCopy(filename);</span>
+<span class="lineNum">     184 </span><span class="lineCov">          5 :     free(filename);</span>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span><span class="lineCov">          5 :     return native_filename;</span>
+<span class="lineNum">     187 </span>            : }
+<a name="188"><span class="lineNum">     188 </span>            : </a>
+<span class="lineNum">     189 </span>            : static
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 : bool IsSubHandle(DBHandle *handle, dbid id, const char *name)</span>
+<span class="lineNum">     191 </span>            : {
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     return StringSafeEqual(handle-&gt;filename, DBIdToSubPath(id, name));</span>
+<a name="193"><span class="lineNum">     193 </span>            : }</a>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 : static DBHandle *DBHandleGetSubDB(dbid id, const char *name)</span>
+<span class="lineNum">     196 </span>            : {
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     ThreadLock(&amp;db_handles_lock);</span>
+<span class="lineNum">     198 </span>            :     
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :     DynamicDBHandles *handles_list = db_dynamic_handles;</span>
+<span class="lineNum">     200 </span>            :     
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     while (handles_list)</span>
+<span class="lineNum">     202 </span>            :     {
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         if (IsSubHandle(handles_list-&gt;handle, id, name))</span>
+<span class="lineNum">     204 </span>            :         {
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :             ThreadUnlock(&amp;db_handles_lock);</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             return handles_list-&gt;handle;</span>
+<span class="lineNum">     207 </span>            :         }
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         handles_list = handles_list-&gt;next;</span>
+<span class="lineNum">     209 </span>            :     }
+<span class="lineNum">     210 </span>            :     
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     DBHandle *handle = xcalloc(1, sizeof(DBHandle));</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     handle-&gt;filename = DBIdToSubPath(id, name);</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     handle-&gt;subname = SafeStringDuplicate(name);</span>
+<span class="lineNum">     214 </span>            :     
+<span class="lineNum">     215 </span>            :     /* Initialize mutexes as error-checking ones. */
+<span class="lineNum">     216 </span>            :     pthread_mutexattr_t attr;
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     pthread_mutexattr_init(&amp;attr);</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     pthread_mutexattr_settype(&amp;attr, PTHREAD_MUTEX_ERRORCHECK);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     pthread_mutex_init(&amp;handle-&gt;lock, &amp;attr);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     pthread_mutexattr_destroy(&amp;attr);</span>
+<span class="lineNum">     221 </span>            :     
+<span class="lineNum">     222 </span>            :     /* Prepend handle to global list. */
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     handles_list = xcalloc(1, sizeof(DynamicDBHandles));</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     handles_list-&gt;handle = handle;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     handles_list-&gt;next = db_dynamic_handles;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     db_dynamic_handles = handles_list;</span>
+<span class="lineNum">     227 </span>            :     
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     ThreadUnlock(&amp;db_handles_lock);</span>
+<span class="lineNum">     229 </span>            :     
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     return handle;</span>
+<a name="231"><span class="lineNum">     231 </span>            : }</a>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineCov">          6 : static DBHandle *DBHandleGet(int id)</span>
+<span class="lineNum">     234 </span>            : {
+<span class="lineNum">     235 </span><span class="lineCov">          6 :     assert(id &gt;= 0 &amp;&amp; id &lt; dbid_max);</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineCov">          6 :     ThreadLock(&amp;db_handles_lock);</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineCov">          6 :     if (db_handles[id].filename == NULL)</span>
+<span class="lineNum">     240 </span>            :     {
+<span class="lineNum">     241 </span><span class="lineCov">          3 :         db_handles[id].filename = DBIdToPath(id);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            :         /* Initialize mutexes as error-checking ones. */
+<span class="lineNum">     244 </span>            :         pthread_mutexattr_t attr;
+<span class="lineNum">     245 </span><span class="lineCov">          3 :         pthread_mutexattr_init(&amp;attr);</span>
+<span class="lineNum">     246 </span><span class="lineCov">          3 :         pthread_mutexattr_settype(&amp;attr, PTHREAD_MUTEX_ERRORCHECK);</span>
+<span class="lineNum">     247 </span><span class="lineCov">          3 :         pthread_mutex_init(&amp;db_handles[id].lock, &amp;attr);</span>
+<span class="lineNum">     248 </span><span class="lineCov">          3 :         pthread_mutexattr_destroy(&amp;attr);</span>
+<span class="lineNum">     249 </span>            :     }
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span><span class="lineCov">          6 :     ThreadUnlock(&amp;db_handles_lock);</span>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineCov">          6 :     return &amp;db_handles[id];</span>
+<span class="lineNum">     254 </span>            : }
+<a name="255"><span class="lineNum">     255 </span>            : </a>
+<span class="lineNum">     256 </span>            : static inline
+<span class="lineNum">     257 </span><span class="lineCov">          3 : void CloseDBInstance(DBHandle *handle)</span>
+<span class="lineNum">     258 </span>            : {
+<span class="lineNum">     259 </span>            :     /* Wait until all DB users are served, or a threshold is reached */
+<span class="lineNum">     260 </span><span class="lineCov">          3 :     int count = 0;</span>
+<span class="lineNum">     261 </span><span class="lineCov">          3 :     ThreadLock(&amp;handle-&gt;lock);</span>
+<span class="lineNum">     262 </span><span class="lineCov">          6 :     while (handle-&gt;refcount &gt; 0 &amp;&amp; count &lt; 1000)</span>
+<span class="lineNum">     263 </span>            :     {
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         ThreadUnlock(&amp;handle-&gt;lock);</span>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         struct timespec sleeptime = {</span>
+<span class="lineNum">     267 </span>            :             .tv_sec = 0,
+<span class="lineNum">     268 </span>            :             .tv_nsec = 10000000 /* 10 ms */
+<span class="lineNum">     269 </span>            :         };
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         nanosleep(&amp;sleeptime, NULL);</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         count++;</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         ThreadLock(&amp;handle-&gt;lock);</span>
+<span class="lineNum">     274 </span>            :     }
+<span class="lineNum">     275 </span>            :     /* Keep mutex locked. */
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            :     /* If we exited because of timeout make sure we Log() it. */
+<span class="lineNum">     278 </span><span class="lineCov">          3 :     if (handle-&gt;refcount != 0)</span>
+<span class="lineNum">     279 </span>            :     {
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     281 </span>            :                 &quot;Database %s refcount is still not zero (%d), forcing CloseDB()!&quot;,
+<span class="lineNum">     282 </span>            :                 handle-&gt;filename, handle-&gt;refcount);
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :         DBPrivCloseDB(handle-&gt;priv);</span>
+<span class="lineNum">     284 </span>            :     }
+<span class="lineNum">     285 </span>            :     else /* TODO: can we clean this up unconditionally ? */
+<span class="lineNum">     286 </span>            :     {
+<span class="lineNum">     287 </span><span class="lineCov">          3 :         free(handle-&gt;filename);</span>
+<span class="lineNum">     288 </span><span class="lineCov">          3 :         free(handle-&gt;subname);</span>
+<span class="lineNum">     289 </span><span class="lineCov">          3 :         handle-&gt;filename = NULL;</span>
+<span class="lineNum">     290 </span>            :     }
+<span class="lineNum">     291 </span><span class="lineCov">          3 : }</span>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span>            : /**
+<span class="lineNum">     295 </span>            :  * @brief Wait for all users of all databases to close the DBs. Then acquire
+<span class="lineNum">     296 </span>            :  * the mutexes *AND KEEP THEM LOCKED* so that no background thread can open
+<span class="lineNum">     297 </span>            :  * any database. So make sure you exit soon...
+<span class="lineNum">     298 </span>            :  *
+<span class="lineNum">     299 </span>            :  * @warning This is usually register with atexit(), however you have to make
+<span class="lineNum">     300 </span>            :  * sure no other DB-cleaning exit hook was registered before, so that this is
+<a name="301"><span class="lineNum">     301 </span>            :  * called last.</a>
+<span class="lineNum">     302 </span>            :  **/
+<span class="lineNum">     303 </span><span class="lineCov">          2 : void CloseAllDBExit()</span>
+<span class="lineNum">     304 </span>            : {
+<span class="lineNum">     305 </span><span class="lineCov">          2 :     ThreadLock(&amp;db_handles_lock);</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov">         48 :     for (int i = 0; i &lt; dbid_max; i++)</span>
+<span class="lineNum">     308 </span>            :     {
+<span class="lineNum">     309 </span><span class="lineCov">         46 :         if (db_handles[i].filename)</span>
+<span class="lineNum">     310 </span>            :         {
+<span class="lineNum">     311 </span><span class="lineCov">          3 :             CloseDBInstance(&amp;db_handles[i]);</span>
+<span class="lineNum">     312 </span>            :         }
+<span class="lineNum">     313 </span>            :     }
+<span class="lineNum">     314 </span>            :     
+<span class="lineNum">     315 </span><span class="lineCov">          2 :     DynamicDBHandles *db_dynamic_handles_list = db_dynamic_handles;</span>
+<span class="lineNum">     316 </span><span class="lineCov">          4 :     while (db_dynamic_handles_list)</span>
+<span class="lineNum">     317 </span>            :     {
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :         DBHandle *handle = db_dynamic_handles_list-&gt;handle;</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         CloseDBInstance(handle);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         db_dynamic_handles_list = db_dynamic_handles_list-&gt;next;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         free(handle);</span>
+<span class="lineNum">     322 </span>            :     }
+<span class="lineNum">     323 </span><span class="lineCov">          2 :     db_dynamic_handles = NULL;</span>
+<a name="324"><span class="lineNum">     324 </span><span class="lineCov">          2 : }</span></a>
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span><span class="lineCov">          2 : static void RegisterShutdownHandler(void)</span>
+<span class="lineNum">     327 </span>            : {
+<span class="lineNum">     328 </span><span class="lineCov">          2 :     RegisterAtExitFunction(&amp;CloseAllDBExit);</span>
+<span class="lineNum">     329 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            : /**
+<span class="lineNum">     332 </span>            :  * Keeps track of the maximum number of concurrent transactions, which is
+<span class="lineNum">     333 </span>            :  * expected to be set by agents as they start up. If it is not set it will use
+<span class="lineNum">     334 </span>            :  * the existing value. If it is set, but the database cannot honor it, CFEngine
+<span class="lineNum">     335 </span>            :  * will warn.
+<span class="lineNum">     336 </span>            :  * @param max_txn Maximum number of concurrent transactions for a single
+<a name="337"><span class="lineNum">     337 </span>            :  *                database.</a>
+<span class="lineNum">     338 </span>            :  */
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 : void DBSetMaximumConcurrentTransactions(int max_txn)</span>
+<span class="lineNum">     340 </span>            : {
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     DBPrivSetMaximumConcurrentTransactions(max_txn);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 : }</span>
+<a name="343"><span class="lineNum">     343 </span>            : </a>
+<span class="lineNum">     344 </span>            : static inline
+<span class="lineNum">     345 </span><span class="lineCov">          6 : bool OpenDBInstance(DBHandle **dbp, dbid id, DBHandle *handle)</span>
+<span class="lineNum">     346 </span>            : {
+<span class="lineNum">     347 </span><span class="lineCov">          6 :     ThreadLock(&amp;handle-&gt;lock);</span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineCov">          6 :     if (handle-&gt;refcount == 0)</span>
+<span class="lineNum">     350 </span>            :     {
+<span class="lineNum">     351 </span><span class="lineCov">          6 :         int lock_fd = DBPathLock(handle-&gt;filename);</span>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span><span class="lineCov">          6 :         if(lock_fd != -1)</span>
+<span class="lineNum">     354 </span>            :         {
+<span class="lineNum">     355 </span><span class="lineCov">          6 :             handle-&gt;priv = DBPrivOpenDB(handle-&gt;filename, id);</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineCov">          6 :             if (handle-&gt;priv == DB_PRIV_DATABASE_BROKEN)</span>
+<span class="lineNum">     358 </span>            :             {
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                 DBPathMoveBroken(handle-&gt;filename);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                 handle-&gt;priv = DBPrivOpenDB(handle-&gt;filename, id);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                 if (handle-&gt;priv == DB_PRIV_DATABASE_BROKEN)</span>
+<span class="lineNum">     362 </span>            :                 {
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                     handle-&gt;priv = NULL;</span>
+<span class="lineNum">     364 </span>            :                 }
+<span class="lineNum">     365 </span>            :             }
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span><span class="lineCov">          6 :             DBPathUnLock(lock_fd);</span>
+<span class="lineNum">     368 </span>            :         }
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span><span class="lineCov">          6 :         if (handle-&gt;priv)</span>
+<span class="lineNum">     371 </span>            :         {
+<span class="lineNum">     372 </span><span class="lineCov">          6 :             if (!DBMigrate(handle, id))</span>
+<span class="lineNum">     373 </span>            :             {
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :                 DBPrivCloseDB(handle-&gt;priv);</span>
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :                 handle-&gt;priv = NULL;</span>
+<span class="lineNum">     376 </span>            :             }
+<span class="lineNum">     377 </span>            :         }
+<span class="lineNum">     378 </span>            :     }
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span><span class="lineCov">          6 :     if (handle-&gt;priv)</span>
+<span class="lineNum">     381 </span>            :     {
+<span class="lineNum">     382 </span><span class="lineCov">          6 :         handle-&gt;refcount++;</span>
+<span class="lineNum">     383 </span><span class="lineCov">          6 :         *dbp = handle;</span>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            :         /* Only register shutdown handler if any database was opened
+<span class="lineNum">     386 </span>            :          * correctly. Otherwise this shutdown caller may be called too early,
+<span class="lineNum">     387 </span>            :          * and shutdown handler installed by the database library may end up
+<span class="lineNum">     388 </span>            :          * being called before CloseAllDB function */
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineCov">          6 :         pthread_once(&amp;db_shutdown_once, RegisterShutdownHandler);</span>
+<span class="lineNum">     391 </span>            :     }
+<span class="lineNum">     392 </span>            :     else
+<span class="lineNum">     393 </span>            :     {
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         *dbp = NULL;</span>
+<span class="lineNum">     395 </span>            :     }
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineCov">          6 :     ThreadUnlock(&amp;handle-&gt;lock);</span>
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span><span class="lineCov">          6 :     return *dbp != NULL;</span>
+<a name="400"><span class="lineNum">     400 </span>            : }</a>
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 : bool OpenSubDB(DBHandle **dbp, dbid id, const char *sub_name)</span>
+<span class="lineNum">     403 </span>            : {
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     DBHandle *handle = DBHandleGetSubDB(id, sub_name);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     return OpenDBInstance(dbp, id, handle);</span>
+<a name="406"><span class="lineNum">     406 </span>            : }</a>
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span><span class="lineCov">          6 : bool OpenDB(DBHandle **dbp, dbid id)</span>
+<span class="lineNum">     409 </span>            : {
+<span class="lineNum">     410 </span><span class="lineCov">          6 :     DBHandle *handle = DBHandleGet(id);</span>
+<span class="lineNum">     411 </span><span class="lineCov">          6 :     return OpenDBInstance(dbp, id, handle);</span>
+<a name="412"><span class="lineNum">     412 </span>            : }</a>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineCov">          6 : void CloseDB(DBHandle *handle)</span>
+<span class="lineNum">     415 </span>            : {
+<span class="lineNum">     416 </span><span class="lineCov">          6 :     ThreadLock(&amp;handle-&gt;lock);</span>
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineCov">          6 :     DBPrivCommit(handle-&gt;priv);</span>
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span><span class="lineCov">          6 :     if (handle-&gt;refcount &lt; 1)</span>
+<span class="lineNum">     421 </span>            :     {
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Trying to close database %s which is not open&quot;, handle-&gt;filename);</span>
+<span class="lineNum">     423 </span>            :     }
+<span class="lineNum">     424 </span><span class="lineCov">          6 :     else if (--handle-&gt;refcount == 0)</span>
+<span class="lineNum">     425 </span>            :     {
+<span class="lineNum">     426 </span><span class="lineCov">          6 :         DBPrivCloseDB(handle-&gt;priv);</span>
+<span class="lineNum">     427 </span>            :     }
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineCov">          6 :     ThreadUnlock(&amp;handle-&gt;lock);</span>
+<a name="430"><span class="lineNum">     430 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 : bool CleanDB(DBHandle *handle)</span>
+<span class="lineNum">     433 </span>            : {
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     ThreadLock(&amp;handle-&gt;lock);</span>
+<span class="lineNum">     435 </span>            :     
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     bool ret = DBPrivClean(handle-&gt;priv);</span>
+<span class="lineNum">     437 </span>            :     
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     ThreadUnlock(&amp;handle-&gt;lock);</span>
+<span class="lineNum">     439 </span>            :     
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     441 </span>            : }
+<span class="lineNum">     442 </span>            : 
+<a name="443"><span class="lineNum">     443 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 : bool ReadComplexKeyDB(DBHandle *handle, const char *key, int key_size,</span>
+<span class="lineNum">     446 </span>            :                       void *dest, int dest_size)
+<span class="lineNum">     447 </span>            : {
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     return DBPrivRead(handle-&gt;priv, key, key_size, dest, dest_size);</span>
+<a name="449"><span class="lineNum">     449 </span>            : }</a>
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 : bool WriteComplexKeyDB(DBHandle *handle, const char *key, int key_size,</span>
+<span class="lineNum">     452 </span>            :                        const void *value, int value_size)
+<span class="lineNum">     453 </span>            : {
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     return DBPrivWrite(handle-&gt;priv, key, key_size, value, value_size);</span>
+<a name="455"><span class="lineNum">     455 </span>            : }</a>
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 : bool DeleteComplexKeyDB(DBHandle *handle, const char *key, int key_size)</span>
+<span class="lineNum">     458 </span>            : {
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :     return DBPrivDelete(handle-&gt;priv, key, key_size);</span>
+<a name="460"><span class="lineNum">     460 </span>            : }</a>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineCov">          2 : bool ReadDB(DBHandle *handle, const char *key, void *dest, int destSz)</span>
+<span class="lineNum">     463 </span>            : {
+<span class="lineNum">     464 </span><span class="lineCov">          2 :     return DBPrivRead(handle-&gt;priv, key, strlen(key) + 1, dest, destSz);</span>
+<a name="465"><span class="lineNum">     465 </span>            : }</a>
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineCov">          2 : bool WriteDB(DBHandle *handle, const char *key, const void *src, int srcSz)</span>
+<span class="lineNum">     468 </span>            : {
+<span class="lineNum">     469 </span><span class="lineCov">          2 :     return DBPrivWrite(handle-&gt;priv, key, strlen(key) + 1, src, srcSz);</span>
+<a name="470"><span class="lineNum">     470 </span>            : }</a>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 : bool HasKeyDB(DBHandle *handle, const char *key, int key_size)</span>
+<span class="lineNum">     473 </span>            : {
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     return DBPrivHasKey(handle-&gt;priv, key, key_size);</span>
+<a name="475"><span class="lineNum">     475 </span>            : }</a>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 : int ValueSizeDB(DBHandle *handle, const char *key, int key_size)</span>
+<span class="lineNum">     478 </span>            : {
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     return DBPrivGetValueSize(handle-&gt;priv, key, key_size);</span>
+<a name="480"><span class="lineNum">     480 </span>            : }</a>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineCov">          1 : bool DeleteDB(DBHandle *handle, const char *key)</span>
+<span class="lineNum">     483 </span>            : {
+<span class="lineNum">     484 </span><span class="lineCov">          1 :     return DBPrivDelete(handle-&gt;priv, key, strlen(key) + 1);</span>
+<a name="485"><span class="lineNum">     485 </span>            : }</a>
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineCov">          3 : bool NewDBCursor(DBHandle *handle, DBCursor **cursor)</span>
+<span class="lineNum">     488 </span>            : {
+<span class="lineNum">     489 </span><span class="lineCov">          3 :     DBCursorPriv *priv = DBPrivOpenCursor(handle-&gt;priv);</span>
+<span class="lineNum">     490 </span><span class="lineCov">          3 :     if (!priv)</span>
+<span class="lineNum">     491 </span>            :     {
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     493 </span>            :     }
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineCov">          3 :     *cursor = xcalloc(1, sizeof(DBCursor));</span>
+<span class="lineNum">     496 </span><span class="lineCov">          3 :     (*cursor)-&gt;cursor = priv;</span>
+<span class="lineNum">     497 </span><span class="lineCov">          3 :     return true;</span>
+<a name="498"><span class="lineNum">     498 </span>            : }</a>
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span><span class="lineCov">          3 : bool NextDB(DBCursor *cursor, char **key, int *ksize,</span>
+<span class="lineNum">     501 </span>            :             void **value, int *vsize)
+<span class="lineNum">     502 </span>            : {
+<span class="lineNum">     503 </span><span class="lineCov">          3 :     return DBPrivAdvanceCursor(cursor-&gt;cursor, (void **)key, ksize, value, vsize);</span>
+<a name="504"><span class="lineNum">     504 </span>            : }</a>
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 : bool DBCursorDeleteEntry(DBCursor *cursor)</span>
+<span class="lineNum">     507 </span>            : {
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     return DBPrivDeleteCursorEntry(cursor-&gt;cursor);</span>
+<a name="509"><span class="lineNum">     509 </span>            : }</a>
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 : bool DBCursorWriteEntry(DBCursor *cursor, const void *value, int value_size)</span>
+<span class="lineNum">     512 </span>            : {
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     return DBPrivWriteCursorEntry(cursor-&gt;cursor, value, value_size);</span>
+<a name="514"><span class="lineNum">     514 </span>            : }</a>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineCov">          3 : bool DeleteDBCursor(DBCursor *cursor)</span>
+<span class="lineNum">     517 </span>            : {
+<span class="lineNum">     518 </span><span class="lineCov">          3 :     DBPrivCloseCursor(cursor-&gt;cursor);</span>
+<span class="lineNum">     519 </span><span class="lineCov">          3 :     free(cursor);</span>
+<span class="lineNum">     520 </span><span class="lineCov">          3 :     return true;</span>
+<a name="521"><span class="lineNum">     521 </span>            : }</a>
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span><span class="lineCov">          6 : static int DBPathLock(const char *filename)</span>
+<span class="lineNum">     524 </span>            : {
+<span class="lineNum">     525 </span>            :     char *filename_lock;
+<span class="lineNum">     526 </span><span class="lineCov">          6 :     if (xasprintf(&amp;filename_lock, &quot;%s.lock&quot;, filename) == -1)</span>
+<span class="lineNum">     527 </span>            :     {
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;Unable to construct lock database filename for file %s&quot;, filename);</span>
+<span class="lineNum">     529 </span>            :     }
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span><span class="lineCov">          6 :     int fd = open(filename_lock, O_CREAT | O_RDWR, 0666);</span>
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span><span class="lineCov">          6 :     if(fd == -1)</span>
+<span class="lineNum">     534 </span>            :     {
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Unable to open database lock file '%s'. (flock: %s)&quot;, filename_lock, GetErrorStr());</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         free(filename_lock);</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     538 </span>            :     }
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span><span class="lineCov">          6 :     if (ExclusiveLockFile(fd) == -1)</span>
+<span class="lineNum">     541 </span>            :     {
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Unable to lock database lock file '%s'. (fcntl(F_SETLK): %s)&quot;, filename_lock, GetErrorStr());</span>
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :         free(filename_lock);</span>
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :         close(fd);</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     546 </span>            :     }
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span><span class="lineCov">          6 :     free(filename_lock);</span>
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineCov">          6 :     return fd;</span>
+<a name="551"><span class="lineNum">     551 </span>            : }</a>
+<span class="lineNum">     552 </span>            : 
+<span class="lineNum">     553 </span><span class="lineCov">          6 : static void DBPathUnLock(int fd)</span>
+<span class="lineNum">     554 </span>            : {
+<span class="lineNum">     555 </span><span class="lineCov">          6 :     if(ExclusiveUnlockFile(fd) != 0)</span>
+<span class="lineNum">     556 </span>            :     {
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not close db lock-file. (close: %s)&quot;, GetErrorStr());</span>
+<span class="lineNum">     558 </span>            :     }
+<a name="559"><span class="lineNum">     559 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 : static void DBPathMoveBroken(const char *filename)</span>
+<span class="lineNum">     562 </span>            : {
+<span class="lineNum">     563 </span>            :     char *filename_broken;
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     if (xasprintf(&amp;filename_broken, &quot;%s.broken&quot;, filename) == -1)</span>
+<span class="lineNum">     565 </span>            :     {
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;Unable to construct broken database filename for file '%s'&quot;, filename);</span>
+<span class="lineNum">     567 </span>            :     }
+<span class="lineNum">     568 </span>            : 
+<span class="lineNum">     569 </span><span class="lineNoCov">          0 :     if(rename(filename, filename_broken) != 0)</span>
+<span class="lineNum">     570 </span>            :     {
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Failed moving broken db out of the way '%s'&quot;, filename);</span>
+<span class="lineNum">     572 </span>            :     }
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :     free(filename_broken);</span>
+<a name="575"><span class="lineNum">     575 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 : StringMap *LoadDatabaseToStringMap(dbid database_id)</span>
+<span class="lineNum">     578 </span>            : {
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     CF_DB *db_conn = NULL;</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     CF_DBC *db_cursor = NULL;</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :     char *key = NULL;</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :     void *value = NULL;</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     int key_size = 0;</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     int value_size = 0;</span>
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     if (!OpenDB(&amp;db_conn, database_id))</span>
+<span class="lineNum">     587 </span>            :     {
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     589 </span>            :     }
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :     if (!NewDBCursor(db_conn, &amp;db_cursor))</span>
+<span class="lineNum">     592 </span>            :     {
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Unable to scan db&quot;);</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :         CloseDB(db_conn);</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     596 </span>            :     }
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :     StringMap *db_map = StringMapNew();</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :     while (NextDB(db_cursor, &amp;key, &amp;key_size, &amp;value, &amp;value_size))</span>
+<span class="lineNum">     600 </span>            :     {
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :         if (!key)</span>
+<span class="lineNum">     602 </span>            :         {
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     604 </span>            :         }
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :         if (!value)</span>
+<span class="lineNum">     607 </span>            :         {
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Invalid entry (key='%s') in database.&quot;, key);</span>
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     610 </span>            :         }
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :         void *val = xcalloc(1, value_size);</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :         val = memcpy(val, value, value_size);</span>
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :         StringMapInsert(db_map, xstrdup(key), val);</span>
+<span class="lineNum">     616 </span>            :     }
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :     DeleteDBCursor(db_cursor);</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :     CloseDB(db_conn);</span>
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :     return db_map;</span>
+<span class="lineNum">     622 </span>            : }
+<span class="lineNum">     623 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

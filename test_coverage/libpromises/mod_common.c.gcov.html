@@ -1,0 +1,627 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/mod_common.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - mod_common.c<span style="font-size: 80%;"> (source / <a href="mod_common.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">45</td>
+            <td class="headerCovTableEntryLo">35.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryLo">40.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : /* This is a root node in the syntax tree */
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;mod_common.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &lt;mod_environ.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;mod_outputs.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;mod_access.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;mod_storage.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;mod_databases.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;mod_packages.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;mod_report.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;mod_files.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;mod_exec.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;mod_methods.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;mod_process.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;mod_services.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;mod_measurement.h&gt;
+<span class="lineNum">      42 </span>            : #include &lt;mod_knowledge.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;mod_users.h&gt;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : #include &lt;conversion.h&gt;
+<span class="lineNum">      46 </span>            : #include &lt;policy.h&gt;
+<span class="lineNum">      47 </span>            : #include &lt;syntax.h&gt;
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #define CF_LOGRANGE    &quot;stdout|udp_syslog|(\042?[a-zA-Z]:\\\\.*)|(/.*)&quot;
+<span class="lineNum">      50 </span>            : #define CF_FACILITY &quot;LOG_USER,LOG_DAEMON,LOG_LOCAL0,LOG_LOCAL1,LOG_LOCAL2,LOG_LOCAL3,LOG_LOCAL4,LOG_LOCAL5,LOG_LOCAL6,LOG_LOCAL7&quot;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : static const char *const POLICY_ERROR_VARS_CONSTRAINT_DUPLICATE_TYPE =
+<span class="lineNum">      53 </span>            :     &quot;Variable contains existing data type contstraint %s, tried to &quot;
+<span class="lineNum">      54 </span>            :     &quot;redefine with %s&quot;;
+<span class="lineNum">      55 </span>            : static const char *const POLICY_ERROR_VARS_PROMISER_NUMERICAL =
+<span class="lineNum">      56 </span>            :     &quot;Variable promises cannot have a purely numerical promiser (name)&quot;;
+<span class="lineNum">      57 </span>            : static const char *const POLICY_ERROR_VARS_PROMISER_RESERVED =
+<span class="lineNum">      58 </span>            :     &quot;Variable promise is using a reserved name&quot;;
+<span class="lineNum">      59 </span>            : static const char *const POLICY_ERROR_CLASSES_PROMISER_NUMERICAL =
+<a name="60"><span class="lineNum">      60 </span>            :     &quot;Classes promises cannot have a purely numerical promiser (name)&quot;;</a>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 : static bool ActionCheck(const Body *body, Seq *errors)</span>
+<span class="lineNum">      63 </span>            : {
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     bool success = true;</span>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     if (BodyHasConstraint(body, &quot;log_kept&quot;)</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :         || BodyHasConstraint(body, &quot;log_repaired&quot;)</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         || BodyHasConstraint(body, &quot;log_failed&quot;))</span>
+<span class="lineNum">      69 </span>            :     {
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :         if (!BodyHasConstraint(body, &quot;log_string&quot;))</span>
+<span class="lineNum">      71 </span>            :         {
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :             SeqAppend(errors, PolicyErrorNew(POLICY_ELEMENT_TYPE_BODY, body, &quot;An action body with log_kept, log_repaired or log_failed is required to have a log_string attribute&quot;));</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :             success = false;</span>
+<span class="lineNum">      74 </span>            :         }
+<span class="lineNum">      75 </span>            :     }
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     return success;</span>
+<span class="lineNum">      78 </span>            : }
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            : static const ConstraintSyntax action_constraints[] =
+<span class="lineNum">      81 </span>            : {
+<span class="lineNum">      82 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">      83 </span>            :     ConstraintSyntaxNewOption(&quot;action_policy&quot;, &quot;fix,warn,nop&quot;, &quot;Whether to repair or report about non-kept promises&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      84 </span>            :     ConstraintSyntaxNewInt(&quot;ifelapsed&quot;, CF_VALRANGE, &quot;Number of minutes before next allowed assessment of promise. Default value: control body value&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      85 </span>            :     ConstraintSyntaxNewInt(&quot;expireafter&quot;, CF_VALRANGE, &quot;Number of minutes before a repair action is interrupted and retried. Default value: control body value&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      86 </span>            :     ConstraintSyntaxNewString(&quot;log_string&quot;, &quot;&quot;, &quot;A message to be written to the log when a promise verification leads to a repair&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      87 </span>            :     ConstraintSyntaxNewOption(&quot;log_level&quot;, &quot;inform,verbose,error,log&quot;, &quot;The reporting level sent to syslog&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      88 </span>            :     ConstraintSyntaxNewString(&quot;log_kept&quot;, CF_LOGRANGE,&quot;This should be filename of a file to which log_string will be saved, if undefined it goes to the system logger&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      89 </span>            :     ConstraintSyntaxNewOption(&quot;log_priority&quot;, &quot;emergency,alert,critical,error,warning,notice,info,debug&quot;,&quot;The priority level of the log message, as interpreted by a syslog server&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      90 </span>            :     ConstraintSyntaxNewString(&quot;log_repaired&quot;, CF_LOGRANGE,&quot;This should be filename of a file to which log_string will be saved, if undefined it goes to the system logger&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      91 </span>            :     ConstraintSyntaxNewString(&quot;log_failed&quot;, CF_LOGRANGE,&quot;This should be filename of a file to which log_string will be saved, if undefined it goes to the system logger&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      92 </span>            :     ConstraintSyntaxNewReal(&quot;value_kept&quot;, CF_REALRANGE, &quot;A real number value attributed to keeping this promise&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">      93 </span>            :     ConstraintSyntaxNewReal(&quot;value_repaired&quot;, CF_REALRANGE, &quot;A real number value attributed to reparing this promise&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">      94 </span>            :     ConstraintSyntaxNewReal(&quot;value_notkept&quot;, CF_REALRANGE, &quot;A real number value (possibly negative) attributed to not keeping this promise&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">      95 </span>            :     ConstraintSyntaxNewBool(&quot;audit&quot;, &quot;true/false switch for detailed audit records of this promise. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      96 </span>            :     ConstraintSyntaxNewBool(&quot;background&quot;, &quot;true/false switch for parallelizing the promise repair. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      97 </span>            :     ConstraintSyntaxNewOption(&quot;report_level&quot;, &quot;inform,verbose,error,log&quot;, &quot;The reporting level for standard output for this promise. Default value: none&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      98 </span>            :     ConstraintSyntaxNewString(&quot;measurement_class&quot;, &quot;&quot;, &quot;If set performance will be measured and recorded under this identifier&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      99 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     100 </span>            : };
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : static const BodySyntax action_body = BodySyntaxNew(&quot;action&quot;, action_constraints, ActionCheck, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : static const ConstraintSyntax classes_constraints[] =
+<span class="lineNum">     105 </span>            : {
+<span class="lineNum">     106 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     107 </span>            :     ConstraintSyntaxNewOption(&quot;scope&quot;, &quot;namespace,bundle&quot;, &quot;Scope of the contexts set by this body&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     108 </span>            :     ConstraintSyntaxNewStringList(&quot;promise_repaired&quot;, CF_IDRANGE, &quot;A list of classes to be defined globally&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     109 </span>            :     ConstraintSyntaxNewStringList(&quot;repair_failed&quot;, CF_IDRANGE, &quot;A list of classes to be defined globally&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     110 </span>            :     ConstraintSyntaxNewStringList(&quot;repair_denied&quot;, CF_IDRANGE, &quot;A list of classes to be defined globally&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     111 </span>            :     ConstraintSyntaxNewStringList(&quot;repair_timeout&quot;, CF_IDRANGE, &quot;A list of classes to be defined globally&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     112 </span>            :     ConstraintSyntaxNewStringList(&quot;promise_kept&quot;, CF_IDRANGE, &quot;A list of classes to be defined globally&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     113 </span>            :     ConstraintSyntaxNewStringList(&quot;cancel_kept&quot;, CF_IDRANGE, &quot;A list of classes to be cancelled if the promise is kept&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     114 </span>            :     ConstraintSyntaxNewStringList(&quot;cancel_repaired&quot;, CF_IDRANGE, &quot;A list of classes to be cancelled if the promise is repaired&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     115 </span>            :     ConstraintSyntaxNewStringList(&quot;cancel_notkept&quot;, CF_IDRANGE, &quot;A list of classes to be cancelled if the promise is not kept for any reason&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     116 </span>            :     ConstraintSyntaxNewStringList(&quot;kept_returncodes&quot;, CF_INTLISTRANGE, &quot;A list of return codes indicating a kept command-related promise&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     117 </span>            :     ConstraintSyntaxNewStringList(&quot;repaired_returncodes&quot;, CF_INTLISTRANGE,&quot;A list of return codes indicating a repaired command-related promise&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     118 </span>            :     ConstraintSyntaxNewStringList(&quot;failed_returncodes&quot;, CF_INTLISTRANGE, &quot;A list of return codes indicating a failed command-related promise&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     119 </span>            :     ConstraintSyntaxNewInt(&quot;persist_time&quot;, CF_VALRANGE, &quot;A number of minutes the specified classes should remain active&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     120 </span>            :     ConstraintSyntaxNewOption(&quot;timer_policy&quot;, &quot;absolute,reset&quot;, &quot;Whether a persistent class restarts its counter when rediscovered. Default value: reset&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     121 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     122 </span>            : };
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            : static const BodySyntax classes_body = BodySyntaxNew(&quot;classes&quot;, classes_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            : const ConstraintSyntax CF_VARBODY[] =
+<span class="lineNum">     127 </span>            : {
+<span class="lineNum">     128 </span>            :     ConstraintSyntaxNewString(&quot;string&quot;, &quot;&quot;, &quot;A scalar string&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     129 </span>            :     ConstraintSyntaxNewInt(&quot;int&quot;, CF_INTRANGE, &quot;A scalar integer&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     130 </span>            :     ConstraintSyntaxNewReal(&quot;real&quot;, CF_REALRANGE, &quot;A scalar real number&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     131 </span>            :     ConstraintSyntaxNewStringList(&quot;slist&quot;, &quot;&quot;, &quot;A list of scalar strings&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     132 </span>            :     ConstraintSyntaxNewIntList(&quot;ilist&quot;, &quot;A list of integers&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     133 </span>            :     ConstraintSyntaxNewRealList(&quot;rlist&quot;, &quot;A list of real numbers&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     134 </span>            :     ConstraintSyntaxNewContainer(&quot;data&quot;, &quot;A data container&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     135 </span>            :     ConstraintSyntaxNewOption(&quot;policy&quot;, &quot;free,overridable,constant,ifdefined&quot;, &quot;The policy for (dis)allowing (re)definition of variables&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     136 </span>            :     ConstraintSyntaxNewNull()
+<a name="137"><span class="lineNum">     137 </span>            : };</a>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineCov">         12 : static bool CheckIdentifierNotPurelyNumerical(const char *identifier)</span>
+<span class="lineNum">     140 </span>            : {
+<span class="lineNum">     141 </span><span class="lineCov">         12 :     if (*identifier == '\0')</span>
+<span class="lineNum">     142 </span>            :     {
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     144 </span>            :     }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineCov">         12 :     for (const char *check = identifier; *check != '\0' &amp;&amp; check - identifier &lt; CF_BUFSIZE; check++)</span>
+<span class="lineNum">     147 </span>            :     {
+<span class="lineNum">     148 </span><span class="lineCov">         12 :         if (!isdigit(*check))</span>
+<span class="lineNum">     149 </span>            :         {
+<span class="lineNum">     150 </span><span class="lineCov">         12 :             return true;</span>
+<span class="lineNum">     151 </span>            :         }
+<span class="lineNum">     152 </span>            :     }
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     return false;</span>
+<a name="155"><span class="lineNum">     155 </span>            : }</a>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineCov">         12 : static bool VarsParseTreeCheck(const Promise *pp, Seq *errors)</span>
+<span class="lineNum">     158 </span>            : {
+<span class="lineNum">     159 </span><span class="lineCov">         12 :     bool success = true;</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineCov">         12 :     if (!CheckIdentifierNotPurelyNumerical(pp-&gt;promiser))</span>
+<span class="lineNum">     162 </span>            :     {
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         SeqAppend(errors, PolicyErrorNew(POLICY_ELEMENT_TYPE_PROMISE, pp,</span>
+<span class="lineNum">     164 </span>            :                                          POLICY_ERROR_VARS_PROMISER_NUMERICAL));
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         success = false;</span>
+<span class="lineNum">     166 </span>            :     }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineCov">         12 :     if (!CheckParseVariableName(pp-&gt;promiser))</span>
+<span class="lineNum">     169 </span>            :     {
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         SeqAppend(errors, PolicyErrorNew(POLICY_ELEMENT_TYPE_PROMISE, pp,</span>
+<span class="lineNum">     171 </span>            :                                          POLICY_ERROR_VARS_PROMISER_RESERVED));
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :         success = false;</span>
+<span class="lineNum">     173 </span>            :     }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            :     // ensure variables are declared with only one type.
+<span class="lineNum">     176 </span>            :     {
+<span class="lineNum">     177 </span><span class="lineCov">         12 :         char *data_type = NULL;</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineCov">         24 :         for (size_t i = 0; i &lt; SeqLength(pp-&gt;conlist); i++)</span>
+<span class="lineNum">     180 </span>            :         {
+<span class="lineNum">     181 </span><span class="lineCov">         12 :             Constraint *cp = SeqAt(pp-&gt;conlist, i);</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineCov">         12 :             if (DataTypeFromString(cp-&gt;lval) != CF_DATA_TYPE_NONE)</span>
+<span class="lineNum">     184 </span>            :             {
+<span class="lineNum">     185 </span><span class="lineCov">         12 :                 if (data_type != NULL)</span>
+<span class="lineNum">     186 </span>            :                 {
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :                     SeqAppend(errors, PolicyErrorNew(POLICY_ELEMENT_TYPE_CONSTRAINT, cp,</span>
+<span class="lineNum">     188 </span>            :                                                      POLICY_ERROR_VARS_CONSTRAINT_DUPLICATE_TYPE,
+<span class="lineNum">     189 </span>            :                                                      data_type, cp-&gt;lval));
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                     success = false;</span>
+<span class="lineNum">     191 </span>            :                 }
+<span class="lineNum">     192 </span><span class="lineCov">         12 :                 data_type = cp-&gt;lval;</span>
+<span class="lineNum">     193 </span>            :             }
+<span class="lineNum">     194 </span>            :         }
+<span class="lineNum">     195 </span>            :     }
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineCov">         12 :     return success;</span>
+<span class="lineNum">     198 </span>            : }
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            : const ConstraintSyntax CF_METABODY[] =
+<span class="lineNum">     201 </span>            : {
+<span class="lineNum">     202 </span>            :     ConstraintSyntaxNewString(&quot;string&quot;, &quot;&quot;, &quot;A scalar string&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     203 </span>            :     ConstraintSyntaxNewStringList(&quot;slist&quot;, &quot;&quot;, &quot;A list of scalar strings&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     204 </span>            :     ConstraintSyntaxNewContainer(&quot;data&quot;, &quot;A data container&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     205 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     206 </span>            : };
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span>            : const ConstraintSyntax CF_DEFAULTSBODY[] =
+<span class="lineNum">     209 </span>            : {
+<span class="lineNum">     210 </span>            :     ConstraintSyntaxNewString(&quot;if_match_regex&quot;, &quot;&quot;, &quot;If this regular expression matches the current value of the variable, replace it with default&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     211 </span>            :     ConstraintSyntaxNewString(&quot;string&quot;, &quot;&quot;, &quot;A scalar string&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     212 </span>            :     ConstraintSyntaxNewStringList(&quot;slist&quot;, &quot;&quot;, &quot;A list of scalar strings&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     213 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     214 </span>            : };
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            : const ConstraintSyntax CF_CLASSBODY[] =
+<span class="lineNum">     218 </span>            : {
+<span class="lineNum">     219 </span>            :     ConstraintSyntaxNewOption(&quot;scope&quot;, &quot;namespace,bundle&quot;, &quot;Scope of the class set by this promise&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     220 </span>            :     ConstraintSyntaxNewContextList(&quot;and&quot;, &quot;Combine class sources with AND&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     221 </span>            :     ConstraintSyntaxNewRealList(&quot;dist&quot;, &quot;Generate a probabilistic class distribution (from strategies in cfengine 2)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     222 </span>            :     ConstraintSyntaxNewContext(&quot;expression&quot;, &quot;Evaluate string expression of classes in normal form&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     223 </span>            :     ConstraintSyntaxNewContextList(&quot;or&quot;, &quot;Combine class sources with inclusive OR&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     224 </span>            :     ConstraintSyntaxNewInt(&quot;persistence&quot;, CF_VALRANGE, &quot;Make the class persistent (cached) to avoid reevaluation, time in minutes&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     225 </span>            :     ConstraintSyntaxNewContext(&quot;not&quot;, &quot;Evaluate the negation of string expression in normal form&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     226 </span>            :     ConstraintSyntaxNewContextList(&quot;select_class&quot;, &quot;Select one of the named list of classes to define based on host identity. Default value: random_selection&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     227 </span>            :     ConstraintSyntaxNewContextList(&quot;xor&quot;, &quot;Combine class sources with XOR&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     228 </span>            :     ConstraintSyntaxNewNull()
+<a name="229"><span class="lineNum">     229 </span>            : };</a>
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 : static bool ClassesParseTreeCheck(const Promise *pp, Seq *errors)</span>
+<span class="lineNum">     232 </span>            : {
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     bool success = true;</span>
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     if (!CheckIdentifierNotPurelyNumerical(pp-&gt;promiser))</span>
+<span class="lineNum">     236 </span>            :     {
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         SeqAppend(errors, PolicyErrorNew(POLICY_ELEMENT_TYPE_PROMISE, pp,</span>
+<span class="lineNum">     238 </span>            :                                          POLICY_ERROR_CLASSES_PROMISER_NUMERICAL));
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         success = false;</span>
+<span class="lineNum">     240 </span>            :     }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     return success;</span>
+<span class="lineNum">     243 </span>            : }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            : const ConstraintSyntax CFG_CONTROLBODY[COMMON_CONTROL_MAX + 1] =
+<span class="lineNum">     246 </span>            : {
+<span class="lineNum">     247 </span>            :     ConstraintSyntaxNewStringList(&quot;bundlesequence&quot;, &quot;.*&quot;, &quot;List of promise bundles to verify in order&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     248 </span>            :     ConstraintSyntaxNewStringList(&quot;goal_patterns&quot;, &quot;&quot;, &quot;A list of regular expressions that match promisees/topics considered to be organizational goals&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     249 </span>            :     ConstraintSyntaxNewBool(&quot;ignore_missing_bundles&quot;, &quot;If any bundles in the bundlesequence do not exist, ignore and continue. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     250 </span>            :     ConstraintSyntaxNewBool(&quot;ignore_missing_inputs&quot;, &quot;If any input files do not exist, ignore and continue. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     251 </span>            :     ConstraintSyntaxNewStringList(&quot;inputs&quot;, &quot;.*&quot;, &quot;List of additional filenames to parse for promises&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     252 </span>            :     ConstraintSyntaxNewString(&quot;version&quot;, &quot;&quot;, &quot;Scalar version string for this configuration&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     253 </span>            :     ConstraintSyntaxNewInt(&quot;lastseenexpireafter&quot;, CF_VALRANGE, &quot;Number of minutes after which last-seen entries are purged. Default value: one week&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     254 </span>            :     ConstraintSyntaxNewString(&quot;output_prefix&quot;, &quot;&quot;, &quot;The string prefix for standard output&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     255 </span>            :     ConstraintSyntaxNewString(&quot;domain&quot;, &quot;.*&quot;, &quot;Specify the domain name for this host&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     256 </span>            :     ConstraintSyntaxNewBool(&quot;require_comments&quot;, &quot;Warn about promises that do not have comment documentation. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     257 </span>            :     ConstraintSyntaxNewInt(&quot;host_licenses_paid&quot;, CF_VALRANGE, &quot;This promise is deprecated since CFEngine version 3.1 and is ignored. Default value: 25&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     258 </span>            :     ConstraintSyntaxNewContextList(&quot;site_classes&quot;, &quot;A list of classes that will represent geographical site locations for hosts. These should be defined elsewhere in the configuration in a classes promise.&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     259 </span>            :     ConstraintSyntaxNewString(&quot;syslog_host&quot;, CF_IPRANGE, &quot;The name or address of a host to which syslog messages should be sent directly by UDP. Default value: localhost&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     260 </span>            :     ConstraintSyntaxNewInt(&quot;syslog_port&quot;, CF_VALRANGE, &quot;The port number of a UDP syslog service. Default value: 514&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     261 </span>            :     ConstraintSyntaxNewBool(&quot;fips_mode&quot;, &quot;Activate full FIPS mode restrictions. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     262 </span>            :     ConstraintSyntaxNewReal(&quot;bwlimit&quot;, CF_VALRANGE, &quot;Limit outgoing protocol bandwidth in Bytes per second&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     263 </span>            :     ConstraintSyntaxNewBool(&quot;cache_system_functions&quot;, &quot;Cache the result of system functions. Default value: true&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     264 </span>            :     ConstraintSyntaxNewOption(&quot;protocol_version&quot;, &quot;0,undefined,1,classic,2,latest&quot;, &quot;CFEngine protocol version to use when connecting to the server. Default: \&quot;latest\&quot;&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     265 </span>            :     ConstraintSyntaxNewString(&quot;tls_ciphers&quot;, &quot;&quot;, &quot;List of acceptable ciphers in outgoing TLS connections, defaults to OpenSSL's default. For syntax help see man page for \&quot;openssl ciphers\&quot;&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     266 </span>            :     ConstraintSyntaxNewString(&quot;tls_min_version&quot;, &quot;&quot;, &quot;Minimum acceptable TLS version for outgoing connections, defaults to OpenSSL's default&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     267 </span>            :     ConstraintSyntaxNewStringList(&quot;package_inventory&quot;, &quot;.*&quot;, &quot;Name of the package manager used for software inventory management&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     268 </span>            :     ConstraintSyntaxNewString(&quot;package_module&quot;, &quot;.*&quot;, &quot;Name of the default package manager&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     269 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     270 </span>            : };
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            : const ConstraintSyntax CFA_CONTROLBODY[] =
+<span class="lineNum">     273 </span>            : {
+<span class="lineNum">     274 </span>            :     ConstraintSyntaxNewStringList(&quot;abortclasses&quot;, &quot;.*&quot;, &quot;A list of classes which if defined in an agent bundle lead to termination of cf-agent&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     275 </span>            :     ConstraintSyntaxNewStringList(&quot;abortbundleclasses&quot;, &quot;.*&quot;, &quot;A list of classes which if defined lead to termination of current bundle&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     276 </span>            :     ConstraintSyntaxNewStringList(&quot;addclasses&quot;, &quot;.*&quot;, &quot;A list of classes to be defined always in the current context&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     277 </span>            :     ConstraintSyntaxNewStringList(&quot;agentaccess&quot;, &quot;.*&quot;, &quot;A list of user names allowed to execute cf-agent&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     278 </span>            :     ConstraintSyntaxNewOption(&quot;agentfacility&quot;, CF_FACILITY, &quot;The syslog facility for cf-agent. Default value: LOG_USER&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     279 </span>            :     ConstraintSyntaxNewBool(&quot;allclassesreport&quot;, &quot;Generate allclasses.txt report&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     280 </span>            :     ConstraintSyntaxNewBool(&quot;alwaysvalidate&quot;, &quot;true/false flag to determine whether configurations will always be checked before executing, or only after updates&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     281 </span>            :     ConstraintSyntaxNewBool(&quot;auditing&quot;, &quot;This option is deprecated, does nothing and is kept for backward compatibility. Default value: false&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     282 </span>            :     ConstraintSyntaxNewString(&quot;binarypaddingchar&quot;, &quot;&quot;, &quot;Character used to pad unequal replacements in binary editing. Default value: space (ASC=32)&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     283 </span>            :     ConstraintSyntaxNewString(&quot;bindtointerface&quot;, &quot;.*&quot;, &quot;Use this interface for outgoing connections&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     284 </span>            :     ConstraintSyntaxNewBool(&quot;hashupdates&quot;, &quot;true/false whether stored hashes are updated when change is detected in source. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     285 </span>            :     ConstraintSyntaxNewString(&quot;childlibpath&quot;, &quot;.*&quot;, &quot;LD_LIBRARY_PATH for child processes&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     286 </span>            :     ConstraintSyntaxNewInt(&quot;checksum_alert_time&quot;, &quot;0,60&quot;, &quot;The persistence time for the checksum_alert class. Default value: 10 mins&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     287 </span>            :     ConstraintSyntaxNewOption(&quot;defaultcopytype&quot;, &quot;mtime,atime,ctime,digest,hash,binary&quot;, &quot;ctime or mtime differ&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     288 </span>            :     ConstraintSyntaxNewBool(&quot;dryrun&quot;, &quot;All talk and no action mode. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     289 </span>            :     ConstraintSyntaxNewInt(&quot;editbinaryfilesize&quot;, CF_VALRANGE, &quot;Integer limit on maximum binary file size to be edited. Default value: 100000&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     290 </span>            :     ConstraintSyntaxNewInt(&quot;editfilesize&quot;, CF_VALRANGE, &quot;Integer limit on maximum text file size to be edited. Default value: 100000&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     291 </span>            :     ConstraintSyntaxNewStringList(&quot;environment&quot;, &quot;[A-Za-z0-9_]+=.*&quot;, &quot;List of environment variables to be inherited by children&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     292 </span>            :     ConstraintSyntaxNewBool(&quot;exclamation&quot;, &quot;true/false print exclamation marks during security warnings. Default value: true&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     293 </span>            :     ConstraintSyntaxNewInt(&quot;expireafter&quot;, CF_VALRANGE, &quot;Global default for time before on-going promise repairs are interrupted. Default value: 1 min&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     294 </span>            :     ConstraintSyntaxNewStringList(&quot;files_single_copy&quot;, &quot;&quot;, &quot;List of filenames to be watched for multiple-source conflicts&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     295 </span>            :     ConstraintSyntaxNewStringList(&quot;files_auto_define&quot;, &quot;&quot;, &quot;List of filenames to define classes if copied&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     296 </span>            :     ConstraintSyntaxNewBool(&quot;hostnamekeys&quot;, &quot;true/false label ppkeys by hostname not IP address. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     297 </span>            :     ConstraintSyntaxNewInt(&quot;ifelapsed&quot;, CF_VALRANGE, &quot;Global default for time that must elapse before promise will be rechecked. Default value: 1&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     298 </span>            :     ConstraintSyntaxNewBool(&quot;inform&quot;, &quot;true/false set inform level default. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     299 </span>            :     ConstraintSyntaxNewBool(&quot;intermittency&quot;, &quot;This option is deprecated, does nothing and is kept for backward compatibility. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     300 </span>            :     ConstraintSyntaxNewInt(&quot;max_children&quot;, CF_VALRANGE, &quot;Maximum number of background tasks that should be allowed concurrently. Default value: 1 concurrent agent promise&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     301 </span>            :     ConstraintSyntaxNewInt(&quot;maxconnections&quot;, CF_VALRANGE, &quot;Maximum number of outgoing connections to cf-serverd. Default value: 30 remote queries&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     302 </span>            :     ConstraintSyntaxNewBool(&quot;mountfilesystems&quot;, &quot;true/false mount any filesystems promised. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     303 </span>            :     ConstraintSyntaxNewBool(&quot;nonalphanumfiles&quot;, &quot;true/false warn about filenames with no alphanumeric content. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     304 </span>            :     ConstraintSyntaxNewString(&quot;repchar&quot;, &quot;.&quot;, &quot;The character used to canonize pathnames in the file repository. Default value: _&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     305 </span>            :     ConstraintSyntaxNewStringList(&quot;refresh_processes&quot;, CF_IDRANGE, &quot;Reload the process table before verifying the bundles named in this list (lazy evaluation)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     306 </span>            :     ConstraintSyntaxNewString(&quot;default_repository&quot;, CF_ABSPATHRANGE, &quot;Path to the default file repository. Default value: in situ&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     307 </span>            :     ConstraintSyntaxNewBool(&quot;secureinput&quot;, &quot;true/false check whether input files are writable by unauthorized users. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     308 </span>            :     ConstraintSyntaxNewInt(&quot;sensiblecount&quot;, CF_VALRANGE, &quot;Minimum number of files a mounted filesystem is expected to have. Default value: 2 files&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     309 </span>            :     ConstraintSyntaxNewInt(&quot;sensiblesize&quot;, CF_VALRANGE, &quot;Minimum number of bytes a mounted filesystem is expected to have. Default value: 1000 bytes&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     310 </span>            :     ConstraintSyntaxNewBool(&quot;skipidentify&quot;, &quot;Do not send IP/name during server connection because address resolution is broken. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     311 </span>            :     ConstraintSyntaxNewStringList(&quot;suspiciousnames&quot;, &quot;&quot;, &quot;List of names to warn about if found during any file search&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     312 </span>            :     ConstraintSyntaxNewBool(&quot;syslog&quot;, &quot;true/false switches on output to syslog at the inform level. Default value: false&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     313 </span>            :     ConstraintSyntaxNewBool(&quot;track_value&quot;, &quot;true/false switches on tracking of promise valuation. Default value: false&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     314 </span>            :     ConstraintSyntaxNewStringList(&quot;timezone&quot;, &quot;&quot;, &quot;List of allowed timezones this machine must comply with&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     315 </span>            :     ConstraintSyntaxNewInt(&quot;default_timeout&quot;, CF_VALRANGE, &quot;Maximum time a network connection should attempt to connect. Default value: 10 seconds&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     316 </span>            :     ConstraintSyntaxNewBool(&quot;verbose&quot;, &quot;true/false switches on verbose standard output. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     317 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     318 </span>            : };
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            : const ConstraintSyntax CFS_CONTROLBODY[SERVER_CONTROL_MAX + 1] =
+<span class="lineNum">     321 </span>            : {
+<span class="lineNum">     322 </span>            :     ConstraintSyntaxNewStringList(&quot;allowallconnects&quot;, &quot;&quot;,&quot;List of IPs or hostnames that may have more than one connection to the server port&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     323 </span>            :     ConstraintSyntaxNewStringList(&quot;allowconnects&quot;, &quot;&quot;, &quot;List of IPs or hostnames that may connect to the server port&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     324 </span>            :     ConstraintSyntaxNewStringList(&quot;allowusers&quot;, &quot;&quot;, &quot;List of usernames who may execute requests from this server&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     325 </span>            :     ConstraintSyntaxNewBool(&quot;auditing&quot;, &quot;true/false activate auditing of server connections. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     326 </span>            :     ConstraintSyntaxNewString(&quot;bindtointerface&quot;, &quot;&quot;, &quot;IP of the interface to which the server should bind on multi-homed hosts&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     327 </span>            :     ConstraintSyntaxNewString(&quot;cfruncommand&quot;, CF_PATHRANGE, &quot;Path to the cf-agent command or cf-execd wrapper for remote execution&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     328 </span>            :     ConstraintSyntaxNewInt(&quot;call_collect_interval&quot;, CF_VALRANGE, &quot;The interval in minutes in between collect calls to the policy hub offering a tunnel for report collection (Enterprise)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     329 </span>            :     ConstraintSyntaxNewInt(&quot;collect_window&quot;, CF_VALRANGE, &quot;A time in seconds that a collect-call tunnel remains open to a hub to attempt a report transfer before it is closed (Enterprise)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     330 </span>            :     ConstraintSyntaxNewBool(&quot;denybadclocks&quot;, &quot;true/false accept connections from hosts with clocks that are out of sync. Default value: true&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     331 </span>            :     ConstraintSyntaxNewStringList(&quot;denyconnects&quot;, &quot;&quot;, &quot;List of IPs or hostnames that may NOT connect to the server port&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     332 </span>            :     ConstraintSyntaxNewStringList(&quot;dynamicaddresses&quot;, &quot;&quot;, &quot;List of IPs or hostnames for which the IP/name binding is expected to change&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     333 </span>            :     ConstraintSyntaxNewBool(&quot;hostnamekeys&quot;, &quot;true/false store keys using hostname lookup instead of IP addresses. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     334 </span>            :     ConstraintSyntaxNewInt(&quot;keycacheTTL&quot;, CF_VALRANGE, &quot;Maximum number of hours to hold public keys in the cache. Default value: 24&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     335 </span>            :     ConstraintSyntaxNewBool(&quot;logallconnections&quot;, &quot;true/false causes the server to log all new connections to syslog. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     336 </span>            :     ConstraintSyntaxNewBool(&quot;logencryptedtransfers&quot;, &quot;true/false log all successful transfers required to be encrypted. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     337 </span>            :     ConstraintSyntaxNewInt(&quot;maxconnections&quot;, CF_VALRANGE, &quot;Maximum number of connections that will be accepted by cf-serverd. Default value: 30 remote queries&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     338 </span>            :     ConstraintSyntaxNewInt(&quot;port&quot;, &quot;1,65535&quot;, &quot;Default port for cfengine server. Default value: 5308&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     339 </span>            :     ConstraintSyntaxNewOption(&quot;serverfacility&quot;, CF_FACILITY, &quot;Menu option for syslog facility level. Default value: LOG_USER&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     340 </span>            :     ConstraintSyntaxNewStringList(&quot;skipverify&quot;, &quot;&quot;, &quot;This option is deprecated, does nothing and is kept for backward compatibility.&quot;, SYNTAX_STATUS_DEPRECATED),
+<span class="lineNum">     341 </span>            :     ConstraintSyntaxNewStringList(&quot;trustkeysfrom&quot;, &quot;&quot;, &quot;List of IPs from whom we accept public keys on trust&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     342 </span>            :     ConstraintSyntaxNewBool(&quot;listen&quot;, &quot;true/false enable server daemon to listen on defined port. Default value: true&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     343 </span>            :     ConstraintSyntaxNewString(&quot;allowciphers&quot;, &quot;&quot;, &quot;List of ciphers the server accepts. For Syntax help see man page for \&quot;openssl ciphers\&quot;. Default is \&quot;AES256-GCM-SHA384:AES256-SHA\&quot;&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     344 </span>            :     ConstraintSyntaxNewStringList(&quot;allowlegacyconnects&quot;, &quot;&quot;, &quot;List of IPs from whom we accept legacy protocol connections&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     345 </span>            :     ConstraintSyntaxNewString(&quot;allowtlsversion&quot;, &quot;&quot;, &quot;Minimum TLS version allowed for incoming connections&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     346 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     347 </span>            : };
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            : const ConstraintSyntax CFM_CONTROLBODY[] =
+<span class="lineNum">     350 </span>            : {
+<span class="lineNum">     351 </span>            :     ConstraintSyntaxNewReal(&quot;forgetrate&quot;, &quot;0,1&quot;, &quot;Decimal fraction [0,1] weighting of new values over old in 2d-average computation. Default value: 0.6&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     352 </span>            :     ConstraintSyntaxNewOption(&quot;monitorfacility&quot;, CF_FACILITY, &quot;Menu option for syslog facility. Default value: LOG_USER&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     353 </span>            :     ConstraintSyntaxNewBool(&quot;histograms&quot;, &quot;Ignored, kept for backward compatibility. Default value: true&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     354 </span>            :     ConstraintSyntaxNewBool(&quot;tcpdump&quot;, &quot;true/false use tcpdump if found. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     355 </span>            :     ConstraintSyntaxNewString(&quot;tcpdumpcommand&quot;, CF_ABSPATHRANGE, &quot;Path to the tcpdump command on this system&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     356 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     357 </span>            : };
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            : const ConstraintSyntax CFR_CONTROLBODY[] =
+<span class="lineNum">     360 </span>            : {
+<span class="lineNum">     361 </span>            :     ConstraintSyntaxNewStringList(&quot;hosts&quot;, &quot;&quot;, &quot;List of host or IP addresses to attempt connection with&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     362 </span>            :     ConstraintSyntaxNewInt(&quot;port&quot;, &quot;1,65535&quot;, &quot;Default port for cfengine server. Default value: 5308&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     363 </span>            :     ConstraintSyntaxNewBool(&quot;force_ipv4&quot;, &quot;true/false force use of ipv4 in connection. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     364 </span>            :     ConstraintSyntaxNewBool(&quot;trustkey&quot;, &quot;true/false automatically accept all keys on trust from servers. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     365 </span>            :     ConstraintSyntaxNewBool(&quot;encrypt&quot;, &quot;true/false encrypt connections with servers. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     366 </span>            :     ConstraintSyntaxNewBool(&quot;background_children&quot;, &quot;true/false parallelize connections to servers. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     367 </span>            :     ConstraintSyntaxNewInt(&quot;max_children&quot;, CF_VALRANGE, &quot;Maximum number of simultaneous connections to attempt. Default value: 50 runagents&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     368 </span>            :     ConstraintSyntaxNewBool(&quot;output_to_file&quot;, &quot;true/false whether to send collected output to file(s). Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     369 </span>            :     ConstraintSyntaxNewString(&quot;output_directory&quot;, CF_ABSPATHRANGE, &quot;Directory where the output is stored&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     370 </span>            :     ConstraintSyntaxNewInt(&quot;timeout&quot;, &quot;1,9999&quot;, &quot;Connection timeout, sec&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     371 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     372 </span>            : };
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span>            : const ConstraintSyntax CFEX_CONTROLBODY[] = /* enum cfexcontrol */
+<span class="lineNum">     375 </span>            : {
+<span class="lineNum">     376 </span>            :     ConstraintSyntaxNewInt(&quot;splaytime&quot;, CF_VALRANGE, &quot;Time in minutes to splay this host based on its name hash. Default value: 0&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     377 </span>            :     ConstraintSyntaxNewString(&quot;mailfrom&quot;, &quot;.*@.*&quot;, &quot;Email-address cfengine mail appears to come from&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     378 </span>            :     ConstraintSyntaxNewString(&quot;mailto&quot;, &quot;.*@.*&quot;, &quot;Email-address cfengine mail is sent to&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     379 </span>            :     ConstraintSyntaxNewString(&quot;mailsubject&quot;, &quot;&quot;, &quot;Define a custom mailsubject for the email message&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     380 </span>            :     ConstraintSyntaxNewString(&quot;smtpserver&quot;, &quot;.*&quot;, &quot;Name or IP of a willing smtp server for sending email&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     381 </span>            :     ConstraintSyntaxNewInt(&quot;mailmaxlines&quot;, &quot;0,1000&quot;, &quot;Maximum number of lines of output to send by email. Default value: 30&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     382 </span>            :     ConstraintSyntaxNewStringList(&quot;schedule&quot;, &quot;&quot;, &quot;The class schedule used by cf-execd for activating cf-agent&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     383 </span>            :     ConstraintSyntaxNewOption(&quot;executorfacility&quot;, CF_FACILITY, &quot;Menu option for syslog facility level. Default value: LOG_USER&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     384 </span>            :     ConstraintSyntaxNewString(&quot;exec_command&quot;, CF_ABSPATHRANGE,&quot;The full path and command to the executable run by default (overriding builtin)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     385 </span>            :     ConstraintSyntaxNewInt(&quot;agent_expireafter&quot;, &quot;0,10080&quot;, &quot;Maximum agent runtime (in minutes). Default value: 120&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     386 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     387 </span>            : };
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span>            : const ConstraintSyntax CFH_CONTROLBODY[] =  /* enum cfh_control */
+<span class="lineNum">     390 </span>            : {
+<span class="lineNum">     391 </span>            :     ConstraintSyntaxNewString(&quot;export_zenoss&quot;, CF_PATHRANGE, &quot;Generate report for Zenoss integration&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     392 </span>            :     ConstraintSyntaxNewStringList(&quot;exclude_hosts&quot;, &quot;&quot;, &quot;A list of IP addresses of hosts to exclude from report collection&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     393 </span>            :     ConstraintSyntaxNewStringList(&quot;hub_schedule&quot;, &quot;&quot;, &quot;The class schedule used by cf-hub for report collation&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     394 </span>            :     ConstraintSyntaxNewInt(&quot;port&quot;, &quot;1,65535&quot;, &quot;Default port for contacting hub nodes. Default value: 5308&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     395 </span>            :     ConstraintSyntaxNewInt(&quot;client_history_timeout&quot;, &quot;1,65535&quot;, &quot;Threshold in hours over which if client did not report, hub will start query for full state of the host and discard all accumulated report history on the client. Default value: 6 hours&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     396 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     397 </span>            : };
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span>            : const ConstraintSyntax file_control_constraints[] =  /* enum cfh_control */
+<span class="lineNum">     400 </span>            : {
+<span class="lineNum">     401 </span>            :     ConstraintSyntaxNewString(&quot;namespace&quot;, CF_IDRANGE, &quot;Switch to a private namespace to protect current file from duplicate definitions&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     402 </span>            :     ConstraintSyntaxNewStringList(&quot;inputs&quot;, &quot;.*&quot;, &quot;List of additional filenames to parse for promises&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     403 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     404 </span>            : };
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            : const ConstraintSyntax CFRE_CONTROLBODY[] = /* enum cfrecontrol */
+<span class="lineNum">     407 </span>            : {
+<span class="lineNum">     408 </span>            :     ConstraintSyntaxNewString(&quot;aggregation_point&quot;, CF_ABSPATHRANGE, &quot;The root directory of the data cache for CMDB aggregation&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     409 </span>            :     ConstraintSyntaxNewOption(&quot;auto_scaling&quot;, CF_BOOL, &quot;true/false whether to auto-scale graph output to optimize use of space. Default value: true&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     410 </span>            :     ConstraintSyntaxNewString(&quot;build_directory&quot;, &quot;.*&quot;, &quot;The directory in which to generate output files&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     411 </span>            :     ConstraintSyntaxNewStringList(&quot;csv2xml&quot;, &quot;&quot;, &quot;A list of csv formatted files in the build directory to convert to simple xml&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     412 </span>            :     ConstraintSyntaxNewOption(&quot;error_bars&quot;, CF_BOOL, &quot;true/false whether to generate error bars on graph output&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     413 </span>            :     ConstraintSyntaxNewString(&quot;html_banner&quot;, &quot;&quot;, &quot;HTML code for a banner to be added to rendered in html after the header&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     414 </span>            :     ConstraintSyntaxNewOption(&quot;html_embed&quot;, CF_BOOL, &quot;If true, no header and footer tags will be added to html output&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     415 </span>            :     ConstraintSyntaxNewString(&quot;html_footer&quot;, &quot;&quot;, &quot;HTML code for a page footer to be added to rendered in html before the end body tag&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     416 </span>            :     ConstraintSyntaxNewString(&quot;query_engine&quot;, &quot;&quot;, &quot;Name of a dynamic web-page used to accept and drive queries in a browser&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     417 </span>            :     ConstraintSyntaxNewOptionList(&quot;reports&quot;, &quot;all,audit,performance,all_locks,active_locks,hashes,classes,last_seen,monitor_now,monitor_history,monitor_summary,compliance,setuid,file_changes,installed_software,software_patches,value,variables&quot;, &quot;A list of reports that may be generated&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     418 </span>            :     ConstraintSyntaxNewOption(&quot;report_output&quot;, &quot;csv,html,text,xml&quot;, &quot;Menu option for generated output format. Applies only to text reports, graph data remain in xydy format.&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     419 </span>            :     ConstraintSyntaxNewString(&quot;style_sheet&quot;, &quot;&quot;, &quot;Name of a style-sheet to be used in rendering html output (added to headers)&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     420 </span>            :     ConstraintSyntaxNewString(&quot;time_stamps&quot;, CF_BOOL, &quot;true/false whether to generate timestamps in the output directory name&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     421 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     422 </span>            : };
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            : const ConstraintSyntax CFK_CONTROLBODY[] =
+<span class="lineNum">     426 </span>            : {
+<span class="lineNum">     427 </span>            :     ConstraintSyntaxNewString(&quot;build_directory&quot;, &quot;.*&quot;, &quot;The directory in which to generate output files&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     428 </span>            :     ConstraintSyntaxNewString(&quot;document_root&quot;, &quot;.*&quot;, &quot;The directory in which the web root resides&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     429 </span>            :     ConstraintSyntaxNewOption(&quot;generate_manual&quot;, CF_BOOL, &quot;true/false generate texinfo manual page skeleton for this version&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     430 </span>            :     ConstraintSyntaxNewString(&quot;graph_directory&quot;, CF_ABSPATHRANGE, &quot;Path to directory where rendered .png files will be created&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     431 </span>            :     ConstraintSyntaxNewOption(&quot;graph_output&quot;, CF_BOOL, &quot;true/false generate png visualization of topic map if possible (requires lib)&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     432 </span>            :     ConstraintSyntaxNewString(&quot;html_banner&quot;, &quot;&quot;, &quot;HTML code for a banner to be added to rendered in html after the header&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     433 </span>            :     ConstraintSyntaxNewString(&quot;html_footer&quot;, &quot;&quot;, &quot;HTML code for a page footer to be added to rendered in html before the end body tag&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     434 </span>            :     ConstraintSyntaxNewString(&quot;id_prefix&quot;, &quot;.*&quot;, &quot;The LTM identifier prefix used to label topic maps (used for disambiguation in merging)&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     435 </span>            :     ConstraintSyntaxNewString(&quot;manual_source_directory&quot;, CF_ABSPATHRANGE, &quot;Path to directory where raw text about manual topics is found (defaults to build_directory)&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     436 </span>            :     ConstraintSyntaxNewString(&quot;query_engine&quot;, &quot;&quot;, &quot;Name of a dynamic web-page used to accept and drive queries in a browser&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     437 </span>            :     ConstraintSyntaxNewOption(&quot;query_output&quot;, &quot;html,text&quot;, &quot;Menu option for generated output format&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     438 </span>            :     ConstraintSyntaxNewOption(&quot;sql_type&quot;, &quot;mysql,postgres&quot;, &quot;Menu option for supported database type&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     439 </span>            :     ConstraintSyntaxNewString(&quot;sql_database&quot;, &quot;&quot;, &quot;Name of database used for the topic map&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     440 </span>            :     ConstraintSyntaxNewString(&quot;sql_owner&quot;, &quot;&quot;, &quot;User id of sql database user&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     441 </span>            :     ConstraintSyntaxNewString(&quot;sql_passwd&quot;, &quot;&quot;, &quot;Embedded password for accessing sql database&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     442 </span>            :     ConstraintSyntaxNewString(&quot;sql_server&quot;, &quot;&quot;, &quot;Name or IP of database server (or localhost)&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     443 </span>            :     ConstraintSyntaxNewString(&quot;sql_connection_db&quot;, &quot;&quot;, &quot;The name of an existing database to connect to in order to create/manage other databases&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     444 </span>            :     ConstraintSyntaxNewString(&quot;style_sheet&quot;, &quot;&quot;, &quot;Name of a style-sheet to be used in rendering html output (added to headers)&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     445 </span>            :     ConstraintSyntaxNewOption(&quot;view_projections&quot;, CF_BOOL, &quot;Perform view-projection analytics in graph generation&quot;, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     446 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     447 </span>            : };
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span>            : /* This list is for checking free standing body lval =&gt; rval bindings */
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span>            : const BodySyntax CONTROL_BODIES[] =
+<span class="lineNum">     453 </span>            : {
+<span class="lineNum">     454 </span>            :     BodySyntaxNew(CF_COMMONC, CFG_CONTROLBODY, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     455 </span>            :     BodySyntaxNew(CF_AGENTC, CFA_CONTROLBODY, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     456 </span>            :     BodySyntaxNew(CF_SERVERC, CFS_CONTROLBODY, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     457 </span>            :     BodySyntaxNew(CF_MONITORC, CFM_CONTROLBODY, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     458 </span>            :     BodySyntaxNew(CF_RUNC, CFR_CONTROLBODY, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     459 </span>            :     BodySyntaxNew(CF_EXECC, CFEX_CONTROLBODY, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     460 </span>            :     BodySyntaxNew(CF_HUBC, CFH_CONTROLBODY, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     461 </span>            :     BodySyntaxNew(&quot;file&quot;, file_control_constraints, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            :     BodySyntaxNew(&quot;reporter&quot;, CFRE_CONTROLBODY, NULL, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     464 </span>            :     BodySyntaxNew(&quot;knowledge&quot;, CFK_CONTROLBODY, NULL, SYNTAX_STATUS_REMOVED),
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span>            :     //  get others from modules e.g. &quot;agent&quot;,&quot;files&quot;,CF_FILES_BODIES,
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span>            :     BodySyntaxNewNull()
+<span class="lineNum">     469 </span>            : };
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span>            : /*********************************************************/
+<span class="lineNum">     472 </span>            : /*                                                       */
+<span class="lineNum">     473 </span>            : /* Constraint values/types                               */
+<span class="lineNum">     474 </span>            : /*                                                       */
+<span class="lineNum">     475 </span>            : /*********************************************************/
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span>            :  /* This is where we place lval =&gt; rval bindings that
+<span class="lineNum">     478 </span>            :     apply to more than one promise_type, e.g. generic
+<span class="lineNum">     479 </span>            :     processing behavioural details */
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            : const ConstraintSyntax CF_COMMON_BODIES[] =
+<span class="lineNum">     482 </span>            : {
+<span class="lineNum">     483 </span>            :     ConstraintSyntaxNewBody(&quot;action&quot;, &amp;action_body, &quot;Output behaviour&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     484 </span>            :     ConstraintSyntaxNewBody(&quot;classes&quot;, &amp;classes_body, &quot;Signalling behaviour&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     485 </span>            :     ConstraintSyntaxNewString(&quot;comment&quot;, &quot;&quot;, &quot;A comment about this promise's real intention that follows through the program&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     486 </span>            :     ConstraintSyntaxNewStringList(&quot;depends_on&quot;, &quot;&quot;,&quot;A list of promise handles that this promise builds on or depends on somehow (for knowledge management)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     487 </span>            :     ConstraintSyntaxNewString(&quot;handle&quot;, &quot;&quot;, &quot;A unique id-tag string for referring to this as a promisee elsewhere&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     488 </span>            :     ConstraintSyntaxNewString(&quot;ifvarclass&quot;, &quot;&quot;, &quot;Extended classes ANDed with context (alias for 'if')&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     489 </span>            :     ConstraintSyntaxNewString(&quot;if&quot;, &quot;&quot;, &quot;Extended classes ANDed with context&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     490 </span>            :     ConstraintSyntaxNewString(&quot;unless&quot;, &quot;&quot;, &quot;Negated 'if'&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     491 </span>            :     ConstraintSyntaxNewStringList(&quot;meta&quot;, &quot;&quot;, &quot;User-data associated with policy, e.g. key=value strings&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     492 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     493 </span>            : };
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span>            :  /* This is where we place promise promise_types that apply
+<span class="lineNum">     496 </span>            :     to more than one type of bundle, e.g. agent,server.. */
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            : const PromiseTypeSyntax CF_COMMON_PROMISE_TYPES[] =
+<span class="lineNum">     499 </span>            : {
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            :     PromiseTypeSyntaxNew(&quot;*&quot;, &quot;classes&quot;, CF_CLASSBODY, &amp;ClassesParseTreeCheck, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     502 </span>            :     PromiseTypeSyntaxNew(&quot;*&quot;, &quot;defaults&quot;, CF_DEFAULTSBODY, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     503 </span>            :     PromiseTypeSyntaxNew(&quot;*&quot;, &quot;meta&quot;, CF_METABODY, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     504 </span>            :     PromiseTypeSyntaxNew(&quot;*&quot;, &quot;reports&quot;, CF_REPORT_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     505 </span>            :     PromiseTypeSyntaxNew(&quot;*&quot;, &quot;vars&quot;, CF_VARBODY, &amp;VarsParseTreeCheck, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     506 </span>            :     PromiseTypeSyntaxNew(&quot;*&quot;, &quot;*&quot;, CF_COMMON_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     507 </span>            :     PromiseTypeSyntaxNewNull()
+<span class="lineNum">     508 </span>            : };
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span>            : /*********************************************************/
+<span class="lineNum">     511 </span>            : /* THIS IS WHERE TO ATTACH SYNTAX MODULES                */
+<span class="lineNum">     512 </span>            : /*********************************************************/
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            : /* Read in all parsable Bundle definitions */
+<span class="lineNum">     515 </span>            : /* REMEMBER TO REGISTER THESE IN cf3.extern.h */
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span>            : const PromiseTypeSyntax *const CF_ALL_PROMISE_TYPES[] =
+<span class="lineNum">     518 </span>            : {
+<span class="lineNum">     519 </span>            :     CF_COMMON_PROMISE_TYPES,         /* Add modules after this, mod_report.c is here */
+<span class="lineNum">     520 </span>            :     CF_EXEC_PROMISE_TYPES,           /* mod_exec.c */
+<span class="lineNum">     521 </span>            :     CF_DATABASES_PROMISE_TYPES,      /* mod_databases.c */
+<span class="lineNum">     522 </span>            :     CF_ENVIRONMENT_PROMISE_TYPES,    /* mod_environ.c */
+<span class="lineNum">     523 </span>            :     CF_FILES_PROMISE_TYPES,          /* mod_files.c */
+<span class="lineNum">     524 </span>            :     CF_METHOD_PROMISE_TYPES,         /* mod_methods.c */
+<span class="lineNum">     525 </span>            :     CF_OUTPUTS_PROMISE_TYPES,        /* mod_outputs.c */
+<span class="lineNum">     526 </span>            :     CF_PACKAGES_PROMISE_TYPES,       /* mod_packages.c */
+<span class="lineNum">     527 </span>            :     CF_PROCESS_PROMISE_TYPES,        /* mod_process.c */
+<span class="lineNum">     528 </span>            :     CF_SERVICES_PROMISE_TYPES,       /* mod_services.c */
+<span class="lineNum">     529 </span>            :     CF_STORAGE_PROMISE_TYPES,        /* mod_storage.c */
+<span class="lineNum">     530 </span>            :     CF_REMACCESS_PROMISE_TYPES,      /* mod_access.c */
+<span class="lineNum">     531 </span>            :     CF_MEASUREMENT_PROMISE_TYPES,    /* mod_measurement.c */
+<span class="lineNum">     532 </span>            :     CF_KNOWLEDGE_PROMISE_TYPES,      /* mod_knowledge.c */
+<span class="lineNum">     533 </span>            :     CF_USERS_PROMISE_TYPES,          /* mod_users.c */
+<span class="lineNum">     534 </span>            : };
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span>            : const int CF3_MODULES = (sizeof(CF_ALL_PROMISE_TYPES) / sizeof(CF_ALL_PROMISE_TYPES[0]));
+<a name="537"><span class="lineNum">     537 </span>            : </a>
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 : CommonControl CommonControlFromString(const char *lval)</span>
+<span class="lineNum">     540 </span>            : {
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     int i = 0;</span>
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     for (const ConstraintSyntax *s = CFG_CONTROLBODY; s-&gt;lval; s++, i++)</span>
+<span class="lineNum">     543 </span>            :     {
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :         if (strcmp(lval, s-&gt;lval) == 0)</span>
+<span class="lineNum">     545 </span>            :         {
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :             return (CommonControl)i;</span>
+<span class="lineNum">     547 </span>            :         }
+<span class="lineNum">     548 </span>            :     }
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     return COMMON_CONTROL_MAX;</span>
+<span class="lineNum">     551 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

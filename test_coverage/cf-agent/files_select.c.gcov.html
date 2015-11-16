@@ -1,0 +1,691 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - cf-agent/files_select.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cf-agent</a> - files_select.c<span style="font-size: 80%;"> (source / <a href="files_select.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">197</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;files_select.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;files_names.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;files_interfaces.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;promises.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;match_scope.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;pipes.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;promises.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;exec_tools.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;chflags.h&gt;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : static int SelectTypeMatch(struct stat *lstatptr, Rlist *crit);
+<span class="lineNum">      39 </span>            : static int SelectOwnerMatch(EvalContext *ctx, char *path, struct stat *lstatptr, Rlist *crit);
+<span class="lineNum">      40 </span>            : static int SelectModeMatch(struct stat *lstatptr, Rlist *ls);
+<span class="lineNum">      41 </span>            : static int SelectTimeMatch(time_t stattime, time_t fromtime, time_t totime);
+<span class="lineNum">      42 </span>            : static int SelectNameRegexMatch(EvalContext *ctx, const char *filename, char *crit);
+<span class="lineNum">      43 </span>            : static int SelectPathRegexMatch(EvalContext *ctx, char *filename, char *crit);
+<span class="lineNum">      44 </span>            : static bool SelectExecRegexMatch(EvalContext *ctx, char *filename, char *crit, char *prog);
+<span class="lineNum">      45 </span>            : static int SelectIsSymLinkTo(EvalContext *ctx, char *filename, Rlist *crit);
+<span class="lineNum">      46 </span>            : static int SelectExecProgram(char *filename, char *command);
+<span class="lineNum">      47 </span>            : static int SelectSizeMatch(size_t size, size_t min, size_t max);
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #if !defined(__MINGW32__)
+<span class="lineNum">      50 </span>            : static int SelectGroupMatch(EvalContext *ctx, struct stat *lstatptr, Rlist *crit);
+<span class="lineNum">      51 </span>            : #endif
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : #if defined HAVE_CHFLAGS
+<span class="lineNum">      54 </span>            : static int SelectBSDMatch(struct stat *lstatptr, Rlist *bsdflags);
+<a name="55"><span class="lineNum">      55 </span>            : #endif</a>
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 : int SelectLeaf(EvalContext *ctx, char *path, struct stat *sb, FileSelect fs)</span>
+<span class="lineNum">      58 </span>            : {
+<span class="lineNum">      59 </span>            :     Rlist *rp;
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     StringSet *leaf_attr = StringSetNew();</span>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : #ifdef __MINGW32__
+<span class="lineNum">      64 </span>            :     if (fs.issymlinkto != NULL)
+<span class="lineNum">      65 </span>            :     {
+<span class="lineNum">      66 </span>            :         Log(LOG_LEVEL_VERBOSE,
+<span class="lineNum">      67 </span>            :               &quot;files_select.issymlinkto is ignored on Windows (symbolic links are not supported by Windows)&quot;);
+<span class="lineNum">      68 </span>            :     }
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            :     if (fs.groups != NULL)
+<span class="lineNum">      71 </span>            :     {
+<span class="lineNum">      72 </span>            :         Log(LOG_LEVEL_VERBOSE,
+<span class="lineNum">      73 </span>            :               &quot;files_select.search_groups is ignored on Windows (file groups are not supported by Windows)&quot;);
+<span class="lineNum">      74 </span>            :     }
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            :     if (fs.bsdflags != NULL)
+<span class="lineNum">      77 </span>            :     {
+<span class="lineNum">      78 </span>            :         Log(LOG_LEVEL_VERBOSE, &quot;files_select.search_bsdflags is ignored on Windows&quot;);
+<span class="lineNum">      79 </span>            :     }
+<span class="lineNum">      80 </span>            : #endif /* __MINGW32__ */
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     if (fs.name == NULL)</span>
+<span class="lineNum">      83 </span>            :     {
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;leaf_name&quot;));</span>
+<span class="lineNum">      85 </span>            :     }
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     for (rp = fs.name; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">      88 </span>            :     {
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         if (SelectNameRegexMatch(ctx, path, RlistScalarValue(rp)))</span>
+<span class="lineNum">      90 </span>            :         {
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :             StringSetAdd(leaf_attr, xstrdup(&quot;leaf_name&quot;));</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">      93 </span>            :         }
+<span class="lineNum">      94 </span>            :     }
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     if (fs.path == NULL)</span>
+<span class="lineNum">      97 </span>            :     {
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;leaf_path&quot;));</span>
+<span class="lineNum">      99 </span>            :     }
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     for (rp = fs.path; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     102 </span>            :     {
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :         if (SelectPathRegexMatch(ctx, path, RlistScalarValue(rp)))</span>
+<span class="lineNum">     104 </span>            :         {
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :             StringSetAdd(leaf_attr, xstrdup(&quot;path_name&quot;));</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     107 </span>            :         }
+<span class="lineNum">     108 </span>            :     }
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     if (SelectTypeMatch(sb, fs.filetypes))</span>
+<span class="lineNum">     111 </span>            :     {
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;file_types&quot;));</span>
+<span class="lineNum">     113 </span>            :     }
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :     if ((fs.owners) &amp;&amp; (SelectOwnerMatch(ctx, path, sb, fs.owners)))</span>
+<span class="lineNum">     116 </span>            :     {
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;owner&quot;));</span>
+<span class="lineNum">     118 </span>            :     }
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     if (fs.owners == NULL)</span>
+<span class="lineNum">     121 </span>            :     {
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;owner&quot;));</span>
+<span class="lineNum">     123 </span>            :     }
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : #ifdef __MINGW32__
+<span class="lineNum">     126 </span>            :     StringSetAdd(leaf_attr, xstrdup(&quot;group&quot;));
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            : #else /* !__MINGW32__ */
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     if ((fs.groups) &amp;&amp; (SelectGroupMatch(ctx, sb, fs.groups)))</span>
+<span class="lineNum">     130 </span>            :     {
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;group&quot;));</span>
+<span class="lineNum">     132 </span>            :     }
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     if (fs.groups == NULL)</span>
+<span class="lineNum">     135 </span>            :     {
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;group&quot;));</span>
+<span class="lineNum">     137 </span>            :     }
+<span class="lineNum">     138 </span>            : #endif /* !__MINGW32__ */
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     if (SelectModeMatch(sb, fs.perms))</span>
+<span class="lineNum">     141 </span>            :     {
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;mode&quot;));</span>
+<span class="lineNum">     143 </span>            :     }
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : #if defined HAVE_CHFLAGS
+<span class="lineNum">     146 </span>            :     if (SelectBSDMatch(sb, fs.bsdflags))
+<span class="lineNum">     147 </span>            :     {
+<span class="lineNum">     148 </span>            :         StringSetAdd(leaf_attr, xstrdup(&quot;bsdflags&quot;));
+<span class="lineNum">     149 </span>            :     }
+<span class="lineNum">     150 </span>            : #endif
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     if (SelectTimeMatch(sb-&gt;st_atime, fs.min_atime, fs.max_atime))</span>
+<span class="lineNum">     153 </span>            :     {
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;atime&quot;));</span>
+<span class="lineNum">     155 </span>            :     }
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     if (SelectTimeMatch(sb-&gt;st_ctime, fs.min_ctime, fs.max_ctime))</span>
+<span class="lineNum">     158 </span>            :     {
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;ctime&quot;));</span>
+<span class="lineNum">     160 </span>            :     }
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     if (SelectSizeMatch(sb-&gt;st_size, fs.min_size, fs.max_size))</span>
+<span class="lineNum">     163 </span>            :     {
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;size&quot;));</span>
+<span class="lineNum">     165 </span>            :     }
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     if (SelectTimeMatch(sb-&gt;st_mtime, fs.min_mtime, fs.max_mtime))</span>
+<span class="lineNum">     168 </span>            :     {
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;mtime&quot;));</span>
+<span class="lineNum">     170 </span>            :     }
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     if ((fs.issymlinkto) &amp;&amp; (SelectIsSymLinkTo(ctx, path, fs.issymlinkto)))</span>
+<span class="lineNum">     173 </span>            :     {
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;issymlinkto&quot;));</span>
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     if ((fs.exec_regex) &amp;&amp; (SelectExecRegexMatch(ctx, path, fs.exec_regex, fs.exec_program)))</span>
+<span class="lineNum">     178 </span>            :     {
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;exec_regex&quot;));</span>
+<span class="lineNum">     180 </span>            :     }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     if ((fs.exec_program) &amp;&amp; (SelectExecProgram(path, fs.exec_program)))</span>
+<span class="lineNum">     183 </span>            :     {
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         StringSetAdd(leaf_attr, xstrdup(&quot;exec_program&quot;));</span>
+<span class="lineNum">     185 </span>            :     }
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     bool result = EvalFileResult(fs.result, leaf_attr);</span>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE, &quot;file_select result '%s' on '%s' was '%s'&quot;,</span>
+<span class="lineNum">     190 </span>            :         fs.result, path,
+<span class="lineNum">     191 </span>            :         result ? &quot;true&quot; : &quot;false&quot;);
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :     StringSetDestroy(leaf_attr);</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     return result;</span>
+<span class="lineNum">     196 </span>            : }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : /*******************************************************************/
+<span class="lineNum">     199 </span>            : /* Level                                                           */
+<a name="200"><span class="lineNum">     200 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 : static int SelectSizeMatch(size_t size, size_t min, size_t max)</span>
+<span class="lineNum">     203 </span>            : {
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     if ((size &lt;= max) &amp;&amp; (size &gt;= min))</span>
+<span class="lineNum">     205 </span>            :     {
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     207 </span>            :     }
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     210 </span>            : }
+<span class="lineNum">     211 </span>            : 
+<a name="212"><span class="lineNum">     212 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 : static int SelectTypeMatch(struct stat *lstatptr, Rlist *crit)</span>
+<span class="lineNum">     215 </span>            : {
+<span class="lineNum">     216 </span>            :     Rlist *rp;
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     StringSet *leafattrib = StringSetNew();</span>
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :     if (S_ISREG(lstatptr-&gt;st_mode))</span>
+<span class="lineNum">     221 </span>            :     {
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;reg&quot;));</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;plain&quot;));</span>
+<span class="lineNum">     224 </span>            :     }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     if (S_ISDIR(lstatptr-&gt;st_mode))</span>
+<span class="lineNum">     227 </span>            :     {
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;dir&quot;));</span>
+<span class="lineNum">     229 </span>            :     }
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            : #ifndef __MINGW32__
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     if (S_ISLNK(lstatptr-&gt;st_mode))</span>
+<span class="lineNum">     233 </span>            :     {
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;symlink&quot;));</span>
+<span class="lineNum">     235 </span>            :     }
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     if (S_ISFIFO(lstatptr-&gt;st_mode))</span>
+<span class="lineNum">     238 </span>            :     {
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;fifo&quot;));</span>
+<span class="lineNum">     240 </span>            :     }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     if (S_ISSOCK(lstatptr-&gt;st_mode))</span>
+<span class="lineNum">     243 </span>            :     {
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;socket&quot;));</span>
+<span class="lineNum">     245 </span>            :     }
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     if (S_ISCHR(lstatptr-&gt;st_mode))</span>
+<span class="lineNum">     248 </span>            :     {
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;char&quot;));</span>
+<span class="lineNum">     250 </span>            :     }
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     if (S_ISBLK(lstatptr-&gt;st_mode))</span>
+<span class="lineNum">     253 </span>            :     {
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;block&quot;));</span>
+<span class="lineNum">     255 </span>            :     }
+<span class="lineNum">     256 </span>            : #endif /* !__MINGW32__ */
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            : #ifdef HAVE_DOOR_CREATE
+<span class="lineNum">     259 </span>            :     if (S_ISDOOR(lstatptr-&gt;st_mode))
+<span class="lineNum">     260 </span>            :     {
+<span class="lineNum">     261 </span>            :         StringSetAdd(leafattrib, xstrdup(&quot;door&quot;));
+<span class="lineNum">     262 </span>            :     }
+<span class="lineNum">     263 </span>            : #endif
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     for (rp = crit; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     266 </span>            :     {
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         if (EvalFileResult(RlistScalarValue(rp), leafattrib))</span>
+<span class="lineNum">     268 </span>            :         {
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :             StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     271 </span>            :         }
+<span class="lineNum">     272 </span>            :     }
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :     return false;</span>
+<a name="276"><span class="lineNum">     276 </span>            : }</a>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 : static int SelectOwnerMatch(EvalContext *ctx, char *path, struct stat *lstatptr, Rlist *crit)</span>
+<span class="lineNum">     279 </span>            : {
+<span class="lineNum">     280 </span>            :     Rlist *rp;
+<span class="lineNum">     281 </span>            :     char ownerName[CF_BUFSIZE];
+<span class="lineNum">     282 </span>            :     int gotOwner;
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     StringSet *leafattrib = StringSetNew();</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            : #ifndef __MINGW32__                   // no uids on Windows
+<span class="lineNum">     287 </span>            :     char buffer[CF_SMALLBUF];
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     snprintf(buffer, CF_SMALLBUF, &quot;%jd&quot;, (uintmax_t) lstatptr-&gt;st_uid);</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     StringSetAdd(leafattrib, xstrdup(buffer));</span>
+<span class="lineNum">     290 </span>            : #endif /* __MINGW32__ */
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     gotOwner = GetOwnerName(path, lstatptr, ownerName, sizeof(ownerName));</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     if (gotOwner)</span>
+<span class="lineNum">     295 </span>            :     {
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(ownerName));</span>
+<span class="lineNum">     297 </span>            :     }
+<span class="lineNum">     298 </span>            :     else
+<span class="lineNum">     299 </span>            :     {
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;none&quot;));</span>
+<span class="lineNum">     301 </span>            :     }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     for (rp = crit; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     304 </span>            :     {
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         if (EvalFileResult(RlistScalarValue(rp), leafattrib))</span>
+<span class="lineNum">     306 </span>            :         {
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Select owner match&quot;);</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :             StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     310 </span>            :         }
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         if (gotOwner &amp;&amp; (FullTextMatch(ctx, RlistScalarValue(rp), ownerName)))</span>
+<span class="lineNum">     313 </span>            :         {
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Select owner match&quot;);</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :             StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     317 </span>            :         }
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            : #ifndef __MINGW32__
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         if (FullTextMatch(ctx, RlistScalarValue(rp), buffer))</span>
+<span class="lineNum">     321 </span>            :         {
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Select owner match&quot;);</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :             StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     325 </span>            :         }
+<span class="lineNum">     326 </span>            : #endif /* !__MINGW32__ */
+<span class="lineNum">     327 </span>            :     }
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :     StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     331 </span>            : }
+<span class="lineNum">     332 </span>            : 
+<a name="333"><span class="lineNum">     333 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 : static int SelectModeMatch(struct stat *lstatptr, Rlist *list)</span>
+<span class="lineNum">     336 </span>            : {
+<span class="lineNum">     337 </span>            :     mode_t newperm, plus, minus;
+<span class="lineNum">     338 </span>            :     Rlist *rp;
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     for (rp = list; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     341 </span>            :     {
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         plus = 0;</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         minus = 0;</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         if (!ParseModeString(RlistScalarValue(rp), &amp;plus, &amp;minus))</span>
+<span class="lineNum">     346 </span>            :         {
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Problem validating a mode string '%s' in search filter&quot;, RlistScalarValue(rp));</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     349 </span>            :         }
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :         newperm = (lstatptr-&gt;st_mode &amp; 07777);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         newperm |= plus;</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :         newperm &amp;= ~minus;</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :         if ((newperm &amp; 07777) == (lstatptr-&gt;st_mode &amp; 07777))</span>
+<span class="lineNum">     356 </span>            :         {
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     358 </span>            :         }
+<span class="lineNum">     359 </span>            :     }
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     362 </span>            : }
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            : /*******************************************************************/
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            : #if defined HAVE_CHFLAGS
+<span class="lineNum">     367 </span>            : static int SelectBSDMatch(struct stat *lstatptr, Rlist *bsdflags)
+<span class="lineNum">     368 </span>            : {
+<span class="lineNum">     369 </span>            :     u_long newflags, plus, minus;
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span>            :     if (!ParseFlagString(bsdflags, &amp;plus, &amp;minus))
+<span class="lineNum">     372 </span>            :     {
+<span class="lineNum">     373 </span>            :         Log(LOG_LEVEL_ERR, &quot;Problem validating a BSD flag string&quot;);
+<span class="lineNum">     374 </span>            :     }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            :     newflags = (lstatptr-&gt;st_flags &amp; CHFLAGS_MASK);
+<span class="lineNum">     377 </span>            :     newflags |= plus;
+<span class="lineNum">     378 </span>            :     newflags &amp;= ~minus;
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            :     if ((newflags &amp; CHFLAGS_MASK) == (lstatptr-&gt;st_flags &amp; CHFLAGS_MASK))       /* file okay */
+<span class="lineNum">     381 </span>            :     {
+<span class="lineNum">     382 </span>            :         return true;
+<span class="lineNum">     383 </span>            :     }
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            :     return false;
+<span class="lineNum">     386 </span>            : }
+<span class="lineNum">     387 </span>            : #endif
+<a name="388"><span class="lineNum">     388 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 : static int SelectTimeMatch(time_t stattime, time_t fromtime, time_t totime)</span>
+<span class="lineNum">     391 </span>            : {
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     return ((fromtime &lt; stattime) &amp;&amp; (stattime &lt; totime));</span>
+<span class="lineNum">     393 </span>            : }
+<span class="lineNum">     394 </span>            : 
+<a name="395"><span class="lineNum">     395 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 : static int SelectNameRegexMatch(EvalContext *ctx, const char *filename, char *crit)</span>
+<span class="lineNum">     398 </span>            : {
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     if (FullTextMatch(ctx, crit, ReadLastNode(filename)))</span>
+<span class="lineNum">     400 </span>            :     {
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     402 </span>            :     }
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     405 </span>            : }
+<span class="lineNum">     406 </span>            : 
+<a name="407"><span class="lineNum">     407 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 : static int SelectPathRegexMatch(EvalContext *ctx, char *filename, char *crit)</span>
+<span class="lineNum">     410 </span>            : {
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :     if (FullTextMatch(ctx, crit, filename))</span>
+<span class="lineNum">     412 </span>            :     {
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     414 </span>            :     }
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     417 </span>            : }
+<span class="lineNum">     418 </span>            : 
+<a name="419"><span class="lineNum">     419 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 : static bool SelectExecRegexMatch(EvalContext *ctx, char *filename, char *crit, char *prog)</span>
+<span class="lineNum">     422 </span>            : {
+<span class="lineNum">     423 </span>            :     // insert real value of $(this.promiser) in command
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     char *buf_tmp = SearchAndReplace(prog, &quot;$(this.promiser)&quot;, filename);</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :     char *buf = SearchAndReplace(buf_tmp, &quot;${this.promiser}&quot;, filename);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     free(buf_tmp);</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     FILE *pp = cf_popen(buf, &quot;r&quot;, true);</span>
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     if (pp == NULL)</span>
+<span class="lineNum">     431 </span>            :     {
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Couldn't open pipe to command '%s'. (cf_popen: %s)&quot;, buf, GetErrorStr());</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         free(buf);</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     435 </span>            :     }
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     size_t line_size = CF_BUFSIZE;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     char *line = xmalloc(line_size);</span>
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span>            :     for (;;)
+<span class="lineNum">     441 </span>            :     {
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         ssize_t res = CfReadLine(&amp;line, &amp;line_size, pp);</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :         if (res == -1)</span>
+<span class="lineNum">     444 </span>            :         {
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :             if (!feof(pp))</span>
+<span class="lineNum">     446 </span>            :             {
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Error reading output from command '%s'. (fgets: %s)&quot;, buf, GetErrorStr());</span>
+<span class="lineNum">     448 </span>            :             }
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :             cf_pclose(pp);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :             free(line);</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :             free(buf);</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     453 </span>            :         }
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :         if (FullTextMatch(ctx, crit, line))</span>
+<span class="lineNum">     456 </span>            :         {
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :             cf_pclose(pp);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :             free(line);</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :             free(buf);</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     461 </span>            :         }
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span>            :     cf_pclose(pp);
+<span class="lineNum">     465 </span>            :     free(line);
+<span class="lineNum">     466 </span>            :     free(buf);
+<span class="lineNum">     467 </span>            :     return false;
+<span class="lineNum">     468 </span>            : }
+<span class="lineNum">     469 </span>            : 
+<a name="470"><span class="lineNum">     470 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 : static int SelectIsSymLinkTo(EvalContext *ctx, char *filename, Rlist *crit)</span>
+<span class="lineNum">     473 </span>            : {
+<span class="lineNum">     474 </span>            : #ifndef __MINGW32__
+<span class="lineNum">     475 </span>            :     char buffer[CF_BUFSIZE];
+<span class="lineNum">     476 </span>            :     Rlist *rp;
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     for (rp = crit; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     479 </span>            :     {
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :         memset(buffer, 0, CF_BUFSIZE);</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span>            :         struct stat statbuf;
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :         // Don't worry if this gives an error, that's handled above us.
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            :         // We're calling lstat() here to avoid dereferencing the
+<span class="lineNum">     487 </span>            :         // symlink... and we only care if the inode is a directory.
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :         if (lstat(filename, &amp;statbuf) == -1)</span>
+<span class="lineNum">     489 </span>            :         {
+<span class="lineNum">     490 </span>            :             // Do nothing.
+<span class="lineNum">     491 </span>            :         }
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         else if (!S_ISLNK(statbuf.st_mode))</span>
+<span class="lineNum">     493 </span>            :         {
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Skipping readlink() on non-symlink %s&quot;, filename);</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     496 </span>            :         }
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :         if (readlink(filename, buffer, CF_BUFSIZE - 1) == -1)</span>
+<span class="lineNum">     499 </span>            :         {
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Unable to read link '%s' in filter. (readlink: %s)&quot;,</span>
+<span class="lineNum">     501 </span>            :                 filename, GetErrorStr());
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     503 </span>            :         }
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :         if (FullTextMatch(ctx, RlistScalarValue(rp), buffer))</span>
+<span class="lineNum">     506 </span>            :         {
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     508 </span>            :         }
+<span class="lineNum">     509 </span>            :     }
+<span class="lineNum">     510 </span>            : #endif /* !__MINGW32__ */
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     512 </span>            : }
+<span class="lineNum">     513 </span>            : 
+<a name="514"><span class="lineNum">     514 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 : static int SelectExecProgram(char *filename, char *command)</span>
+<span class="lineNum">     517 </span>            :   /* command can include $(this.promiser) for the name of the file */
+<span class="lineNum">     518 </span>            : {
+<span class="lineNum">     519 </span>            : // insert real value of $(this.promiser) in command
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     char *buf_tmp = SearchAndReplace(command, &quot;$(this.promiser)&quot;, filename);</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     char *buf = SearchAndReplace(buf_tmp, &quot;${this.promiser}&quot;, filename);</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     free(buf_tmp);</span>
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     bool returns_zero = ShellCommandReturnsZero(buf, SHELL_TYPE_NONE);</span>
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :     if (returns_zero)</span>
+<span class="lineNum">     528 </span>            :     {
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG, &quot;Select ExecProgram match for '%s'&quot;, buf);</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :         free(buf);</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     532 </span>            :     }
+<span class="lineNum">     533 </span>            :     else
+<span class="lineNum">     534 </span>            :     {
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :         free(buf);</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     537 </span>            :     }
+<span class="lineNum">     538 </span>            : }
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span>            : #ifndef __MINGW32__
+<span class="lineNum">     541 </span>            : 
+<span class="lineNum">     542 </span>            : /*******************************************************************/
+<span class="lineNum">     543 </span>            : /* Unix implementations                                            */
+<a name="544"><span class="lineNum">     544 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 : int GetOwnerName(ARG_UNUSED char *path, struct stat *lstatptr, char *owner, int ownerSz)</span>
+<span class="lineNum">     547 </span>            : {
+<span class="lineNum">     548 </span>            :     struct passwd *pw;
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     memset(owner, 0, ownerSz);</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     pw = getpwuid(lstatptr-&gt;st_uid);</span>
+<span class="lineNum">     552 </span>            : 
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     if (pw == NULL)</span>
+<span class="lineNum">     554 </span>            :     {
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not get owner name of user with 'uid=%ju'. (getpwuid: %s)&quot;,</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :               (uintmax_t)lstatptr-&gt;st_uid, GetErrorStr());</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     558 </span>            :     }
+<span class="lineNum">     559 </span>            : 
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     strncpy(owner, pw-&gt;pw_name, ownerSz - 1);</span>
+<span class="lineNum">     561 </span>            : 
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     563 </span>            : }
+<span class="lineNum">     564 </span>            : 
+<a name="565"><span class="lineNum">     565 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 : static int SelectGroupMatch(EvalContext *ctx, struct stat *lstatptr, Rlist *crit)</span>
+<span class="lineNum">     568 </span>            : {
+<span class="lineNum">     569 </span>            :     char buffer[CF_SMALLBUF];
+<span class="lineNum">     570 </span>            :     struct group *gr;
+<span class="lineNum">     571 </span>            :     Rlist *rp;
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     StringSet *leafattrib = StringSetNew();</span>
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     snprintf(buffer, CF_SMALLBUF, &quot;%jd&quot;, (uintmax_t) lstatptr-&gt;st_gid);</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :     StringSetAdd(leafattrib, xstrdup(buffer));</span>
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :     if ((gr = getgrgid(lstatptr-&gt;st_gid)) != NULL)</span>
+<span class="lineNum">     579 </span>            :     {
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(gr-&gt;gr_name));</span>
+<span class="lineNum">     581 </span>            :     }
+<span class="lineNum">     582 </span>            :     else
+<span class="lineNum">     583 </span>            :     {
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :         StringSetAdd(leafattrib, xstrdup(&quot;none&quot;));</span>
+<span class="lineNum">     585 </span>            :     }
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :     for (rp = crit; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     588 </span>            :     {
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :         if (EvalFileResult(RlistScalarValue(rp), leafattrib))</span>
+<span class="lineNum">     590 </span>            :         {
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Select group match&quot;);</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :             StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     594 </span>            :         }
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :         if (gr &amp;&amp; (FullTextMatch(ctx, RlistScalarValue(rp), gr-&gt;gr_name)))</span>
+<span class="lineNum">     597 </span>            :         {
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Select group match&quot;);</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :             StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     601 </span>            :         }
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :         if (FullTextMatch(ctx, RlistScalarValue(rp), buffer))</span>
+<span class="lineNum">     604 </span>            :         {
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Select group match&quot;);</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :             StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     608 </span>            :         }
+<span class="lineNum">     609 </span>            :     }
+<span class="lineNum">     610 </span>            : 
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :     StringSetDestroy(leafattrib);</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     613 </span>            : }
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span>            : #endif /* !__MINGW32__ */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

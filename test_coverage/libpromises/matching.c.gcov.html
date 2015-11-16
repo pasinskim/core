@@ -1,0 +1,499 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/matching.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - matching.c<span style="font-size: 80%;"> (source / <a href="matching.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">170</td>
+            <td class="headerCovTableEntryLo">1.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryLo">8.3 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;matching.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;vars.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;promises.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;item_lib.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;conversion.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;scope.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;rlist.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;regex.h&gt;                          /* CompileRegex,StringMatchFull */
+<a name="36"><span class="lineNum">      36 </span>            : </a>
+<span class="lineNum">      37 </span>            : /* Pure, non-thread-safe */
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 : static char *FirstBackReference(pcre *rx, const char *teststring)</span>
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span>            :     static char backreference[CF_BUFSIZE]; /* GLOBAL_R, no initialization needed */
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            :     int ovector[OVECCOUNT], i, rc;
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :     memset(backreference, 0, CF_BUFSIZE);</span>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :     if ((rc = pcre_exec(rx, NULL, teststring, strlen(teststring), 0, 0, ovector, OVECCOUNT)) &gt;= 0)</span>
+<span class="lineNum">      47 </span>            :     {
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :         for (i = 1; i &lt; rc; i++)        /* make backref vars $(1),$(2) etc */</span>
+<span class="lineNum">      49 </span>            :         {
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :             const char *backref_start = teststring + ovector[i * 2];</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :             int backref_len = ovector[i * 2 + 1] - ovector[i * 2];</span>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :             if (backref_len &lt; CF_MAXVARSIZE)</span>
+<span class="lineNum">      54 </span>            :             {
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :                 strncpy(backreference, backref_start, backref_len);</span>
+<span class="lineNum">      56 </span>            :             }
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">      59 </span>            :         }
+<span class="lineNum">      60 </span>            :     }
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     free(rx);</span>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     return backreference;</span>
+<a name="65"><span class="lineNum">      65 </span>            : }</a>
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 : char *ExtractFirstReference(const char *regexp, const char *teststring)</span>
+<span class="lineNum">      68 </span>            : {
+<span class="lineNum">      69 </span>            :     char *backreference;
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            :     pcre *rx;
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     if ((regexp == NULL) || (teststring == NULL))</span>
+<span class="lineNum">      74 </span>            :     {
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :         return &quot;&quot;;</span>
+<span class="lineNum">      76 </span>            :     }
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     rx = CompileRegex(regexp);</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     if (rx == NULL)</span>
+<span class="lineNum">      80 </span>            :     {
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :         return &quot;&quot;;</span>
+<span class="lineNum">      82 </span>            :     }
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     backreference = FirstBackReference(rx, teststring);</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :     if (strlen(backreference) == 0)</span>
+<span class="lineNum">      87 </span>            :     {
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         strlcpy(backreference, &quot;CF_NOMATCH&quot;, CF_MAXVARSIZE);</span>
+<span class="lineNum">      89 </span>            :     }
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     return backreference;</span>
+<a name="92"><span class="lineNum">      92 </span>            : }</a>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 : int IsRegex(const char *str)</span>
+<span class="lineNum">      95 </span>            : {
+<span class="lineNum">      96 </span>            :     const char *sp;
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :     int ret = false;</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     enum { r_norm, r_norepeat, r_literal } special = r_norepeat;</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     int bracket = 0;</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     int paren = 0;</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : /* Try to see when something is intended as a regular expression */
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     for (sp = str; *sp != '\0'; sp++)</span>
+<span class="lineNum">     105 </span>            :     {
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         if (special == r_literal)</span>
+<span class="lineNum">     107 </span>            :         {
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :             special = r_norm;</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     110 </span>            :         }
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         else if (*sp == '\\')</span>
+<span class="lineNum">     112 </span>            :         {
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :             special = r_literal;</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     115 </span>            :         }
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         else if (bracket &amp;&amp; (*sp != ']'))</span>
+<span class="lineNum">     117 </span>            :         {
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :             if (*sp == '[')</span>
+<span class="lineNum">     119 </span>            :             {
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :                 return false;</span>
+<span class="lineNum">     121 </span>            :             }
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     123 </span>            :         }
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         switch (*sp)</span>
+<span class="lineNum">     126 </span>            :         {
+<span class="lineNum">     127 </span>            :         case '^':
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :             special = (sp == str) ? r_norepeat : r_norm;</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     130 </span>            :         case '*':
+<span class="lineNum">     131 </span>            :         case '+':
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :             if (special == r_norepeat)</span>
+<span class="lineNum">     133 </span>            :             {
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :                 return false;</span>
+<span class="lineNum">     135 </span>            :             }
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :             special = r_norepeat;</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :             ret = true;</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     139 </span>            :         case '[':
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :             special = r_norm;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :             bracket++;</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :             ret = true;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     144 </span>            :         case ']':
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :             if (bracket == 0)</span>
+<span class="lineNum">     146 </span>            :             {
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                 return false;</span>
+<span class="lineNum">     148 </span>            :             }
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :             bracket = 0;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :             special = r_norm;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     152 </span>            :         case '(':
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :             special = r_norepeat;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :             paren++;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :         case ')':
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :             special = r_norm;</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             paren--;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             if (paren &lt; 0)</span>
+<span class="lineNum">     161 </span>            :             {
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                 return false;</span>
+<span class="lineNum">     163 </span>            :             }
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            :         case '|':
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :             special = r_norepeat;</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :             if (paren &gt; 0)</span>
+<span class="lineNum">     169 </span>            :             {
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                 ret = true;</span>
+<span class="lineNum">     171 </span>            :             }
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            :         default:
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             special = r_norm;</span>
+<span class="lineNum">     176 </span>            :         }
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            :     }
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     if ((bracket != 0) || (paren != 0) || (special == r_literal))</span>
+<span class="lineNum">     181 </span>            :     {
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     183 </span>            :     }
+<span class="lineNum">     184 </span>            :     else
+<span class="lineNum">     185 </span>            :     {
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     187 </span>            :     }
+<a name="188"><span class="lineNum">     188 </span>            : }</a>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 : int IsPathRegex(const char *str)</span>
+<span class="lineNum">     191 </span>            : {
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     int result = IsRegex(str);</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     if (result)</span>
+<span class="lineNum">     195 </span>            :     {
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         int s = 0, r = 0; /* Count square and round brackets. */</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         for (const char *sp = str; *sp != '\0'; sp++)</span>
+<span class="lineNum">     198 </span>            :         {
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             switch (*sp)</span>
+<span class="lineNum">     200 </span>            :             {
+<span class="lineNum">     201 </span>            :             case '[':
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                 s++;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     204 </span>            :             case ']':
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                 s--;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :                 if (s % 2 == 0)</span>
+<span class="lineNum">     207 </span>            :                 {
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :                     result++;</span>
+<span class="lineNum">     209 </span>            :                 }
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     211 </span>            :             case '(':
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :                 r++;</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     214 </span>            :             case ')':
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                 r--;</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :                 if (r % 2 == 0)</span>
+<span class="lineNum">     217 </span>            :                 {
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :                     result++;</span>
+<span class="lineNum">     219 </span>            :                 }
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     221 </span>            :             default:
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                 if (*sp == FILE_SEPARATOR &amp;&amp; (r || s))</span>
+<span class="lineNum">     224 </span>            :                 {
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     226 </span>            :                           &quot;Path regular expression %s seems to use expressions containing the directory symbol %c&quot;, str,
+<span class="lineNum">     227 </span>            :                           FILE_SEPARATOR);
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_ERR, &quot;Use a work-around to avoid pathological behaviour&quot;);</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                     return false;</span>
+<span class="lineNum">     230 </span>            :                 }
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     232 </span>            :             }
+<span class="lineNum">     233 </span>            :         }
+<span class="lineNum">     234 </span>            :     }
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     return result;</span>
+<span class="lineNum">     237 </span>            : }
+<span class="lineNum">     238 </span>            : 
+<a name="239"><span class="lineNum">     239 </span>            : /* Checks whether item matches a list of wildcards */</a>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineCov">        336 : int IsRegexItemIn(const EvalContext *ctx, const Item *list, const char *regex)</span>
+<span class="lineNum">     242 </span>            : {
+<span class="lineNum">     243 </span><span class="lineCov">        336 :     for (const Item *ptr = list; ptr != NULL; ptr = ptr-&gt;next)</span>
+<span class="lineNum">     244 </span>            :     {
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :         if (ctx != NULL &amp;&amp; ptr-&gt;classes != NULL &amp;&amp;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :             !IsDefinedClass(ctx, ptr-&gt;classes))</span>
+<span class="lineNum">     247 </span>            :         {
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     249 </span>            :         }
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :         /* Cheap pre-test: */
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         if (strcmp(regex, ptr-&gt;name) == 0)</span>
+<span class="lineNum">     253 </span>            :         {
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     255 </span>            :         }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :         /* Make it commutative */
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         if (StringMatchFull(regex, ptr-&gt;name) || StringMatchFull(ptr-&gt;name, regex))</span>
+<span class="lineNum">     260 </span>            :         {
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     262 </span>            :         }
+<span class="lineNum">     263 </span>            :     }
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineCov">        336 :     return false;</span>
+<span class="lineNum">     266 </span>            : }
+<span class="lineNum">     267 </span>            : 
+<a name="268"><span class="lineNum">     268 </span>            : /* Escapes non-alphanumeric chars, except sequence given in noEscSeq */</a>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 : void EscapeSpecialChars(const char *str, char *strEsc, int strEscSz, char *noEscSeq, char *noEscList)</span>
+<span class="lineNum">     271 </span>            : {
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     int strEscPos = 0;</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     if (noEscSeq == NULL)</span>
+<span class="lineNum">     275 </span>            :     {
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         noEscSeq = &quot;&quot;;</span>
+<span class="lineNum">     277 </span>            :     }
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     if (noEscList == NULL)</span>
+<span class="lineNum">     280 </span>            :     {
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         noEscList = &quot;&quot;;</span>
+<span class="lineNum">     282 </span>            :     }
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     memset(strEsc, 0, strEscSz);</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     for (const char *sp = str; (*sp != '\0') &amp;&amp; (strEscPos &lt; strEscSz - 2); sp++)</span>
+<span class="lineNum">     287 </span>            :     {
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         if (strncmp(sp, noEscSeq, strlen(noEscSeq)) == 0)</span>
+<span class="lineNum">     289 </span>            :         {
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :             if (strEscSz &lt;= strEscPos + strlen(noEscSeq))</span>
+<span class="lineNum">     291 </span>            :             {
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     293 </span>            :             }
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :             strcat(strEsc, noEscSeq);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             strEscPos += strlen(noEscSeq);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             sp += strlen(noEscSeq);</span>
+<span class="lineNum">     298 </span>            :         }
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         if (strchr(noEscList,*sp))</span>
+<span class="lineNum">     301 </span>            :         {
+<span class="lineNum">     302 </span>            :         }        
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         else if ((*sp != '\0') &amp;&amp; (!isalnum((int)*sp)))</span>
+<span class="lineNum">     304 </span>            :         {
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :             strEsc[strEscPos++] = '\\';</span>
+<span class="lineNum">     306 </span>            :         }
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         strEsc[strEscPos++] = *sp;</span>
+<span class="lineNum">     309 </span>            :     }
+<a name="310"><span class="lineNum">     310 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 : size_t EscapeRegexCharsLen(const char *str)</span>
+<span class="lineNum">     313 </span>            : {
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     size_t ret = 2;</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     for (const char *sp = str; *sp != '\0'; sp++)</span>
+<span class="lineNum">     316 </span>            :     {
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         switch (*sp)</span>
+<span class="lineNum">     318 </span>            :         {
+<span class="lineNum">     319 </span>            :             case '.':
+<span class="lineNum">     320 </span>            :             case '*':
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :                 ret++;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     323 </span>            :             default:
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     325 </span>            :         }
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         ret++;</span>
+<span class="lineNum">     328 </span>            :     }
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="331"><span class="lineNum">     331 </span>            : }</a>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 : void EscapeRegexChars(char *str, char *strEsc, int strEscSz)</span>
+<span class="lineNum">     334 </span>            : {
+<span class="lineNum">     335 </span>            :     char *sp;
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     int strEscPos = 0;</span>
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     memset(strEsc, 0, strEscSz);</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     for (sp = str; (*sp != '\0') &amp;&amp; (strEscPos &lt; strEscSz - 2); sp++)</span>
+<span class="lineNum">     341 </span>            :     {
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         switch (*sp)</span>
+<span class="lineNum">     343 </span>            :         {
+<span class="lineNum">     344 </span>            :         case '.':
+<span class="lineNum">     345 </span>            :         case '*':
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             strEsc[strEscPos++] = '\\';</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     348 </span>            :         default:
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     350 </span>            :         }
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         strEsc[strEscPos++] = *sp;</span>
+<span class="lineNum">     353 </span>            :     }
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     355 </span>            : 
+<a name="356"><span class="lineNum">     356 </span>            : /* Escapes characters esc in the string str of size strSz  */</a>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 : char *EscapeChar(char *str, int strSz, char esc)</span>
+<span class="lineNum">     359 </span>            : {
+<span class="lineNum">     360 </span>            :     char strDup[CF_BUFSIZE];
+<span class="lineNum">     361 </span>            :     int strPos, strDupPos;
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     if (sizeof(strDup) &lt; strSz)</span>
+<span class="lineNum">     364 </span>            :     {
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;Too large string passed to EscapeCharInplace()&quot;);</span>
+<span class="lineNum">     366 </span>            :     }
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     snprintf(strDup, sizeof(strDup), &quot;%s&quot;, str);</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     memset(str, 0, strSz);</span>
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     for (strPos = 0, strDupPos = 0; strPos &lt; strSz - 2; strPos++, strDupPos++)</span>
+<span class="lineNum">     372 </span>            :     {
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         if (strDup[strDupPos] == esc)</span>
+<span class="lineNum">     374 </span>            :         {
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :             str[strPos] = '\\';</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :             strPos++;</span>
+<span class="lineNum">     377 </span>            :         }
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :         str[strPos] = strDup[strDupPos];</span>
+<span class="lineNum">     380 </span>            :     }
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     return str;</span>
+<a name="383"><span class="lineNum">     383 </span>            : }</a>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 : void AnchorRegex(const char *regex, char *out, int outSz)</span>
+<span class="lineNum">     386 </span>            : {
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     if (NULL_OR_EMPTY(regex))</span>
+<span class="lineNum">     388 </span>            :     {
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :         memset(out, 0, outSz);</span>
+<span class="lineNum">     390 </span>            :     }
+<span class="lineNum">     391 </span>            :     else
+<span class="lineNum">     392 </span>            :     {
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :         snprintf(out, outSz, &quot;^(%s)$&quot;, regex);</span>
+<span class="lineNum">     394 </span>            :     }
+<a name="395"><span class="lineNum">     395 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 : char *AnchorRegexNew(const char *regex)</span>
+<span class="lineNum">     398 </span>            : {
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     if (NULL_OR_EMPTY(regex))</span>
+<span class="lineNum">     400 </span>            :     {
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         return xstrdup(&quot;^$&quot;);</span>
+<span class="lineNum">     402 </span>            :     }
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     char *ret = NULL;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     xasprintf(&amp;ret, &quot;^(%s)$&quot;, regex);</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="408"><span class="lineNum">     408 </span>            : }</a>
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 : bool HasRegexMetaChars(const char *string)</span>
+<span class="lineNum">     411 </span>            : {
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     if (!string)</span>
+<span class="lineNum">     413 </span>            :     {
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     415 </span>            :     }
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     if (string[strcspn(string, &quot;\\^${}[]().*+?|&lt;&gt;-&amp;&quot;)] == '\0') /* i.e. no metachars appear in string */</span>
+<span class="lineNum">     418 </span>            :     {
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     420 </span>            :     }
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     423 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

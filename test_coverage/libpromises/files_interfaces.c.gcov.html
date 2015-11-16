@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/files_interfaces.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - files_interfaces.c<span style="font-size: 80%;"> (source / <a href="files_interfaces.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;files_interfaces.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;promises.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;dir.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;files_names.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;files_hashes.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;files_copy.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;item_lib.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;vars.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;matching.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;client_code.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;rlist.h&gt;
+<a name="39"><span class="lineNum">      39 </span>            : #include &lt;stat_cache.h&gt;                                      /* remote_stat */</a>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 : int cf_lstat(const char *file, struct stat *buf, FileCopy fc, AgentConnection *conn)</span>
+<span class="lineNum">      42 </span>            : {
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :     if (conn == NULL)</span>
+<span class="lineNum">      44 </span>            :     {
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :         int ret = lstat(file, buf);</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :         if (ret == -1)</span>
+<span class="lineNum">      47 </span>            :         {
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;lstat: %s&quot;, GetErrorStr());</span>
+<span class="lineNum">      49 </span>            :         }
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">      51 </span>            :     }
+<span class="lineNum">      52 </span>            :     else
+<span class="lineNum">      53 </span>            :     {
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :         assert(fc.servers &amp;&amp; strcmp(fc.servers-&gt;val.item, &quot;localhost&quot;));</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         return cf_remote_stat(conn, fc.encrypt, file, buf, &quot;link&quot;);</span>
+<span class="lineNum">      56 </span>            :     }
+<a name="57"><span class="lineNum">      57 </span>            : }</a>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 : ssize_t CfReadLine(char **buff, size_t *size, FILE *fp)</span>
+<span class="lineNum">      60 </span>            : {
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     ssize_t b = getline(buff, size, fp);</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     assert(b != 0 &amp;&amp; &quot;To the best of my knowledge, getline never returns zero&quot;);</span>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     if (b &gt; 0)</span>
+<span class="lineNum">      65 </span>            :     {
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :         if ((*buff)[b - 1] == '\n')</span>
+<span class="lineNum">      67 </span>            :         {
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :             (*buff)[b - 1] = '\0';</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :             b--;</span>
+<span class="lineNum">      70 </span>            :         }
+<span class="lineNum">      71 </span>            :     }
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     return b;</span>
+<span class="lineNum">      74 </span>            : }
+<span class="lineNum">      75 </span>            : /*
+<span class="lineNum">      76 </span>            : ssize_t CfReadLine(char *buff, size_t size, FILE *fp)
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span>            :     if (fgets(buff, size, fp) == NULL)
+<span class="lineNum">      79 </span>            :     {
+<span class="lineNum">      80 </span>            :         if (ferror(fp))
+<span class="lineNum">      81 </span>            :         {
+<span class="lineNum">      82 </span>            :             return -1;
+<span class="lineNum">      83 </span>            :         }
+<span class="lineNum">      84 </span>            :         else
+<span class="lineNum">      85 </span>            :         {
+<span class="lineNum">      86 </span>            :             return 0;
+<span class="lineNum">      87 </span>            :         }
+<span class="lineNum">      88 </span>            :     }
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :     // We have got a line here
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            :     size_t line_length = strlen(buff);
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            :     // Check for \n
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            :     char *nl = strchr(buff, '\n');
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            :     if (nl != NULL)
+<span class="lineNum">      99 </span>            :     {
+<span class="lineNum">     100 </span>            :         // If we have found a \n, then line was read fully.
+<span class="lineNum">     101 </span>            :         *nl = '\0';
+<span class="lineNum">     102 </span>            :         return line_length;
+<span class="lineNum">     103 </span>            :     }
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            :     // Read the remainder of the line
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            :     for (;;)
+<span class="lineNum">     108 </span>            :     {
+<span class="lineNum">     109 </span>            :         int c = fgetc(fp);
+<span class="lineNum">     110 </span>            :         if (c == EOF)
+<span class="lineNum">     111 </span>            :         {
+<span class="lineNum">     112 </span>            :             if (ferror(fp))
+<span class="lineNum">     113 </span>            :             {
+<span class="lineNum">     114 </span>            :                 return -1;
+<span class="lineNum">     115 </span>            :             }
+<span class="lineNum">     116 </span>            :             else
+<span class="lineNum">     117 </span>            :             {
+<span class="lineNum">     118 </span>            :                 // We have reached EOF, report the length of line read so far
+<span class="lineNum">     119 </span>            :                 return line_length;
+<span class="lineNum">     120 </span>            :             }
+<span class="lineNum">     121 </span>            :         }
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            :         line_length++;
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            :         if (c == '\n')
+<span class="lineNum">     126 </span>            :         {
+<span class="lineNum">     127 </span>            :             return line_length;
+<span class="lineNum">     128 </span>            :         }
+<span class="lineNum">     129 </span>            :     }
+<span class="lineNum">     130 </span>            : }
+<span class="lineNum">     131 </span>            : */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

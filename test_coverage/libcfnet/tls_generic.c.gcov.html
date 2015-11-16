@@ -1,0 +1,983 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libcfnet/tls_generic.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libcfnet</a> - tls_generic.c<span style="font-size: 80%;"> (source / <a href="tls_generic.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">335</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;cfnet.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;openssl/err.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;openssl/crypto.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;openssl/ssl.h&gt;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &lt;logging.h&gt;                                            /* LogLevel */
+<span class="lineNum">      33 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : /* TODO move crypto.h to libutils */
+<span class="lineNum">      36 </span>            : #include &lt;crypto.h&gt;                                    /* HavePublicKeyByIP */
+<span class="lineNum">      37 </span>            : #include &lt;files_hashes.h&gt;                              /* HashPubKey */
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #include &lt;assert.h&gt;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : int CONNECTIONINFO_SSL_IDX = -1;
+<a name="43"><span class="lineNum">      43 </span>            : </a>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 : const char *TLSErrorString(intmax_t errcode)</span>
+<span class="lineNum">      46 </span>            : {
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :     const char *errmsg = ERR_reason_error_string((unsigned long) errcode);</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     return (errmsg != NULL) ? errmsg : &quot;no error message&quot;;</span>
+<a name="49"><span class="lineNum">      49 </span>            : }</a>
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 : bool TLSGenericInitialize()</span>
+<span class="lineNum">      52 </span>            : {
+<span class="lineNum">      53 </span>            :     static bool is_initialised = false;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            :     /* We must make sure that SSL_get_ex_new_index() is called only once! */
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     if (is_initialised)</span>
+<span class="lineNum">      57 </span>            :     {
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">      59 </span>            :     }
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :     /* OpenSSL is needed for TLS. */
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     SSL_library_init();</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     SSL_load_error_strings();</span>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            :     /* Register a unique place to store ConnectionInfo within SSL struct. */
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     CONNECTIONINFO_SSL_IDX =</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :         SSL_get_ex_new_index(0, &quot;Pointer to ConnectionInfo&quot;,</span>
+<span class="lineNum">      68 </span>            :                              NULL, NULL, NULL);
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     is_initialised = true;</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">      72 </span>            : }
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : /**
+<span class="lineNum">      75 </span>            :  * @retval 1 equal
+<span class="lineNum">      76 </span>            :  * @retval 0 not equal
+<a name="77"><span class="lineNum">      77 </span>            :  * @retval -1 error</a>
+<span class="lineNum">      78 </span>            :  */
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 : static int CompareCertToRSA(X509 *cert, RSA *rsa_key)</span>
+<span class="lineNum">      80 </span>            : {
+<span class="lineNum">      81 </span>            :     int ret;
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     int retval = -1;                                            /* ERROR */</span>
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     EVP_PKEY *cert_pkey = X509_get_pubkey(cert);</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     if (cert_pkey == NULL)</span>
+<span class="lineNum">      86 </span>            :     {
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;X509_get_pubkey: %s&quot;,</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         goto ret1;</span>
+<span class="lineNum">      90 </span>            :     }
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     if (EVP_PKEY_type(cert_pkey-&gt;type) != EVP_PKEY_RSA)</span>
+<span class="lineNum">      92 </span>            :     {
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">      94 </span>            :             &quot;Received key of unknown type, only RSA currently supported!&quot;);
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         goto ret2;</span>
+<span class="lineNum">      96 </span>            :     }
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     RSA *cert_rsa_key = EVP_PKEY_get1_RSA(cert_pkey);</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     if (cert_rsa_key == NULL)</span>
+<span class="lineNum">     100 </span>            :     {
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;TLSVerifyPeer: EVP_PKEY_get1_RSA failed!&quot;);</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :         goto ret2;</span>
+<span class="lineNum">     103 </span>            :     }
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     EVP_PKEY *rsa_pkey = EVP_PKEY_new();</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     if (rsa_pkey == NULL)</span>
+<span class="lineNum">     107 </span>            :     {
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;TLSVerifyPeer: EVP_PKEY_new allocation failed!&quot;);</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         goto ret3;</span>
+<span class="lineNum">     110 </span>            :     }
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     ret = EVP_PKEY_set1_RSA(rsa_pkey, rsa_key);</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     if (ret == 0)</span>
+<span class="lineNum">     114 </span>            :     {
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;TLSVerifyPeer: EVP_PKEY_set1_RSA failed!&quot;);</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         goto ret4;</span>
+<span class="lineNum">     117 </span>            :     }
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :     ret = EVP_PKEY_cmp(cert_pkey, rsa_pkey);</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     if (ret == 1)</span>
+<span class="lineNum">     121 </span>            :     {
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     123 </span>            :             &quot;Public key to certificate compare equal&quot;);
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         retval = 1;                                             /* EQUAL */</span>
+<span class="lineNum">     125 </span>            :     }
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     else if (ret == 0 || ret == -1)</span>
+<span class="lineNum">     127 </span>            :     {
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     129 </span>            :             &quot;Public key to certificate compare different&quot;);
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         retval = 0;                                            /* NOT EQUAL */</span>
+<span class="lineNum">     131 </span>            :     }
+<span class="lineNum">     132 </span>            :     else
+<span class="lineNum">     133 </span>            :     {
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;OpenSSL EVP_PKEY_cmp: %d %s&quot;,</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :             ret, TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     136 </span>            :     }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :   ret4:
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     EVP_PKEY_free(rsa_pkey);</span>
+<span class="lineNum">     140 </span>            :   ret3:
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     RSA_free(cert_rsa_key);</span>
+<span class="lineNum">     142 </span>            :   ret2:
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     EVP_PKEY_free(cert_pkey);</span>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            :   ret1:
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     return retval;</span>
+<span class="lineNum">     147 </span>            : }
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            : /**
+<span class="lineNum">     150 </span>            :  * The only thing we make sure here is that any key change is not allowed. All
+<span class="lineNum">     151 </span>            :  * the rest of authentication happens separately *after* the initial
+<span class="lineNum">     152 </span>            :  * handshake, thus *after* this callback has returned successfully and TLS
+<a name="153"><span class="lineNum">     153 </span>            :  * session has been established.</a>
+<span class="lineNum">     154 </span>            :  */
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 : int TLSVerifyCallback(X509_STORE_CTX *store_ctx,</span>
+<span class="lineNum">     156 </span>            :                       void *arg ARG_UNUSED)
+<span class="lineNum">     157 </span>            : {
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            :     /* It's kind of tricky to get custom connection-specific info in this
+<span class="lineNum">     160 </span>            :      * callback. We first acquire a pointer to the SSL struct of the
+<span class="lineNum">     161 </span>            :      * connection and... */
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :     int ssl_idx = SSL_get_ex_data_X509_STORE_CTX_idx();</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     SSL *ssl = X509_STORE_CTX_get_ex_data(store_ctx, ssl_idx);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     if (ssl == NULL)</span>
+<span class="lineNum">     165 </span>            :     {
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         UnexpectedError(&quot;No SSL context during handshake, denying!&quot;);</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     168 </span>            :     }
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            :     /* ...and then we ask for the custom data we attached there. */
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     ConnectionInfo *conn_info = SSL_get_ex_data(ssl, CONNECTIONINFO_SSL_IDX);</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     if (conn_info == NULL)</span>
+<span class="lineNum">     173 </span>            :     {
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         UnexpectedError(&quot;No conn_info at index %d&quot;, CONNECTIONINFO_SSL_IDX);</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     176 </span>            :     }
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            :     /* From that data get the key if the connection is already established. */
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     RSA *already_negotiated_key = KeyRSA(conn_info-&gt;remote_key);</span>
+<span class="lineNum">     180 </span>            :     /* Is there an already negotiated certificate? */
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     X509 *previous_tls_cert = SSL_get_peer_certificate(ssl);</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     if (previous_tls_cert == NULL)</span>
+<span class="lineNum">     184 </span>            :     {
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG, &quot;TLSVerifyCallback: no ssl-&gt;peer_cert&quot;);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         if (already_negotiated_key == NULL)</span>
+<span class="lineNum">     187 </span>            :         {
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;TLSVerifyCallback: no conn_info-&gt;key&quot;);</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     190 </span>            :                 &quot;This must be the initial TLS handshake, accepting&quot;);
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             return 1;                                   /* ACCEPT HANDSHAKE */</span>
+<span class="lineNum">     192 </span>            :         }
+<span class="lineNum">     193 </span>            :         else
+<span class="lineNum">     194 </span>            :         {
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :             UnexpectedError(&quot;Initial handshake, but old keys differ, denying!&quot;);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :             return 0;</span>
+<span class="lineNum">     197 </span>            :         }
+<span class="lineNum">     198 </span>            :     }
+<span class="lineNum">     199 </span>            :     else                                     /* TLS renegotiation handshake */
+<span class="lineNum">     200 </span>            :     {
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         if (already_negotiated_key == NULL)</span>
+<span class="lineNum">     202 </span>            :         {
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;TLSVerifyCallback: no conn_info-&gt;key&quot;);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     205 </span>            :                 &quot;Renegotiation handshake before trust was established, denying!&quot;);
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             X509_free(previous_tls_cert);</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :             return 0;                                           /* fishy */</span>
+<span class="lineNum">     208 </span>            :         }
+<span class="lineNum">     209 </span>            :         else
+<span class="lineNum">     210 </span>            :         {
+<span class="lineNum">     211 </span>            :             /* previous_tls_cert key should match already_negotiated_key. */
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :             if (CompareCertToRSA(previous_tls_cert,</span>
+<span class="lineNum">     213 </span>            :                                  already_negotiated_key) != 1)
+<span class="lineNum">     214 </span>            :             {
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                 UnexpectedError(&quot;Renegotiation caused keys to differ, denying!&quot;);</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :                 X509_free(previous_tls_cert);</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     218 </span>            :             }
+<span class="lineNum">     219 </span>            :             else
+<span class="lineNum">     220 </span>            :             {
+<span class="lineNum">     221 </span>            :                 /* THIS IS THE ONLY WAY TO CONTINUE */
+<span class="lineNum">     222 </span>            :             }
+<span class="lineNum">     223 </span>            :         }
+<span class="lineNum">     224 </span>            :     }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     assert(previous_tls_cert != NULL);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     assert(already_negotiated_key != NULL);</span>
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :     /* At this point we have ensured that previous_tls_cert-&gt;key is equal
+<span class="lineNum">     230 </span>            :      * to already_negotiated_key, so we might as well forget the former. */
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     X509_free(previous_tls_cert);</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :     /* We want to compare already_negotiated_key to the one the peer
+<span class="lineNum">     234 </span>            :      * negotiates in this TLS renegotiation. So, extract first certificate out
+<span class="lineNum">     235 </span>            :      * of the chain the peer sent. It should be the only one since we do not
+<span class="lineNum">     236 </span>            :      * support certificate chains, we just want the RSA key. */
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     STACK_OF(X509) *chain = X509_STORE_CTX_get_chain(store_ctx);</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :     if (chain == NULL)</span>
+<span class="lineNum">     239 </span>            :     {
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     241 </span>            :             &quot;No certificate chain inside TLS handshake, denying!&quot;);
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     243 </span>            :     }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     int chain_len = sk_X509_num(chain);</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     if (chain_len != 1)</span>
+<span class="lineNum">     247 </span>            :     {
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     249 </span>            :             &quot;More than one certificate presented in TLS handshake, refusing handshake!&quot;);
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     251 </span>            :     }
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     X509 *new_cert = sk_X509_value(chain, 0);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     if (new_cert == NULL)</span>
+<span class="lineNum">     255 </span>            :     {
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         UnexpectedError(&quot;NULL certificate at the beginning of chain!&quot;);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     258 </span>            :     }
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     if (CompareCertToRSA(new_cert, already_negotiated_key) != 1)</span>
+<span class="lineNum">     261 </span>            :     {
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     263 </span>            :             &quot;Peer attempted to change key during TLS renegotiation, denying!&quot;);
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     265 </span>            :     }
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     268 </span>            :         &quot;TLS renegotiation occurred but keys are still the same, accepting&quot;);
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     return 1;                                           /* ACCEPT HANDSHAKE */</span>
+<span class="lineNum">     270 </span>            : }
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            : /**
+<span class="lineNum">     273 </span>            :  * @retval 1 if the public key used by the peer in the TLS handshake is the
+<span class="lineNum">     274 </span>            :  *         same with the one stored for that host.
+<span class="lineNum">     275 </span>            :  * @retval 0 if stored key for the host is missing or differs from the one
+<span class="lineNum">     276 </span>            :  *         received.
+<span class="lineNum">     277 </span>            :  * @retval -1 in case of other error (error will be Log()ed).
+<span class="lineNum">     278 </span>            :  * @note When return value is != -1 (so no error occurred) the #conn_info struct
+<a name="279"><span class="lineNum">     279 </span>            :  *       should have been populated, with key received and its hash.</a>
+<span class="lineNum">     280 </span>            :  */
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 : int TLSVerifyPeer(ConnectionInfo *conn_info, const char *remoteip, const char *username)</span>
+<span class="lineNum">     282 </span>            : {
+<span class="lineNum">     283 </span>            :     int ret, retval;
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     X509 *received_cert = SSL_get_peer_certificate(conn_info-&gt;ssl);</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     if (received_cert == NULL)</span>
+<span class="lineNum">     287 </span>            :     {
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     289 </span>            :             &quot;No certificate presented by remote peer (openssl: %s)&quot;,
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         retval = -1;</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         goto ret1;</span>
+<span class="lineNum">     293 </span>            :     }
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     EVP_PKEY *received_pubkey = X509_get_pubkey(received_cert);</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     if (received_pubkey == NULL)</span>
+<span class="lineNum">     297 </span>            :     {
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;X509_get_pubkey: %s&quot;,</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         retval = -1;</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         goto ret2;</span>
+<span class="lineNum">     302 </span>            :     }
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     if (EVP_PKEY_type(received_pubkey-&gt;type) != EVP_PKEY_RSA)</span>
+<span class="lineNum">     304 </span>            :     {
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     306 </span>            :             &quot;Received key of unknown type, only RSA currently supported!&quot;);
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         retval = -1;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         goto ret3;</span>
+<span class="lineNum">     309 </span>            :     }
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     RSA *remote_key = EVP_PKEY_get1_RSA(received_pubkey);</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     if (remote_key == NULL)</span>
+<span class="lineNum">     313 </span>            :     {
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;TLSVerifyPeer: EVP_PKEY_get1_RSA failed!&quot;);</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         retval = -1;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         goto ret3;</span>
+<span class="lineNum">     317 </span>            :     }
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     Key *key = KeyNew(remote_key, CF_DEFAULT_DIGEST);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     conn_info-&gt;remote_key = key;</span>
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span>            :     /*
+<span class="lineNum">     323 </span>            :      * Compare the key received with the one stored.
+<span class="lineNum">     324 </span>            :      */
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     const char *key_hash = KeyPrintableHash(key);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     RSA *expected_rsa_key = HavePublicKey(username, remoteip, key_hash);</span>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     if (expected_rsa_key == NULL)</span>
+<span class="lineNum">     329 </span>            :     {
+<span class="lineNum">     330 </span>            :         /* TODO LOG_LEVEL_NOTICE once cf-serverd logs to a different file. */
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     332 </span>            :             &quot;Received key '%s' not found in ppkeys&quot;, key_hash);
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         retval = 0;</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         goto ret4;</span>
+<span class="lineNum">     335 </span>            :     }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     EVP_PKEY *expected_pubkey = EVP_PKEY_new();</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     if (expected_pubkey == NULL)</span>
+<span class="lineNum">     339 </span>            :     {
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;TLSVerifyPeer: EVP_PKEY_new allocation failed!&quot;);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :         retval = -1;</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         goto ret5;</span>
+<span class="lineNum">     343 </span>            :     }
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :     ret = EVP_PKEY_set1_RSA(expected_pubkey, expected_rsa_key);</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     if (ret == 0)</span>
+<span class="lineNum">     347 </span>            :     {
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;TLSVerifyPeer: EVP_PKEY_set1_RSA failed!&quot;);</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         retval = -1;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :         goto ret6;</span>
+<span class="lineNum">     351 </span>            :     }
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     ret = EVP_PKEY_cmp(received_pubkey, expected_pubkey);</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :     if (ret == 1)</span>
+<span class="lineNum">     355 </span>            :     {
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     357 </span>            :             &quot;Received public key compares equal to the one we have stored&quot;);
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :         retval = 1;               /* TRUSTED KEY, equal to the expected one */</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :         goto ret6;</span>
+<span class="lineNum">     360 </span>            :     }
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     else if (ret == 0 || ret == -1)</span>
+<span class="lineNum">     362 </span>            :     {
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_NOTICE,</span>
+<span class="lineNum">     364 </span>            :             &quot;Received key '%s' compares different to the one in ppkeys&quot;,
+<span class="lineNum">     365 </span>            :             key_hash);
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         retval = 0;</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :         goto ret6;</span>
+<span class="lineNum">     368 </span>            :     }
+<span class="lineNum">     369 </span>            :     else
+<span class="lineNum">     370 </span>            :     {
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;OpenSSL EVP_PKEY_cmp: %d %s&quot;,</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :             ret, TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         retval = -1;</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         goto ret6;</span>
+<span class="lineNum">     375 </span>            :     }
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span>            :     UnexpectedError(&quot;Unreachable!&quot;);
+<span class="lineNum">     378 </span>            :     return 0;
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            :   ret6:
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     EVP_PKEY_free(expected_pubkey);</span>
+<span class="lineNum">     382 </span>            :   ret5:
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     RSA_free(expected_rsa_key);</span>
+<span class="lineNum">     384 </span>            :   ret4:
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     if (retval == -1)</span>
+<span class="lineNum">     386 </span>            :     {
+<span class="lineNum">     387 </span>            :         /* We won't be needing conn_info-&gt;remote_key */
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         KeyDestroy(&amp;key);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :         conn_info-&gt;remote_key = NULL;</span>
+<span class="lineNum">     390 </span>            :     }
+<span class="lineNum">     391 </span>            :   ret3:
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     EVP_PKEY_free(received_pubkey);</span>
+<span class="lineNum">     393 </span>            :   ret2:
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     X509_free(received_cert);</span>
+<span class="lineNum">     395 </span>            :   ret1:
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     return retval;</span>
+<span class="lineNum">     397 </span>            : }
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span>            : /**
+<span class="lineNum">     400 </span>            :  * @brief Generate and return a dummy in-memory X509 certificate signed with
+<a name="401"><span class="lineNum">     401 </span>            :  *        the private key passed. It is valid from now to 50 years later...</a>
+<span class="lineNum">     402 </span>            :  */
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 : X509 *TLSGenerateCertFromPrivKey(RSA *privkey)</span>
+<span class="lineNum">     404 </span>            : {
+<span class="lineNum">     405 </span>            :     int ret;
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     X509 *x509 = X509_new();</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     if (x509 == NULL)</span>
+<span class="lineNum">     408 </span>            :     {
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;X509_new: %s&quot;,</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         goto err1;</span>
+<span class="lineNum">     412 </span>            :     }
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     ASN1_TIME *t1 = X509_gmtime_adj(X509_get_notBefore(x509), 0);</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     ASN1_TIME *t2 = X509_gmtime_adj(X509_get_notAfter(x509), 60*60*24*365*10);</span>
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     if (t1 == NULL || t2 == NULL)</span>
+<span class="lineNum">     417 </span>            :     {
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;X509_gmtime_adj: %s&quot;,</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         goto err2;</span>
+<span class="lineNum">     421 </span>            :     }
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :     EVP_PKEY *pkey = EVP_PKEY_new();</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     if (pkey == NULL)</span>
+<span class="lineNum">     425 </span>            :     {
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;EVP_PKEY_new: %s&quot;,</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         goto err2;</span>
+<span class="lineNum">     429 </span>            :     }
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     ret = EVP_PKEY_set1_RSA(pkey, privkey);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     if (ret != 1)</span>
+<span class="lineNum">     433 </span>            :     {
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;EVP_PKEY_set1_RSA: %s&quot;,</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :         goto err3;</span>
+<span class="lineNum">     437 </span>            :     }
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     X509_NAME *name = X509_get_subject_name(x509);</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     if (name == NULL)</span>
+<span class="lineNum">     441 </span>            :     {
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;X509_get_subject_name: %s&quot;,</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :         goto err3;</span>
+<span class="lineNum">     445 </span>            :     }
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :     ret = 0;</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     ret += X509_NAME_add_entry_by_txt(name, &quot;CN&quot;, MBSTRING_ASC,</span>
+<span class="lineNum">     449 </span>            :                                       (const char *) &quot;a&quot;,
+<span class="lineNum">     450 </span>            :                                       -1, -1, 0);
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     ret += X509_set_issuer_name(x509, name);</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     ret += X509_set_pubkey(x509, pkey);</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     if (ret &lt; 3)</span>
+<span class="lineNum">     454 </span>            :     {
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Failed to set certificate details: %s&quot;,</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         goto err3;</span>
+<span class="lineNum">     458 </span>            :     }
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     const EVP_MD *md = EVP_get_digestbyname(&quot;sha384&quot;);</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     if (md == NULL)</span>
+<span class="lineNum">     462 </span>            :     {
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;OpenSSL: Uknown digest algorithm %s&quot;,</span>
+<span class="lineNum">     464 </span>            :             &quot;sha384&quot;);
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :         goto err3;</span>
+<span class="lineNum">     466 </span>            :     }
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :     if (getenv(&quot;CFENGINE_TEST_PURIFY_OPENSSL&quot;) != NULL)</span>
+<span class="lineNum">     469 </span>            :     {
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         RSA_blinding_off(privkey);</span>
+<span class="lineNum">     471 </span>            :     }
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            :     /* Not really needed since the other side does not
+<span class="lineNum">     474 </span>            :        verify the signature. */
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     ret = X509_sign(x509, pkey, md);</span>
+<span class="lineNum">     476 </span>            :     /* X509_sign obscurely returns the length of the signature... */
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     if (ret == 0)</span>
+<span class="lineNum">     478 </span>            :     {
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;X509_sign: %s&quot;,</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :         goto err3;</span>
+<span class="lineNum">     482 </span>            :     }
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     EVP_PKEY_free(pkey);</span>
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :     assert(x509 != NULL);</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     return x509;</span>
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span>            :   err3:
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     EVP_PKEY_free(pkey);</span>
+<span class="lineNum">     492 </span>            :   err2:
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :     X509_free(x509);</span>
+<span class="lineNum">     494 </span>            :   err1:
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<a name="496"><span class="lineNum">     496 </span>            : }</a>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 : static const char *TLSPrimarySSLError(int code)</span>
+<span class="lineNum">     499 </span>            : {
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     switch (code)</span>
+<span class="lineNum">     501 </span>            :     {
+<span class="lineNum">     502 </span>            :     case SSL_ERROR_NONE:
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :         return &quot;TLSGetSSLErrorString: No SSL error!&quot;;</span>
+<span class="lineNum">     504 </span>            :     case SSL_ERROR_ZERO_RETURN:
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :         return &quot;TLS session has been terminated (SSL_ERROR_ZERO_RETURN)&quot;;</span>
+<span class="lineNum">     506 </span>            :     case SSL_ERROR_WANT_READ:
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :         return &quot;SSL_ERROR_WANT_READ&quot;;</span>
+<span class="lineNum">     508 </span>            :     case SSL_ERROR_WANT_WRITE:
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         return &quot;SSL_ERROR_WANT_WRITE&quot;;</span>
+<span class="lineNum">     510 </span>            :     case SSL_ERROR_WANT_CONNECT:
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :         return &quot;SSL_ERROR_WANT_CONNECT&quot;;</span>
+<span class="lineNum">     512 </span>            :     case SSL_ERROR_WANT_ACCEPT:
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         return &quot;SSL_ERROR_WANT_ACCEPT&quot;;</span>
+<span class="lineNum">     514 </span>            :     case SSL_ERROR_WANT_X509_LOOKUP:
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :         return &quot;SSL_ERROR_WANT_X509_LOOKUP&quot;;</span>
+<span class="lineNum">     516 </span>            :     case SSL_ERROR_SYSCALL:
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :         return &quot;SSL_ERROR_SYSCALL&quot;;</span>
+<span class="lineNum">     518 </span>            :     case SSL_ERROR_SSL:
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :         return &quot;SSL_ERROR_SSL&quot;;</span>
+<span class="lineNum">     520 </span>            :     }
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     return &quot;Unknown OpenSSL error code!&quot;;</span>
+<span class="lineNum">     522 </span>            : }
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            : /**
+<span class="lineNum">     525 </span>            :  * @brief OpenSSL is missing an SSL_reason_error_string() like
+<span class="lineNum">     526 </span>            :  *        ERR_reason_error_string().  Provide missing functionality here,
+<span class="lineNum">     527 </span>            :  *        since it's kind of complicated.
+<span class="lineNum">     528 </span>            :  * @param #prepend String to prepend to the SSL error.
+<span class="lineNum">     529 </span>            :  * @param #code Return code from the OpenSSL function call.
+<span class="lineNum">     530 </span>            :  * @warning Use only for SSL_connect(), SSL_accept(), SSL_do_handshake(),
+<a name="531"><span class="lineNum">     531 </span>            :  *          SSL_read(), SSL_peek(), SSL_write(), see SSL_get_error man page.</a>
+<span class="lineNum">     532 </span>            :  */
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 : int TLSLogError(SSL *ssl, LogLevel level, const char *prepend, int retcode)</span>
+<span class="lineNum">     534 </span>            : {
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     assert(prepend != NULL);</span>
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span>            :     /* For when retcode==SSL_ERROR_SYSCALL. */
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     const char *syserr = (errno != 0) ? GetErrorStr() : &quot;&quot;;</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     int errcode         = SSL_get_error(ssl, retcode);</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     const char *errstr1 = TLSPrimarySSLError(errcode);</span>
+<span class="lineNum">     541 </span>            :     /* For SSL_ERROR_SSL, SSL_ERROR_SYSCALL (man SSL_get_error). It's not
+<span class="lineNum">     542 </span>            :      * useful for SSL_read() and SSL_write(). */
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :     const char *errstr2 = ERR_reason_error_string(ERR_get_error());</span>
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span>            :     /* We know the socket is always blocking. However our blocking sockets
+<span class="lineNum">     546 </span>            :      * have a timeout set via means of setsockopt(SO_RCVTIMEO), so internally
+<span class="lineNum">     547 </span>            :      * OpenSSL can still get the EWOULDBLOCK error code from recv(). In that
+<span class="lineNum">     548 </span>            :      * case OpenSSL gives us SSL_ERROR_WANT_READ despite the socket being
+<span class="lineNum">     549 </span>            :      * blocking. So we log a proper error message! */
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :     if (errcode == SSL_ERROR_WANT_READ)</span>
+<span class="lineNum">     551 </span>            :     {
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :         Log(level, &quot;%s: receive timeout&quot;, prepend);</span>
+<span class="lineNum">     553 </span>            :     }
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :     else if (errcode == SSL_ERROR_WANT_WRITE)</span>
+<span class="lineNum">     555 </span>            :     {
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :         Log(level, &quot;%s: send timeout&quot;, prepend);</span>
+<span class="lineNum">     557 </span>            :     }
+<span class="lineNum">     558 </span>            :     /* if we got SSL_ERROR_SYSCALL and ERR_get_error() returned 0 then take
+<span class="lineNum">     559 </span>            :      * ret into account (man SSL_get_error). */
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     else if (errcode == SSL_ERROR_SYSCALL &amp;&amp; errstr2 == NULL &amp;&amp;</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :              (retcode == 0 || retcode == -1))</span>
+<span class="lineNum">     562 </span>            :     {
+<span class="lineNum">     563 </span>            :         /* This is not described in SSL_get_error manual, but play it safe. */
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :         if ((SSL_get_shutdown(ssl) &amp; SSL_RECEIVED_SHUTDOWN) != 0)</span>
+<span class="lineNum">     565 </span>            :         {
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :             Log(level, &quot;%s: remote peer terminated TLS session&quot;,</span>
+<span class="lineNum">     567 </span>            :                 prepend);
+<span class="lineNum">     568 </span>            :         }
+<span class="lineNum">     569 </span>            :         /* &quot;an EOF was observed that violates the protocol&quot; */
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :         else if (retcode == 0)</span>
+<span class="lineNum">     571 </span>            :         {
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :             Log(level, &quot;%s: socket closed&quot;, prepend);</span>
+<span class="lineNum">     573 </span>            :         }
+<span class="lineNum">     574 </span>            :         /* &quot;the underlying BIO reported an I/O error&quot; */
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :         else if (retcode == -1)</span>
+<span class="lineNum">     576 </span>            :         {
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :             Log(level, &quot;%s: underlying network error (%s)&quot;, prepend, syserr);</span>
+<span class="lineNum">     578 </span>            :         }
+<span class="lineNum">     579 </span>            :     }
+<span class="lineNum">     580 </span>            :     else                                 /* generic error printing fallback */
+<span class="lineNum">     581 </span>            :     {
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :         Log(level, &quot;%s: (%d %s) %s %s&quot;,</span>
+<span class="lineNum">     583 </span>            :             prepend, retcode, errstr1,
+<span class="lineNum">     584 </span>            :             (errstr2 == NULL) ? &quot;&quot; : errstr2,          /* most likely empty */
+<span class="lineNum">     585 </span>            :             syserr);
+<span class="lineNum">     586 </span>            :     }
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :     return errcode;</span>
+<a name="589"><span class="lineNum">     589 </span>            : }</a>
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 : static void assert_SSLIsBlocking(const SSL *ssl)</span>
+<span class="lineNum">     592 </span>            : {
+<span class="lineNum">     593 </span>            : #if !defined(NDEBUG) &amp;&amp; !defined(__MINGW32__)
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :     int fd = SSL_get_fd(ssl);</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :     if (fd &gt;= 0)</span>
+<span class="lineNum">     596 </span>            :     {
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :         int flags = fcntl(fd, F_GETFL, 0);</span>
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :         if (flags != -1 &amp;&amp; (flags &amp; O_NONBLOCK) != 0)</span>
+<span class="lineNum">     599 </span>            :         {
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :             ProgrammingError(&quot;OpenSSL socket is non-blocking!&quot;);</span>
+<span class="lineNum">     601 </span>            :         }
+<span class="lineNum">     602 </span>            :     }
+<span class="lineNum">     603 </span>            : #else // silence compiler warning
+<span class="lineNum">     604 </span>            :     ssl = NULL;
+<span class="lineNum">     605 </span>            : #endif
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span>            : /**
+<span class="lineNum">     609 </span>            :  * @brief Sends the data stored on the buffer using a TLS session.
+<span class="lineNum">     610 </span>            :  * @param ssl SSL information.
+<span class="lineNum">     611 </span>            :  * @param buffer Data to send.
+<span class="lineNum">     612 </span>            :  * @param length Length of the data to send.
+<span class="lineNum">     613 </span>            :  * @return The length of the data sent (always equals #length if SSL is set
+<span class="lineNum">     614 </span>            :  *         up correctly, see note), or -1 in case of error, or 0 for connection
+<span class="lineNum">     615 </span>            :  *         closed.
+<span class="lineNum">     616 </span>            :  *
+<span class="lineNum">     617 </span>            :  * @note Use only for *blocking* sockets. Set
+<span class="lineNum">     618 </span>            :  *       SSL_CTX_set_mode(SSL_MODE_AUTO_RETRY) and make sure you haven't
+<span class="lineNum">     619 </span>            :  *       turned on SSL_MODE_ENABLE_PARTIAL_WRITE so that either the
+<span class="lineNum">     620 </span>            :  *       operation is completed (retval==length) or an error occurred.
+<span class="lineNum">     621 </span>            :  *
+<span class="lineNum">     622 </span>            :  * @TODO ERR_get_error is only meaningful for some error codes, so check and
+<a name="623"><span class="lineNum">     623 </span>            :  *       return empty string otherwise.</a>
+<span class="lineNum">     624 </span>            :  */
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 : int TLSSend(SSL *ssl, const char *buffer, int length)</span>
+<span class="lineNum">     626 </span>            : {
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :     assert(length &gt;= 0);</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :     assert_SSLIsBlocking(ssl);</span>
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :     if (length == 0)</span>
+<span class="lineNum">     631 </span>            :     {
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :         UnexpectedError(&quot;TLSSend: Zero length buffer!&quot;);</span>
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     634 </span>            :     }
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     EnforceBwLimit(length);</span>
+<span class="lineNum">     637 </span>            : 
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :     int sent = SSL_write(ssl, buffer, length);</span>
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :     if (sent == 0)</span>
+<span class="lineNum">     640 </span>            :     {
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :         if ((SSL_get_shutdown(ssl) &amp; SSL_RECEIVED_SHUTDOWN) != 0)</span>
+<span class="lineNum">     642 </span>            :         {
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     644 </span>            :                 &quot;Remote peer terminated TLS session (SSL_write)&quot;);
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :             return 0;</span>
+<span class="lineNum">     646 </span>            :         }
+<span class="lineNum">     647 </span>            :         else
+<span class="lineNum">     648 </span>            :         {
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :             TLSLogError(ssl, LOG_LEVEL_ERR,</span>
+<span class="lineNum">     650 </span>            :                         &quot;Connection unexpectedly closed (SSL_write)&quot;,
+<span class="lineNum">     651 </span>            :                         sent);
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :             return 0;</span>
+<span class="lineNum">     653 </span>            :         }
+<span class="lineNum">     654 </span>            :     }
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :     if (sent &lt; 0)</span>
+<span class="lineNum">     656 </span>            :     {
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :         TLSLogError(ssl, LOG_LEVEL_ERR, &quot;SSL_write&quot;, sent);</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     659 </span>            :     }
+<span class="lineNum">     660 </span>            : 
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :     return sent;</span>
+<span class="lineNum">     662 </span>            : }
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span>            : /**
+<span class="lineNum">     665 </span>            :  * @brief Receives at most #length bytes of data from the SSL session
+<span class="lineNum">     666 </span>            :  *        and stores it in the buffer.
+<span class="lineNum">     667 </span>            :  * @param ssl SSL information.
+<span class="lineNum">     668 </span>            :  * @param buffer Buffer, of size at least #toget + 1 to store received data.
+<span class="lineNum">     669 </span>            :  * @param toget Length of the data to receive, must be &lt; CF_BUFSIZE.
+<span class="lineNum">     670 </span>            :  *
+<span class="lineNum">     671 </span>            :  * @return The length of the received data, which should be equal or less
+<span class="lineNum">     672 </span>            :  *         than the requested amount.
+<span class="lineNum">     673 </span>            :  *         -1 in case of timeout or error - SSL session is unusable
+<span class="lineNum">     674 </span>            :  *         0  if connection was closed
+<span class="lineNum">     675 </span>            :  *
+<span class="lineNum">     676 </span>            :  * @note Use only for *blocking* sockets. Set
+<span class="lineNum">     677 </span>            :  *       SSL_CTX_set_mode(SSL_MODE_AUTO_RETRY) to make sure that either
+<span class="lineNum">     678 </span>            :  *       operation completed or an error occurred.
+<span class="lineNum">     679 </span>            :  * @note Still, it may happen for #retval to be less than #toget, if the
+<a name="680"><span class="lineNum">     680 </span>            :  *       opposite side completed a TLSSend() with number smaller than #toget.</a>
+<span class="lineNum">     681 </span>            :  */
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 : int TLSRecv(SSL *ssl, char *buffer, int toget)</span>
+<span class="lineNum">     683 </span>            : {
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     assert(toget &gt; 0);</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :     assert(toget &lt; CF_BUFSIZE);</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :     assert_SSLIsBlocking(ssl);</span>
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :     int received = SSL_read(ssl, buffer, toget);</span>
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :     if (received &lt; 0)</span>
+<span class="lineNum">     690 </span>            :     {
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :         int errcode = TLSLogError(ssl, LOG_LEVEL_ERR, &quot;SSL_read&quot;, received);</span>
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span>            :         /* SSL_read() might get an internal recv() timeout, since we've set
+<span class="lineNum">     694 </span>            :          * SO_RCVTIMEO. In that case, the internal socket returns EAGAIN or
+<span class="lineNum">     695 </span>            :          * EWOULDBLOCK and SSL_read() returns SSL_ERROR_WANT_READ. */
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :         if (errcode == SSL_ERROR_WANT_READ)               /* recv() timeout */</span>
+<span class="lineNum">     697 </span>            :         {
+<span class="lineNum">     698 </span>            :             /* Make sure that the peer will send us no more data. */
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :             SSL_shutdown(ssl);</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :             shutdown(SSL_get_fd(ssl), SHUT_RDWR);</span>
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span>            :             /* Empty possible SSL_read() buffers. */
+<span class="lineNum">     703 </span>            : 
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :             int ret = 1;</span>
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :             int bytes_still_buffered = SSL_pending(ssl);</span>
+<span class="lineNum">     706 </span><span class="lineNoCov">          0 :             while (bytes_still_buffered &gt; 0 &amp;&amp; ret &gt; 0)</span>
+<span class="lineNum">     707 </span>            :             {
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :                 char tmpbuf[bytes_still_buffered];</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :                 ret = SSL_read(ssl, tmpbuf, bytes_still_buffered);</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :                 bytes_still_buffered -= ret;</span>
+<span class="lineNum">     711 </span>            :             }
+<span class="lineNum">     712 </span>            :         }
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     715 </span>            :     }
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :     else if (received == 0)</span>
+<span class="lineNum">     717 </span>            :     {
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :         if ((SSL_get_shutdown(ssl) &amp; SSL_RECEIVED_SHUTDOWN) != 0)</span>
+<span class="lineNum">     719 </span>            :         {
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     721 </span>            :                 &quot;Remote peer terminated TLS session (SSL_read)&quot;);
+<span class="lineNum">     722 </span>            :         }
+<span class="lineNum">     723 </span>            :         else
+<span class="lineNum">     724 </span>            :         {
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :             TLSLogError(ssl, LOG_LEVEL_ERR,</span>
+<span class="lineNum">     726 </span>            :                         &quot;Connection unexpectedly closed (SSL_read)&quot;,
+<span class="lineNum">     727 </span>            :                         received);
+<span class="lineNum">     728 </span>            :         }
+<span class="lineNum">     729 </span>            :     }
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     assert(received &lt; CF_BUFSIZE);</span>
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     buffer[received] = '\0';</span>
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :     return received;</span>
+<span class="lineNum">     735 </span>            : }
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span>            : /**
+<span class="lineNum">     738 </span>            :  * @brief Repeat receiving until last byte received is '\n'.
+<span class="lineNum">     739 </span>            :  *
+<span class="lineNum">     740 </span>            :  * @param #buf on return will contain all received lines, and '\0' will be
+<span class="lineNum">     741 </span>            :  *             appended to it.
+<span class="lineNum">     742 </span>            :  * @return Return value is #buf 's length (excluding manually appended '\0')
+<span class="lineNum">     743 </span>            :  *         or -1 in case of error.
+<span class="lineNum">     744 </span>            :  *
+<span class="lineNum">     745 </span>            :  * @note This function is intended for line-oriented communication, this means
+<span class="lineNum">     746 </span>            :  *       the peer sends us one line (or a bunch of lines) and waits for reply,
+<a name="747"><span class="lineNum">     747 </span>            :  *       so that '\n' is the last character in the underlying SSL_read().</a>
+<span class="lineNum">     748 </span>            :  */
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 : int TLSRecvLines(SSL *ssl, char *buf, size_t buf_size)</span>
+<span class="lineNum">     750 </span>            : {
+<span class="lineNum">     751 </span>            :     int ret;
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :     size_t got = 0;</span>
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :     buf_size -= 1;               /* Reserve one space for terminating '\0' */</span>
+<span class="lineNum">     754 </span>            : 
+<span class="lineNum">     755 </span>            :     /* Repeat until we receive end of line. */
+<span class="lineNum">     756 </span>            :     do
+<span class="lineNum">     757 </span>            :     {
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :         buf[got] = '\0';</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :         ret = TLSRecv(ssl, &amp;buf[got], buf_size - got);</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :         if (ret &lt;= 0)</span>
+<span class="lineNum">     761 </span>            :         {
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     763 </span>            :                 &quot;Connection was hung up while receiving line: %s&quot;,
+<span class="lineNum">     764 </span>            :                 buf);
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     766 </span>            :         }
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :         got += ret;</span>
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :     } while ((buf[got-1] != '\n') &amp;&amp; (got &lt; buf_size));</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :     assert(got &lt;= buf_size);</span>
+<span class="lineNum">     770 </span>            : 
+<span class="lineNum">     771 </span>            :     /* Append '\0', there is room because buf_size has been decremented. */
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     buf[got] = '\0';</span>
+<span class="lineNum">     773 </span>            : 
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     if ((got == buf_size) &amp;&amp; (buf[got-1] != '\n'))</span>
+<span class="lineNum">     775 </span>            :     {
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     777 </span>            :             &quot;Received line too long, hanging up! Length %zu, line: %s&quot;,
+<span class="lineNum">     778 </span>            :             got, buf);
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     780 </span>            :     }
+<span class="lineNum">     781 </span>            : 
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :     LogRaw(LOG_LEVEL_DEBUG, &quot;TLSRecvLines(): &quot;, buf, got);</span>
+<span class="lineNum">     783 </span>            : 
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     return (got &lt;= INT_MAX) ? (int) got : -1;</span>
+<span class="lineNum">     785 </span>            : }
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span>            : /**
+<span class="lineNum">     788 </span>            :  * Set safe OpenSSL defaults commonly used by both clients and servers.
+<span class="lineNum">     789 </span>            :  *
+<span class="lineNum">     790 </span>            :  * @param min_version the minimum acceptable TLS version for incoming or
+<span class="lineNum">     791 </span>            :  *        outgoing connections (depending on ssl_ctx), for example
+<a name="792"><span class="lineNum">     792 </span>            :  *        &quot;1&quot;, &quot;1.1&quot;, &quot;1.2&quot;.</a>
+<span class="lineNum">     793 </span>            :  */
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 : void TLSSetDefaultOptions(SSL_CTX *ssl_ctx, const char *min_version)</span>
+<span class="lineNum">     795 </span>            : {
+<span class="lineNum">     796 </span>            : #if HAVE_DECL_SSL_CTX_CLEAR_OPTIONS
+<span class="lineNum">     797 </span>            :     /* Clear all flags, we do not want compatibility tradeoffs like
+<span class="lineNum">     798 </span>            :      * SSL_OP_LEGACY_SERVER_CONNECT. */
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :     SSL_CTX_clear_options(ssl_ctx, SSL_CTX_get_options(ssl_ctx));</span>
+<span class="lineNum">     800 </span>            : #else
+<span class="lineNum">     801 </span>            :     /* According to OpenSSL code v.0.9.8m, the first option to be added
+<span class="lineNum">     802 </span>            :      * by default (SSL_OP_LEGACY_SERVER_CONNECT) was added at the same
+<span class="lineNum">     803 </span>            :      * time SSL_CTX_clear_options appeared. Therefore, it is OK not to
+<span class="lineNum">     804 </span>            :      * clear options if they are not set.
+<span class="lineNum">     805 </span>            :      * If this assertion is proven to be false, output a clear warning
+<span class="lineNum">     806 </span>            :      * to let the user know what happens. */
+<span class="lineNum">     807 </span>            :     if (SSL_CTX_get_options(ssl_ctx) != 0)
+<span class="lineNum">     808 </span>            :     {
+<span class="lineNum">     809 </span>            :       Log(LOG_LEVEL_WARNING,
+<span class="lineNum">     810 </span>            :           &quot;This version of CFEngine was compiled against OpenSSL &lt; 0.9.8m, &quot;
+<span class="lineNum">     811 </span>            :           &quot;using it with a later OpenSSL version is insecure. &quot;
+<span class="lineNum">     812 </span>            :           &quot;The current version uses compatibility workarounds that may allow &quot;
+<span class="lineNum">     813 </span>            :           &quot;CVE-2009-3555 exploitation.&quot;);
+<span class="lineNum">     814 </span>            :       Log(LOG_LEVEL_WARNING, &quot;Please update your CFEngine package or &quot;
+<span class="lineNum">     815 </span>            :           &quot;compile it against your current OpenSSL version.&quot;);
+<span class="lineNum">     816 </span>            :     }
+<span class="lineNum">     817 </span>            : #endif
+<span class="lineNum">     818 </span>            : 
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :     const char *compiletime_min_version = &quot;1.2&quot;;</span>
+<span class="lineNum">     820 </span>            : 
+<span class="lineNum">     821 </span>            : #ifndef  SSL_OP_NO_TLSv1_1
+<span class="lineNum">     822 </span>            : #   define SSL_OP_NO_TLSv1_1 0x0                                /* nop */
+<span class="lineNum">     823 </span>            :     compiletime_min_version = &quot;1.1&quot;;
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span>            : # ifndef  SSL_OP_NO_TLSv1
+<span class="lineNum">     826 </span>            : #   define SSL_OP_NO_TLSv1 0x0                                  /* nop */
+<span class="lineNum">     827 </span>            :     compiletime_min_version = &quot;1.0&quot;;
+<span class="lineNum">     828 </span>            : # endif
+<span class="lineNum">     829 </span>            : 
+<span class="lineNum">     830 </span>            : #endif
+<span class="lineNum">     831 </span>            : 
+<span class="lineNum">     832 </span>            :     /* In any case use only TLS v1 or later. */
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :     long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;</span>
+<span class="lineNum">     834 </span>            : 
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :     if (min_version == NULL</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :         || strcmp(min_version, &quot;1&quot;)   == 0</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :         || strcmp(min_version, &quot;1.0&quot;) == 0)</span>
+<span class="lineNum">     838 </span>            :     {
+<span class="lineNum">     839 </span>            :         /* Do nothing, that's our default setting */
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     841 </span>            :             &quot;Setting minimum acceptable TLS version: 1.0&quot;);
+<span class="lineNum">     842 </span>            :     }
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :     else if (strcmp(min_version, &quot;1.1&quot;) == 0)</span>
+<span class="lineNum">     844 </span>            :     {
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :         if (strcmp(compiletime_min_version, &quot;1.0&quot;) == 0)</span>
+<span class="lineNum">     846 </span>            :         {
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_WARNING, &quot;Minimum requested TLS version is %s,&quot;</span>
+<span class="lineNum">     848 </span>            :                 &quot; however because of old OpenSSL version it is set to: %s&quot;,
+<span class="lineNum">     849 </span>            :                 min_version, compiletime_min_version);
+<span class="lineNum">     850 </span>            :         }
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         options |= SSL_OP_NO_TLSv1;</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     853 </span>            :             &quot;Setting minimum acceptable TLS version: 1.1&quot;);
+<span class="lineNum">     854 </span>            : 
+<span class="lineNum">     855 </span>            :     }
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :     else if (strcmp(min_version, &quot;1.2&quot;) == 0)</span>
+<span class="lineNum">     857 </span>            :     {
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :         if (strcmp(compiletime_min_version, &quot;1.0&quot;) == 0 ||</span>
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 :             strcmp(compiletime_min_version, &quot;1.1&quot;) == 0)</span>
+<span class="lineNum">     860 </span>            :         {
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_WARNING, &quot;Minimum requested TLS version is %s,&quot;</span>
+<span class="lineNum">     862 </span>            :                 &quot; however because of old OpenSSL version it is set to: %s&quot;,
+<span class="lineNum">     863 </span>            :                 min_version, compiletime_min_version);
+<span class="lineNum">     864 </span>            :         }
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :         options |= SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1;</span>
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     867 </span>            :             &quot;Setting minimum acceptable TLS version: 1.2&quot;);
+<span class="lineNum">     868 </span>            :     }
+<span class="lineNum">     869 </span>            :     else
+<span class="lineNum">     870 </span>            :     {
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_WARNING, &quot;Unsupported TLS version '%s' requested,&quot;</span>
+<span class="lineNum">     872 </span>            :             &quot; minimum acceptable TLS version set to: 1.0&quot;,
+<span class="lineNum">     873 </span>            :             min_version);
+<span class="lineNum">     874 </span>            :     }
+<span class="lineNum">     875 </span>            : 
+<span class="lineNum">     876 </span>            : 
+<span class="lineNum">     877 </span>            :     /* No session resumption or renegotiation for now. */
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :     options |= SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION;</span>
+<span class="lineNum">     879 </span>            : 
+<span class="lineNum">     880 </span>            : #ifdef SSL_OP_NO_TICKET
+<span class="lineNum">     881 </span>            :     /* Disable another way of resumption, session tickets (RFC 5077). */
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :     options |= SSL_OP_NO_TICKET;</span>
+<span class="lineNum">     883 </span>            : #endif
+<span class="lineNum">     884 </span>            : 
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :     SSL_CTX_set_options(ssl_ctx, options);</span>
+<span class="lineNum">     886 </span>            : 
+<span class="lineNum">     887 </span>            : 
+<span class="lineNum">     888 </span>            :     /* Disable both server-side and client-side session caching, to
+<span class="lineNum">     889 </span>            :        complement the previous options. Safe for now, might enable for
+<span class="lineNum">     890 </span>            :        performance in the future. */
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :     SSL_CTX_set_session_cache_mode(ssl_ctx, SSL_SESS_CACHE_OFF);</span>
+<span class="lineNum">     892 </span>            : 
+<span class="lineNum">     893 </span>            : 
+<span class="lineNum">     894 </span>            :     /* Never bother with retransmissions, SSL_write() should
+<span class="lineNum">     895 </span>            :      * always either write the whole amount or fail. */
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);</span>
+<span class="lineNum">     897 </span>            : 
+<span class="lineNum">     898 </span>            :     /* Set options to always request a certificate from the peer,
+<span class="lineNum">     899 </span>            :        either we are client or server. */
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :     SSL_CTX_set_verify(ssl_ctx,</span>
+<span class="lineNum">     901 </span>            :                        SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+<span class="lineNum">     902 </span>            :                        NULL);
+<span class="lineNum">     903 </span>            :     /* Always accept that certificate, we do proper checking after TLS
+<span class="lineNum">     904 </span>            :      * connection is established since OpenSSL can't pass a connection
+<span class="lineNum">     905 </span>            :      * specific pointer to the callback (so we would have to lock).  */
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :     SSL_CTX_set_cert_verify_callback(ssl_ctx, TLSVerifyCallback, NULL);</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

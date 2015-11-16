@@ -1,0 +1,1114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - cf-agent/verify_databases.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cf-agent</a> - verify_databases.c<span style="font-size: 80%;"> (source / <a href="verify_databases.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">406</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;verify_databases.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;actuator.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;promises.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;files_names.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;conversion.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;attributes.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;locks.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;cf_sql.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;rlist.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;policy.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;cf-agent-enterprise-stubs.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;ornaments.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : static int CheckDatabaseSanity(Attributes a, const Promise *pp);
+<span class="lineNum">      43 </span>            : static PromiseResult VerifySQLPromise(EvalContext *ctx, Attributes a, const Promise *pp);
+<span class="lineNum">      44 </span>            : static int VerifyDatabasePromise(CfdbConn *cfdb, char *database, Attributes a);
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : static int ValidateSQLTableName(char *table_path, char *db, char *table);
+<span class="lineNum">      47 </span>            : static int VerifyTablePromise(EvalContext *ctx, CfdbConn *cfdb, char *table_path, Rlist *columns, Attributes a, const Promise *pp, PromiseResult *result);
+<span class="lineNum">      48 </span>            : static int ValidateSQLTableName(char *table_path, char *db, char *table);
+<span class="lineNum">      49 </span>            : static void QueryTableColumns(char *s, char *db, char *table);
+<span class="lineNum">      50 </span>            : static int NewSQLColumns(char *table, Rlist *columns, char ***name_table, char ***type_table, int **size_table,
+<span class="lineNum">      51 </span>            :                          int **done);
+<span class="lineNum">      52 </span>            : static void DeleteSQLColumns(char **name_table, char **type_table, int *size_table, int *done, int len);
+<span class="lineNum">      53 </span>            : static void CreateDBQuery(DatabaseType type, char *query);
+<span class="lineNum">      54 </span>            : static int CreateTableColumns(CfdbConn *cfdb, char *table, Rlist *columns);
+<span class="lineNum">      55 </span>            : static int CheckSQLDataType(char *type, char *ref_type, const Promise *pp);
+<span class="lineNum">      56 </span>            : static int TableExists(CfdbConn *cfdb, char *name);
+<span class="lineNum">      57 </span>            : static Rlist *GetSQLTables(CfdbConn *cfdb);
+<span class="lineNum">      58 </span>            : static void ListTables(int type, char *query);
+<span class="lineNum">      59 </span>            : static int ValidateRegistryPromiser(char *s, const Promise *pp);
+<span class="lineNum">      60 </span>            : static int CheckRegistrySanity(Attributes a, const Promise *pp);
+<span class="lineNum">      61 </span>            : 
+<a name="62"><span class="lineNum">      62 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 : PromiseResult VerifyDatabasePromises(EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">      65 </span>            : {
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     PromiseBanner(ctx, pp);</span>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     Attributes a = GetDatabaseAttributes(ctx, pp);</span>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     if (!CheckDatabaseSanity(a, pp))</span>
+<span class="lineNum">      71 </span>            :     {
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">      73 </span>            :     }
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     if (strcmp(a.database.type, &quot;sql&quot;) == 0)</span>
+<span class="lineNum">      76 </span>            :     {
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         return VerifySQLPromise(ctx, a, pp);</span>
+<span class="lineNum">      78 </span>            :     }
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     else if (strcmp(a.database.type, &quot;ms_registry&quot;) == 0)</span>
+<span class="lineNum">      80 </span>            :     {
+<span class="lineNum">      81 </span>            : #if defined(__MINGW32__)
+<span class="lineNum">      82 </span>            :         return VerifyRegistryPromise(ctx, a, pp);
+<span class="lineNum">      83 </span>            : #endif
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">      85 </span>            :     }
+<span class="lineNum">      86 </span>            :     else
+<span class="lineNum">      87 </span>            :     {
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;Unknown database type '%s'&quot;, a.database.type);</span>
+<span class="lineNum">      89 </span>            :     }
+<span class="lineNum">      90 </span>            : }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : /*****************************************************************************/
+<span class="lineNum">      93 </span>            : /* Level                                                                     */
+<a name="94"><span class="lineNum">      94 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 : static PromiseResult VerifySQLPromise(EvalContext *ctx, Attributes a, const Promise *pp)</span>
+<span class="lineNum">      97 </span>            : {
+<span class="lineNum">      98 </span>            :     char database[CF_MAXVARSIZE], table[CF_MAXVARSIZE], query[CF_BUFSIZE];
+<span class="lineNum">      99 </span>            :     char *sp;
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     int count = 0;</span>
+<span class="lineNum">     101 </span>            :     CfdbConn cfdb;
+<span class="lineNum">     102 </span>            :     CfLock thislock;
+<span class="lineNum">     103 </span>            :     char lockname[CF_BUFSIZE];
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     snprintf(lockname, CF_BUFSIZE - 1, &quot;db-%s&quot;, pp-&gt;promiser);</span>
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     thislock = AcquireLock(ctx, lockname, VUQNAME, CFSTARTTIME, a.transaction, pp, false);</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     if (thislock.lock == NULL)</span>
+<span class="lineNum">     109 </span>            :     {
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_SKIPPED;</span>
+<span class="lineNum">     111 </span>            :     }
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     database[0] = '\0';</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     table[0] = '\0';</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :     for (sp = pp-&gt;promiser; *sp != '\0'; sp++)</span>
+<span class="lineNum">     117 </span>            :     {
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         if (strchr(&quot;./\\&quot;, *sp))</span>
+<span class="lineNum">     119 </span>            :         {
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :             count++;</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :             strlcpy(table, sp + 1, CF_MAXVARSIZE);</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :             sscanf(pp-&gt;promiser, &quot;%[^.\\/]&quot;, database);</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :             if (strlen(database) == 0)</span>
+<span class="lineNum">     125 </span>            :             {
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :                 cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a,</span>
+<span class="lineNum">     127 </span>            :                      &quot;SQL database promiser syntax should be of the form \&quot;database.table\&quot;&quot;);
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :                 PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :                 YieldCurrentLock(thislock);</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :                 return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     131 </span>            :             }
+<span class="lineNum">     132 </span>            :         }
+<span class="lineNum">     133 </span>            :     }
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     PromiseResult result = PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     if (count &gt; 1)</span>
+<span class="lineNum">     137 </span>            :     {
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a, &quot;SQL database promiser syntax should be of the form \&quot;database.table\&quot;&quot;);</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         result = PromiseResultUpdate(result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     141 </span>            :     }
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     if (strlen(database) == 0)</span>
+<span class="lineNum">     144 </span>            :     {
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         strlcpy(database, pp-&gt;promiser, CF_MAXVARSIZE);</span>
+<span class="lineNum">     146 </span>            :     }
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     if (a.database.operation == NULL)</span>
+<span class="lineNum">     149 </span>            :     {
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a,</span>
+<span class="lineNum">     151 </span>            :              &quot;Missing database_operation in database promise&quot;);
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         YieldCurrentLock(thislock);</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     155 </span>            :     }
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     if (strcmp(a.database.operation, &quot;delete&quot;) == 0)</span>
+<span class="lineNum">     158 </span>            :     {
+<span class="lineNum">     159 </span>            :         /* Just deal with one */
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :         strcpy(a.database.operation, &quot;drop&quot;);</span>
+<span class="lineNum">     161 </span>            :     }
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : /* Connect to the server */
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     CfConnectDB(&amp;cfdb, a.database.db_server_type, a.database.db_server_host, a.database.db_server_owner,</span>
+<span class="lineNum">     166 </span>            :                 a.database.db_server_password, database);
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     if (!cfdb.connected)</span>
+<span class="lineNum">     169 </span>            :     {
+<span class="lineNum">     170 </span>            :         /* If we haven't said create then db should already exist */
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :         if ((a.database.operation) &amp;&amp; (strcmp(a.database.operation, &quot;create&quot;) != 0))</span>
+<span class="lineNum">     173 </span>            :         {
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Could not connect an existing database '%s' - check server configuration?&quot;, database);</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :             CfCloseDB(&amp;cfdb);</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :             YieldCurrentLock(thislock);</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :             return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     179 </span>            :         }
+<span class="lineNum">     180 </span>            :     }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            : /* Check change of existential constraints */
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     if ((a.database.operation) &amp;&amp; (strcmp(a.database.operation, &quot;create&quot;) == 0))</span>
+<span class="lineNum">     185 </span>            :     {
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         CfConnectDB(&amp;cfdb, a.database.db_server_type, a.database.db_server_host, a.database.db_server_owner,</span>
+<span class="lineNum">     187 </span>            :                     a.database.db_server_password, a.database.db_connect_db);
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :         if (!cfdb.connected)</span>
+<span class="lineNum">     190 </span>            :         {
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Could not connect to the sql_db server for '%s'&quot;, database);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :             return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     193 </span>            :         }
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :         /* Don't drop the db if we really want to drop a table */
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         if ((strlen(table) == 0) || ((strlen(table) &gt; 0) &amp;&amp; (strcmp(a.database.operation, &quot;drop&quot;) != 0)))</span>
+<span class="lineNum">     198 </span>            :         {
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             VerifyDatabasePromise(&amp;cfdb, database, a);</span>
+<span class="lineNum">     200 </span>            :         }
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span>            :         /* Close the database here to commit the change - might have to reopen */
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         CfCloseDB(&amp;cfdb);</span>
+<span class="lineNum">     205 </span>            :     }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            : /* Now check the structure of the named table, if any */
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     if (strlen(table) == 0)</span>
+<span class="lineNum">     210 </span>            :     {
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         YieldCurrentLock(thislock);</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :         return result;</span>
+<span class="lineNum">     213 </span>            :     }
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     CfConnectDB(&amp;cfdb, a.database.db_server_type, a.database.db_server_host, a.database.db_server_owner,</span>
+<span class="lineNum">     216 </span>            :                 a.database.db_server_password, database);
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     if (!cfdb.connected)</span>
+<span class="lineNum">     219 </span>            :     {
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Database '%s' is not connected&quot;, database);</span>
+<span class="lineNum">     221 </span>            :     }
+<span class="lineNum">     222 </span>            :     else
+<span class="lineNum">     223 </span>            :     {
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         snprintf(query, CF_MAXVARSIZE - 1, &quot;%s.%s&quot;, database, table);</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         if (VerifyTablePromise(ctx, &amp;cfdb, query, a.database.columns, a, pp, &amp;result))</span>
+<span class="lineNum">     227 </span>            :         {
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :             cfPS(ctx, LOG_LEVEL_INFO, PROMISE_RESULT_NOOP, pp, a, &quot;Table '%s' is as promised&quot;, query);</span>
+<span class="lineNum">     229 </span>            :         }
+<span class="lineNum">     230 </span>            :         else
+<span class="lineNum">     231 </span>            :         {
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :             cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a, &quot;Table '%s' is not as promised&quot;, query);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             result = PromiseResultUpdate(result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     234 </span>            :         }
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            : /* Finally check any row constraints on this table */
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         if (a.database.rows)</span>
+<span class="lineNum">     239 </span>            :         {
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     241 </span>            :                   &quot;Database row operations are not currently supported. Please contact cfengine with suggestions.&quot;);
+<span class="lineNum">     242 </span>            :         }
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         CfCloseDB(&amp;cfdb);</span>
+<span class="lineNum">     245 </span>            :     }
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     YieldCurrentLock(thislock);</span>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     return result;</span>
+<a name="250"><span class="lineNum">     250 </span>            : }</a>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 : static int VerifyDatabasePromise(CfdbConn *cfdb, char *database, Attributes a)</span>
+<span class="lineNum">     253 </span>            : {
+<span class="lineNum">     254 </span>            :     char query[CF_BUFSIZE], name[CF_MAXVARSIZE];
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     int found = false;</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE, &quot;Verifying promised database&quot;);</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     if (!cfdb-&gt;connected)</span>
+<span class="lineNum">     260 </span>            :     {
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Database '%s' is not connected&quot;, database);</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     263 </span>            :     }
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     CreateDBQuery(cfdb-&gt;type, query);</span>
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     CfNewQueryDB(cfdb, query);</span>
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     if (cfdb-&gt;maxcolumns &lt; 1)</span>
+<span class="lineNum">     270 </span>            :     {
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;The schema did not promise the expected number of fields - got %d expected &gt;= %d&quot;,</span>
+<span class="lineNum">     272 </span>            :               cfdb-&gt;maxcolumns, 1);
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     274 </span>            :     }
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     while (CfFetchRow(cfdb))</span>
+<span class="lineNum">     277 </span>            :     {
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         strlcpy(name, CfFetchColumn(cfdb, 0), CF_MAXVARSIZE);</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Discovered a database called '%s'&quot;, name);</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         if (strcmp(name, database) == 0)</span>
+<span class="lineNum">     283 </span>            :         {
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :             found = true;</span>
+<span class="lineNum">     285 </span>            :         }
+<span class="lineNum">     286 </span>            :     }
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     if (found)</span>
+<span class="lineNum">     289 </span>            :     {
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Database '%s' exists on this connection&quot;, database);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     292 </span>            :     }
+<span class="lineNum">     293 </span>            :     else
+<span class="lineNum">     294 </span>            :     {
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Database '%s' does not seem to exist on this connection&quot;, database);</span>
+<span class="lineNum">     296 </span>            :     }
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :     if ((a.database.operation) &amp;&amp; (strcmp(a.database.operation, &quot;drop&quot;) == 0))</span>
+<span class="lineNum">     299 </span>            :     {
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         if (((a.transaction.action) != cfa_warn) &amp;&amp; (!DONTDO))</span>
+<span class="lineNum">     301 </span>            :         {
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Attempting to delete the database '%s'&quot;, database);</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :             snprintf(query, CF_MAXVARSIZE - 1, &quot;drop database %s&quot;, database);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :             CfVoidQueryDB(cfdb, query);</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :             return cfdb-&gt;result;</span>
+<span class="lineNum">     306 </span>            :         }
+<span class="lineNum">     307 </span>            :         else
+<span class="lineNum">     308 </span>            :         {
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_WARNING, &quot;Need to delete the database '%s' but only a warning was promised&quot;, database);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     311 </span>            :         }
+<span class="lineNum">     312 </span>            :     }
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     if ((a.database.operation) &amp;&amp; (strcmp(a.database.operation, &quot;create&quot;) == 0))</span>
+<span class="lineNum">     315 </span>            :     {
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         if (((a.transaction.action) != cfa_warn) &amp;&amp; (!DONTDO))</span>
+<span class="lineNum">     317 </span>            :         {
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Attempting to create the database '%s'&quot;, database);</span>
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :             snprintf(query, CF_MAXVARSIZE - 1, &quot;create database %s&quot;, database);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :             CfVoidQueryDB(cfdb, query);</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :             return cfdb-&gt;result;</span>
+<span class="lineNum">     322 </span>            :         }
+<span class="lineNum">     323 </span>            :         else
+<span class="lineNum">     324 </span>            :         {
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_WARNING, &quot;Need to create the database '%s' but only a warning was promised&quot;, database);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     327 </span>            :         }
+<span class="lineNum">     328 </span>            :     }
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     331 </span>            : }
+<span class="lineNum">     332 </span>            : 
+<a name="333"><span class="lineNum">     333 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 : static int CheckDatabaseSanity(Attributes a, const Promise *pp)</span>
+<span class="lineNum">     336 </span>            : {
+<span class="lineNum">     337 </span>            :     Rlist *rp;
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     int retval = true, commas = 0;</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     if ((a.database.type) &amp;&amp; (strcmp(a.database.type, &quot;ms_registry&quot;) == 0))</span>
+<span class="lineNum">     341 </span>            :     {
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         retval = CheckRegistrySanity(a, pp);</span>
+<span class="lineNum">     343 </span>            :     }
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     else if ((a.database.type) &amp;&amp; (strcmp(a.database.type, &quot;sql&quot;) == 0))</span>
+<span class="lineNum">     345 </span>            :     {
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :         if ((strchr(pp-&gt;promiser, '.') == NULL) &amp;&amp; (strchr(pp-&gt;promiser, '/') == NULL)</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :             &amp;&amp; (strchr(pp-&gt;promiser, '\\') == NULL))</span>
+<span class="lineNum">     348 </span>            :         {
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :             if (a.database.columns)</span>
+<span class="lineNum">     350 </span>            :             {
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Row values promised for an SQL table, but only the root database was promised&quot;);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                 retval = false;</span>
+<span class="lineNum">     353 </span>            :             }
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :             if (a.database.rows)</span>
+<span class="lineNum">     356 </span>            :             {
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Columns promised for an SQL table, but only the root database was promised&quot;);</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                 retval = false;</span>
+<span class="lineNum">     359 </span>            :             }
+<span class="lineNum">     360 </span>            :         }
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         if (a.database.db_server_host == NULL)</span>
+<span class="lineNum">     363 </span>            :         {
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;No server host is promised for connecting to the SQL server&quot;);</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :             retval = false;</span>
+<span class="lineNum">     366 </span>            :         }
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :         if (a.database.db_server_owner == NULL)</span>
+<span class="lineNum">     369 </span>            :         {
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;No database login user is promised for connecting to the SQL server&quot;);</span>
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :             retval = false;</span>
+<span class="lineNum">     372 </span>            :         }
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         if (a.database.db_server_password == NULL)</span>
+<span class="lineNum">     375 </span>            :         {
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;No database authentication password is promised for connecting to the SQL server&quot;);</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :             retval = false;</span>
+<span class="lineNum">     378 </span>            :         }
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         for (rp = a.database.columns; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     381 </span>            :         {
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :             commas = CountChar(RlistScalarValue(rp), ',');</span>
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :             if ((commas &gt; 2) || (commas &lt; 1))</span>
+<span class="lineNum">     385 </span>            :             {
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;SQL Column format should be NAME,TYPE[,SIZE]&quot;);</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :                 retval = false;</span>
+<span class="lineNum">     388 </span>            :             }
+<span class="lineNum">     389 </span>            :         }
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span>            :     }
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     if ((a.database.operation) &amp;&amp; (strcmp(a.database.operation, &quot;create&quot;) == 0))</span>
+<span class="lineNum">     394 </span>            :     {
+<span class="lineNum">     395 </span>            :     }
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     if ((a.database.operation)</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :         &amp;&amp; ((strcmp(a.database.operation, &quot;delete&quot;) == 0) || (strcmp(a.database.operation, &quot;drop&quot;) == 0)))</span>
+<span class="lineNum">     399 </span>            :     {
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         if (pp-&gt;comment == NULL)</span>
+<span class="lineNum">     401 </span>            :         {
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     403 </span>            :                   &quot;When specifying a delete/drop from an SQL database you must add a comment. Take a backup of the database before making this change. This is a highly destructive operation.&quot;);
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :             retval = false;</span>
+<span class="lineNum">     405 </span>            :         }
+<span class="lineNum">     406 </span>            :     }
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     return retval;</span>
+<a name="409"><span class="lineNum">     409 </span>            : }</a>
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 : static int CheckRegistrySanity(Attributes a, const Promise *pp)</span>
+<span class="lineNum">     412 </span>            : {
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     bool retval = true;</span>
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :     ValidateRegistryPromiser(pp-&gt;promiser, pp);</span>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     if ((a.database.operation) &amp;&amp; (strcmp(a.database.operation, &quot;create&quot;) == 0))</span>
+<span class="lineNum">     418 </span>            :     {
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         if (a.database.rows == NULL)</span>
+<span class="lineNum">     420 </span>            :         {
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO, &quot;No row values promised for the MS registry database&quot;);</span>
+<span class="lineNum">     422 </span>            :         }
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         if (a.database.columns != NULL)</span>
+<span class="lineNum">     425 </span>            :         {
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Columns are only used to delete promised values for the MS registry database&quot;);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :             retval = false;</span>
+<span class="lineNum">     428 </span>            :         }
+<span class="lineNum">     429 </span>            :     }
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     if ((a.database.operation)</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         &amp;&amp; ((strcmp(a.database.operation, &quot;delete&quot;) == 0) || (strcmp(a.database.operation, &quot;drop&quot;) == 0)))</span>
+<span class="lineNum">     433 </span>            :     {
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         if (a.database.columns == NULL)</span>
+<span class="lineNum">     435 </span>            :         {
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO, &quot;No columns were promised deleted in the MS registry database&quot;);</span>
+<span class="lineNum">     437 </span>            :         }
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         if (a.database.rows != NULL)</span>
+<span class="lineNum">     440 </span>            :         {
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Rows cannot be deleted in the MS registry database, only entire columns&quot;);</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :             retval = false;</span>
+<span class="lineNum">     443 </span>            :         }
+<span class="lineNum">     444 </span>            :     }
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     for (Rlist *rp = a.database.rows; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     447 </span>            :     {
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :         if (CountChar(RlistScalarValue(rp), ',') != 2)</span>
+<span class="lineNum">     449 </span>            :         {
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Registry row format should be NAME,REG_SZ,VALUE, not '%s'&quot;, RlistScalarValue(rp));</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :             retval = false;</span>
+<span class="lineNum">     452 </span>            :         }
+<span class="lineNum">     453 </span>            :     }
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :     for (Rlist *rp = a.database.columns; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     456 </span>            :     {
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         if (CountChar(RlistScalarValue(rp), ',') &gt; 0)</span>
+<span class="lineNum">     458 </span>            :         {
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;MS registry column format should be NAME only in deletion&quot;);</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :             retval = false;</span>
+<span class="lineNum">     461 </span>            :         }
+<span class="lineNum">     462 </span>            :     }
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     return retval;</span>
+<a name="465"><span class="lineNum">     465 </span>            : }</a>
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 : static int ValidateRegistryPromiser(char *key, const Promise *pp)</span>
+<span class="lineNum">     468 </span>            : {
+<span class="lineNum">     469 </span>            :     static char *const valid[] = { &quot;HKEY_CLASSES_ROOT&quot;, &quot;HKEY_CURRENT_CONFIG&quot;,
+<span class="lineNum">     470 </span>            :         &quot;HKEY_CURRENT_USER&quot;, &quot;HKEY_LOCAL_MACHINE&quot;, &quot;HKEY_USERS&quot;, NULL
+<span class="lineNum">     471 </span>            :     };
+<span class="lineNum">     472 </span>            :     char root_key[CF_MAXVARSIZE];
+<span class="lineNum">     473 </span>            :     char *sp;
+<span class="lineNum">     474 </span>            :     int i;
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span>            :     /* First remove the root key */
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     strlcpy(root_key, key, CF_MAXVARSIZE );</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     sp = strchr(root_key, '\\');</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     *sp = '\0';</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     for (i = 0; valid[i] != NULL; i++)</span>
+<span class="lineNum">     483 </span>            :     {
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :         if (strcmp(root_key, valid[i]) == 0)</span>
+<span class="lineNum">     485 </span>            :         {
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     487 </span>            :         }
+<span class="lineNum">     488 </span>            :     }
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_ERR, &quot;Non-editable registry prefix '%s'&quot;, root_key);</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :     PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     493 </span>            : }
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span>            : /*****************************************************************************/
+<span class="lineNum">     496 </span>            : /* Linker troubles require this code to be here in the main body             */
+<a name="497"><span class="lineNum">     497 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 : static int VerifyTablePromise(EvalContext *ctx, CfdbConn *cfdb, char *table_path, Rlist *columns, Attributes a,</span>
+<span class="lineNum">     500 </span>            :                               const Promise *pp, PromiseResult *result)
+<span class="lineNum">     501 </span>            : {
+<span class="lineNum">     502 </span>            :     char name[CF_MAXVARSIZE], type[CF_MAXVARSIZE], query[CF_MAXVARSIZE], table[CF_MAXVARSIZE], db[CF_MAXVARSIZE];
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     int i, count, size, no_of_cols, *size_table, *done, identified, retval = true;</span>
+<span class="lineNum">     504 </span>            :     char **name_table, **type_table;
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE, &quot;Verifying promised table structure for '%s'&quot;, table_path);</span>
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     if (!ValidateSQLTableName(table_path, db, table))</span>
+<span class="lineNum">     509 </span>            :     {
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     511 </span>            :             &quot;The structure of the promiser did not match that for an SQL table, i.e. 'database.table'&quot;);
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     513 </span>            :     }
+<span class="lineNum">     514 </span>            :     else
+<span class="lineNum">     515 </span>            :     {
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Assuming database '%s' with table '%s'&quot;, db, table);</span>
+<span class="lineNum">     517 </span>            :     }
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span>            : /* Verify the existence of the tables within the database */
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     if (!TableExists(cfdb, table))</span>
+<span class="lineNum">     522 </span>            :     {
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;The database did not contain the promised table '%s'&quot;, table_path);</span>
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         if ((a.database.operation) &amp;&amp; (strcmp(a.database.operation, &quot;create&quot;) == 0))</span>
+<span class="lineNum">     526 </span>            :         {
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :             if ((!DONTDO) &amp;&amp; ((a.transaction.action) != cfa_warn))</span>
+<span class="lineNum">     528 </span>            :             {
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :                 cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_CHANGE, pp, a, &quot;Database.table '%s' doesn't seem to exist, creating&quot;,</span>
+<span class="lineNum">     530 </span>            :                      table_path);
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                 *result = PromiseResultUpdate(*result, PROMISE_RESULT_CHANGE);</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :                 return CreateTableColumns(cfdb, table, columns);</span>
+<span class="lineNum">     533 </span>            :             }
+<span class="lineNum">     534 </span>            :             else
+<span class="lineNum">     535 </span>            :             {
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_WARNING, &quot;Database.table '%s' doesn't seem to exist, but only a warning was promised&quot;,</span>
+<span class="lineNum">     537 </span>            :                       table_path);
+<span class="lineNum">     538 </span>            :             }
+<span class="lineNum">     539 </span>            :         }
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     542 </span>            :     }
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            : /* Get a list of the columns in the table */
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     QueryTableColumns(query, db, table);</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     CfNewQueryDB(cfdb, query);</span>
+<span class="lineNum">     548 </span>            : 
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     if (cfdb-&gt;maxcolumns != 3)</span>
+<span class="lineNum">     550 </span>            :     {
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :         cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a, &quot;Could not make sense of the columns&quot;);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :         *result = PromiseResultUpdate(*result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :         CfDeleteQuery(cfdb);</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     555 </span>            :     }
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span>            : /* Assume that the Rlist has been validated and consists of a,b,c */
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     count = 0;</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     no_of_cols = RlistLen(columns);</span>
+<span class="lineNum">     561 </span>            : 
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :     if (!NewSQLColumns(table, columns, &amp;name_table, &amp;type_table, &amp;size_table, &amp;done))</span>
+<span class="lineNum">     563 </span>            :     {
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :         cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a, &quot;Could not make sense of the columns&quot;);</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :         *result = PromiseResultUpdate(*result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     567 </span>            :     }
+<span class="lineNum">     568 </span>            : 
+<span class="lineNum">     569 </span>            : /* Obtain columns from the named table - if any */
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :     while (CfFetchRow(cfdb))</span>
+<span class="lineNum">     572 </span>            :     {
+<span class="lineNum">     573 </span>            :         char *sizestr;
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :         name[0] = '\0';</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :         type[0] = '\0';</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :         size = CF_NOINT;</span>
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :         strlcpy(name, CfFetchColumn(cfdb, 0), CF_MAXVARSIZE);</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :         strlcpy(type, CfFetchColumn(cfdb, 1), CF_MAXVARSIZE);</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :         ToLowerStrInplace(type);</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :         sizestr = CfFetchColumn(cfdb, 2);</span>
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :         if (sizestr)</span>
+<span class="lineNum">     585 </span>            :         {
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :             size = IntFromString(sizestr);</span>
+<span class="lineNum">     587 </span>            :         }
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Discovered database column (%s,%s,%d)&quot;, name, type, size);</span>
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :         if (sizestr &amp;&amp; (size == CF_NOINT))</span>
+<span class="lineNum">     592 </span>            :         {
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :             cfPS(ctx, LOG_LEVEL_VERBOSE, PROMISE_RESULT_NOOP, pp, a,</span>
+<span class="lineNum">     594 </span>            :                  &quot;Integer size of SQL datatype could not be determined or was not specified - invalid promise.&quot;);
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :             DeleteSQLColumns(name_table, type_table, size_table, done, no_of_cols);</span>
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :             CfDeleteQuery(cfdb);</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     598 </span>            :         }
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :         identified = false;</span>
+<span class="lineNum">     601 </span>            : 
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; no_of_cols; i++)</span>
+<span class="lineNum">     603 </span>            :         {
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :             if (done[i])</span>
+<span class="lineNum">     605 </span>            :             {
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     607 </span>            :             }
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :             if (strcmp(name, name_table[i]) == 0)</span>
+<span class="lineNum">     610 </span>            :             {
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :                 CheckSQLDataType(type, type_table[i], pp);</span>
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :                 if (size != size_table[i])</span>
+<span class="lineNum">     614 </span>            :                 {
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :                     cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a,</span>
+<span class="lineNum">     616 </span>            :                          &quot;Promised column '%s' in database.table '%s' has a non-matching array size (%d != %d)&quot;,
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :                          name, table_path, size, size_table[i]);</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :                     *result = PromiseResultUpdate(*result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     619 </span>            :                 }
+<span class="lineNum">     620 </span>            :                 else
+<span class="lineNum">     621 </span>            :                 {
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_VERBOSE, &quot;Promised column '%s' in database.table '%s' is as promised&quot;, name,</span>
+<span class="lineNum">     623 </span>            :                           table_path);
+<span class="lineNum">     624 </span>            :                 }
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :                 count++;</span>
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :                 done[i] = true;</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :                 identified = true;</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     630 </span>            :             }
+<span class="lineNum">     631 </span>            :         }
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :         if (!identified)</span>
+<span class="lineNum">     634 </span>            :         {
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :             cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a,</span>
+<span class="lineNum">     636 </span>            :                  &quot;Column '%s' found in database.table '%s' is not part of its promise.&quot;, name, table_path);
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :             *result = PromiseResultUpdate(*result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :             if ((a.database.operation) &amp;&amp; (strcmp(a.database.operation, &quot;drop&quot;) == 0))</span>
+<span class="lineNum">     640 </span>            :             {
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :                 cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_FAIL, pp, a,</span>
+<span class="lineNum">     642 </span>            :                      &quot;CFEngine will not promise to repair this, as the operation is potentially too destructive.&quot;);
+<span class="lineNum">     643 </span>            :                 // Future allow deletion?
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :                 *result = PromiseResultUpdate(*result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     645 </span>            :             }
+<span class="lineNum">     646 </span>            : 
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :             retval = false;</span>
+<span class="lineNum">     648 </span>            :         }
+<span class="lineNum">     649 </span>            :     }
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     CfDeleteQuery(cfdb);</span>
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span>            : /* Now look for deviations - only if we have promised to create missing */
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :     if ((a.database.operation) &amp;&amp; (strcmp(a.database.operation, &quot;drop&quot;) == 0))</span>
+<span class="lineNum">     656 </span>            :     {
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :         return retval;</span>
+<span class="lineNum">     658 </span>            :     }
+<span class="lineNum">     659 </span>            : 
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :     if (count != no_of_cols)</span>
+<span class="lineNum">     661 </span>            :     {
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; no_of_cols; i++)</span>
+<span class="lineNum">     663 </span>            :         {
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :             if (!done[i])</span>
+<span class="lineNum">     665 </span>            :             {
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Promised column '%s' missing from database table '%s'&quot;, name_table[i],</span>
+<span class="lineNum">     667 </span>            :                       pp-&gt;promiser);
+<span class="lineNum">     668 </span>            : 
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :                 if ((!DONTDO) &amp;&amp; ((a.transaction.action) != cfa_warn))</span>
+<span class="lineNum">     670 </span>            :                 {
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :                     if (size_table[i] &gt; 0)</span>
+<span class="lineNum">     672 </span>            :                     {
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :                         snprintf(query, CF_MAXVARSIZE - 1, &quot;ALTER TABLE %s ADD %s %s(%d)&quot;, table, name_table[i],</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :                                  type_table[i], size_table[i]);</span>
+<span class="lineNum">     675 </span>            :                     }
+<span class="lineNum">     676 </span>            :                     else
+<span class="lineNum">     677 </span>            :                     {
+<span class="lineNum">     678 </span><span class="lineNoCov">          0 :                         snprintf(query, CF_MAXVARSIZE - 1, &quot;ALTER TABLE %s ADD %s %s&quot;, table, name_table[i],</span>
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :                                  type_table[i]);</span>
+<span class="lineNum">     680 </span>            :                     }
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :                     CfVoidQueryDB(cfdb, query);</span>
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :                     cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_CHANGE, pp, a, &quot;Adding promised column '%s' to database table '%s'&quot;,</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :                          name_table[i], table);</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :                     *result = PromiseResultUpdate(*result, PROMISE_RESULT_CHANGE);</span>
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :                     retval = true;</span>
+<span class="lineNum">     687 </span>            :                 }
+<span class="lineNum">     688 </span>            :                 else
+<span class="lineNum">     689 </span>            :                 {
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :                     cfPS(ctx, LOG_LEVEL_WARNING, PROMISE_RESULT_WARN, pp, a,</span>
+<span class="lineNum">     691 </span>            :                          &quot;Promised column '%s' missing from database table '%s' but only a warning was promised&quot;,
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :                          name_table[i], table);</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :                     *result = PromiseResultUpdate(*result, PROMISE_RESULT_WARN);</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :                     retval = false;</span>
+<span class="lineNum">     695 </span>            :                 }
+<span class="lineNum">     696 </span>            :             }
+<span class="lineNum">     697 </span>            :         }
+<span class="lineNum">     698 </span>            :     }
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :     DeleteSQLColumns(name_table, type_table, size_table, done, no_of_cols);</span>
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :     return retval;</span>
+<span class="lineNum">     703 </span>            : }
+<span class="lineNum">     704 </span>            : 
+<a name="705"><span class="lineNum">     705 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     706 </span>            : 
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 : static int TableExists(CfdbConn *cfdb, char *name)</span>
+<span class="lineNum">     708 </span>            : {
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :     Rlist *rp, *list = NULL;</span>
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     int match = false;</span>
+<span class="lineNum">     711 </span>            : 
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :     list = GetSQLTables(cfdb);</span>
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :     for (rp = list; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     715 </span>            :     {
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :         if (strcmp(name, RlistScalarValue(rp)) == 0)</span>
+<span class="lineNum">     717 </span>            :         {
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :             match = true;</span>
+<span class="lineNum">     719 </span>            :         }
+<span class="lineNum">     720 </span>            :     }
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :     RlistDestroy(list);</span>
+<span class="lineNum">     723 </span>            : 
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :     return match;</span>
+<span class="lineNum">     725 </span>            : }
+<span class="lineNum">     726 </span>            : 
+<a name="727"><span class="lineNum">     727 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     728 </span>            : 
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 : static int CreateTableColumns(CfdbConn *cfdb, char *table, Rlist *columns)</span>
+<span class="lineNum">     730 </span>            : {
+<span class="lineNum">     731 </span>            :     char entry[CF_MAXVARSIZE], query[CF_BUFSIZE];
+<span class="lineNum">     732 </span>            :     int i, *size_table, *done;
+<span class="lineNum">     733 </span>            :     char **name_table, **type_table;
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :     int no_of_cols = RlistLen(columns);</span>
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_ERR, &quot;Trying to create table '%s'&quot;, table);</span>
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :     if (!NewSQLColumns(table, columns, &amp;name_table, &amp;type_table, &amp;size_table, &amp;done))</span>
+<span class="lineNum">     739 </span>            :     {
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     741 </span>            :     }
+<span class="lineNum">     742 </span>            : 
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :     if (no_of_cols &gt; 0)</span>
+<span class="lineNum">     744 </span>            :     {
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :         snprintf(query, CF_BUFSIZE - 1, &quot;create table %s(&quot;, table);</span>
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; no_of_cols; i++)</span>
+<span class="lineNum">     748 </span>            :         {
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Forming column template %s %s %d&quot;, name_table[i], type_table[i],</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :                   size_table[i]);;</span>
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 :             if (size_table[i] &gt; 0)</span>
+<span class="lineNum">     753 </span>            :             {
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :                 snprintf(entry, CF_MAXVARSIZE - 1, &quot;%s %s(%d)&quot;, name_table[i], type_table[i], size_table[i]);</span>
+<span class="lineNum">     755 </span>            :             }
+<span class="lineNum">     756 </span>            :             else
+<span class="lineNum">     757 </span>            :             {
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :                 snprintf(entry, CF_MAXVARSIZE - 1, &quot;%s %s&quot;, name_table[i], type_table[i]);</span>
+<span class="lineNum">     759 </span>            :             }
+<span class="lineNum">     760 </span>            : 
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :             strcat(query, entry);</span>
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :             if (i &lt; no_of_cols - 1)</span>
+<span class="lineNum">     764 </span>            :             {
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :                 strcat(query, &quot;,&quot;);</span>
+<span class="lineNum">     766 </span>            :             }
+<span class="lineNum">     767 </span>            :         }
+<span class="lineNum">     768 </span>            : 
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :         strcat(query, &quot;)&quot;);</span>
+<span class="lineNum">     770 </span>            :     }
+<span class="lineNum">     771 </span>            : 
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     CfVoidQueryDB(cfdb, query);</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :     DeleteSQLColumns(name_table, type_table, size_table, done, no_of_cols);</span>
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     775 </span>            : }
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span>            : /*****************************************************************************/
+<span class="lineNum">     778 </span>            : /* Level                                                                     */
+<a name="779"><span class="lineNum">     779 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     780 </span>            : 
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 : static Rlist *GetSQLTables(CfdbConn *cfdb)</span>
+<span class="lineNum">     782 </span>            : {
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :     Rlist *list = NULL;</span>
+<span class="lineNum">     784 </span>            :     char query[CF_MAXVARSIZE];
+<span class="lineNum">     785 </span>            : 
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :     ListTables(cfdb-&gt;type, query);</span>
+<span class="lineNum">     787 </span>            : 
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :     CfNewQueryDB(cfdb, query);</span>
+<span class="lineNum">     789 </span>            : 
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :     if (cfdb-&gt;maxcolumns != 1)</span>
+<span class="lineNum">     791 </span>            :     {
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not make sense of the columns&quot;);</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :         CfDeleteQuery(cfdb);</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     795 </span>            :     }
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :     while (CfFetchRow(cfdb))</span>
+<span class="lineNum">     798 </span>            :     {
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :         RlistPrepend(&amp;list, CfFetchColumn(cfdb, 0), RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     800 </span>            :     }
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :     CfDeleteQuery(cfdb);</span>
+<span class="lineNum">     803 </span>            : 
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :     return list;</span>
+<span class="lineNum">     805 </span>            : }
+<span class="lineNum">     806 </span>            : 
+<a name="807"><span class="lineNum">     807 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     808 </span>            : 
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 : static void CreateDBQuery(DatabaseType type, char *query)</span>
+<span class="lineNum">     810 </span>            : {
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :     switch (type)</span>
+<span class="lineNum">     812 </span>            :     {
+<span class="lineNum">     813 </span>            :     case DATABASE_TYPE_MYSQL:
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :         snprintf(query, CF_MAXVARSIZE - 1, &quot;show databases&quot;);</span>
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     816 </span>            : 
+<span class="lineNum">     817 </span>            :     case DATABASE_TYPE_POSTGRES:
+<span class="lineNum">     818 </span>            :         /* This gibberish is the simplest thing I can find in postgres */
+<span class="lineNum">     819 </span>            : 
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :         snprintf(query, CF_MAXVARSIZE - 1, &quot;SELECT pg_database.datname FROM pg_database&quot;);</span>
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     822 </span>            : 
+<span class="lineNum">     823 </span>            :     default:
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :         snprintf(query, CF_MAXVARSIZE, &quot;NULL QUERY&quot;);</span>
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     826 </span>            :     }
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     828 </span>            : 
+<a name="829"><span class="lineNum">     829 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     830 </span>            : 
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 : static int ValidateSQLTableName(char *table_path, char *db, char *table)</span>
+<span class="lineNum">     832 </span>            : {
+<span class="lineNum">     833 </span>            :     char *sp;
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :     int dot = false, back = false, fwd = false;</span>
+<span class="lineNum">     835 </span>            : 
+<span class="lineNum">     836 </span>            : /* Valid separators . / or \ only */
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :     if ((sp = strchr(table_path, '/')))</span>
+<span class="lineNum">     839 </span>            :     {
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :         fwd = true;</span>
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :         *sp = '.';</span>
+<span class="lineNum">     842 </span>            :     }
+<span class="lineNum">     843 </span>            : 
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :     if ((sp = strchr(table_path, '\\')))</span>
+<span class="lineNum">     845 </span>            :     {
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :         back = true;</span>
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :         *sp = '.';</span>
+<span class="lineNum">     848 </span>            :     }
+<span class="lineNum">     849 </span>            : 
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :     if ((sp = strchr(table_path, '.')))</span>
+<span class="lineNum">     851 </span>            :     {
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :         dot = true;</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :         sp++;</span>
+<span class="lineNum">     854 </span>            :     }
+<span class="lineNum">     855 </span>            : 
+<span class="lineNum">     856 </span>            : /* Should contain a single separator */
+<span class="lineNum">     857 </span>            : 
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :     if (dot + back + fwd != 1)</span>
+<span class="lineNum">     859 </span>            :     {
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     861 </span>            :     }
+<span class="lineNum">     862 </span>            : 
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :     memset(db, 0, CF_MAXVARSIZE);</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :     strncpy(db, table_path, sp - table_path - 1);</span>
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :     strlcpy(table, sp, CF_MAXVARSIZE);</span>
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     867 </span>            : }
+<span class="lineNum">     868 </span>            : 
+<a name="869"><span class="lineNum">     869 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span><span class="lineNoCov">          0 : static void QueryTableColumns(char *s, char *db, char *table)</span>
+<span class="lineNum">     872 </span>            : {
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 :     snprintf(s, CF_MAXVARSIZE - 1,</span>
+<span class="lineNum">     874 </span>            :              &quot;SELECT column_name,data_type,character_maximum_length FROM information_schema.columns WHERE table_name ='%s' AND table_schema = '%s'&quot;,
+<span class="lineNum">     875 </span>            :              table, db);
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     877 </span>            : 
+<a name="878"><span class="lineNum">     878 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     879 </span>            : 
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 : static int NewSQLColumns(char *table, Rlist *columns, char ***name_table, char ***type_table, int **size_table,</span>
+<span class="lineNum">     881 </span>            :                          int **done)
+<span class="lineNum">     882 </span>            : {
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :     int i, no_of_cols = RlistLen(columns);</span>
+<span class="lineNum">     884 </span>            :     Rlist *cols, *rp;
+<span class="lineNum">     885 </span>            : 
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :     *name_table = (char **) xmalloc(sizeof(char *) * (no_of_cols + 1));</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :     *type_table = (char **) xmalloc(sizeof(char *) * (no_of_cols + 1));</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :     *size_table = (int *) xmalloc(sizeof(int) * (no_of_cols + 1));</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :     *done = (int *) xmalloc(sizeof(int) * (no_of_cols + 1));</span>
+<span class="lineNum">     890 </span>            : 
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :     for (i = 0, rp = columns; rp != NULL; rp = rp-&gt;next, i++)</span>
+<span class="lineNum">     892 </span>            :     {
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :         (*done)[i] = 0;</span>
+<span class="lineNum">     894 </span>            : 
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :         cols = RlistFromSplitString(RlistScalarValue(rp), ',');</span>
+<span class="lineNum">     896 </span>            : 
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :         if (!cols)</span>
+<span class="lineNum">     898 </span>            :         {
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;No columns promised for table '%s' - makes no sense&quot;, table);</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     901 </span>            :         }
+<span class="lineNum">     902 </span>            : 
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :         if (cols-&gt;val.item == NULL)</span>
+<span class="lineNum">     904 </span>            :         {
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Malformed column promise for table '%s' - found not even a name&quot;, table);</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :             free(*name_table);</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :             free(*type_table);</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :             free(*size_table);</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :             free(*done);</span>
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     911 </span>            :         }
+<span class="lineNum">     912 </span>            : 
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :         (*name_table)[i] = xstrdup(RlistScalarValue(cols));</span>
+<span class="lineNum">     914 </span>            : 
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :         if (cols-&gt;next == NULL)</span>
+<span class="lineNum">     916 </span>            :         {
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Malformed column '%s' promised for table '%s' - missing a type&quot;, (*name_table)[i],</span>
+<span class="lineNum">     918 </span>            :                   table);
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :             free(*name_table);</span>
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :             free(*type_table);</span>
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :             free(*size_table);</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :             free(*done);</span>
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     924 </span>            :         }
+<span class="lineNum">     925 </span>            : 
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :         (*type_table)[i] = xstrdup(RlistScalarValue(cols-&gt;next));</span>
+<span class="lineNum">     927 </span>            : 
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :         if (cols-&gt;next-&gt;next == NULL)</span>
+<span class="lineNum">     929 </span>            :         {
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :             (*size_table)[i] = 0;</span>
+<span class="lineNum">     931 </span>            :         }
+<span class="lineNum">     932 </span>            :         else
+<span class="lineNum">     933 </span>            :         {
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :             if (cols-&gt;next-&gt;next-&gt;val.item)</span>
+<span class="lineNum">     935 </span>            :             {
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :                 (*size_table)[i] = IntFromString(RlistScalarValue(cols-&gt;next-&gt;next));</span>
+<span class="lineNum">     937 </span>            :             }
+<span class="lineNum">     938 </span>            :             else
+<span class="lineNum">     939 </span>            :             {
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :                 (*size_table)[i] = 0;</span>
+<span class="lineNum">     941 </span>            :             }
+<span class="lineNum">     942 </span>            :         }
+<span class="lineNum">     943 </span>            : 
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :         RlistDestroy(cols);</span>
+<span class="lineNum">     945 </span>            :     }
+<span class="lineNum">     946 </span>            : 
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     948 </span>            : }
+<span class="lineNum">     949 </span>            : 
+<a name="950"><span class="lineNum">     950 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     951 </span>            : 
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 : static void DeleteSQLColumns(char **name_table, char **type_table, int *size_table, int *done, int len)</span>
+<span class="lineNum">     953 </span>            : {
+<span class="lineNum">     954 </span>            :     int i;
+<span class="lineNum">     955 </span>            : 
+<span class="lineNum">     956 </span><span class="lineNoCov">          0 :     if ((name_table == NULL) || (type_table == NULL) || (size_table == NULL))</span>
+<span class="lineNum">     957 </span>            :     {
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     959 </span>            :     }
+<span class="lineNum">     960 </span>            : 
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :     for (i = 0; i &lt; len; i++)</span>
+<span class="lineNum">     962 </span>            :     {
+<span class="lineNum">     963 </span><span class="lineNoCov">          0 :         if (name_table[i] != NULL)</span>
+<span class="lineNum">     964 </span>            :         {
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :             free(name_table[i]);</span>
+<span class="lineNum">     966 </span>            :         }
+<span class="lineNum">     967 </span>            : 
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :         if (type_table[i] != NULL)</span>
+<span class="lineNum">     969 </span>            :         {
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 :             free(type_table[i]);</span>
+<span class="lineNum">     971 </span>            :         }
+<span class="lineNum">     972 </span>            :     }
+<span class="lineNum">     973 </span>            : 
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :     free(name_table);</span>
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :     free(type_table);</span>
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :     free(size_table);</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     free(done);</span>
+<span class="lineNum">     978 </span>            : }
+<span class="lineNum">     979 </span>            : 
+<a name="980"><span class="lineNum">     980 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">     981 </span>            : 
+<span class="lineNum">     982 </span><span class="lineNoCov">          0 : static int CheckSQLDataType(char *type, char *ref_type, const Promise *pp)</span>
+<span class="lineNum">     983 </span>            : {
+<span class="lineNum">     984 </span>            :     static char *const aliases[3][2] =
+<span class="lineNum">     985 </span>            :         {
+<span class="lineNum">     986 </span>            :             {&quot;varchar&quot;, &quot;character@varying&quot;},
+<span class="lineNum">     987 </span>            :             {&quot;varchar&quot;, &quot;character varying&quot;},
+<span class="lineNum">     988 </span>            :             {NULL, NULL}
+<span class="lineNum">     989 </span>            :         };
+<span class="lineNum">     990 </span>            : 
+<span class="lineNum">     991 </span>            :     int i;
+<span class="lineNum">     992 </span>            : 
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :     for (i = 0; aliases[i][0] != NULL; i++)</span>
+<span class="lineNum">     994 </span>            :     {
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :         if ((strcmp(ref_type, aliases[i][0]) == 0) || (strcmp(ref_type, aliases[i][1]) == 0)</span>
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :             || (strcmp(type, aliases[i][0]) == 0) || (strcmp(type, aliases[i][1]) == 0))</span>
+<span class="lineNum">     997 </span>            :         {
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :             if ((strcmp(type, ref_type) != 0) &amp;&amp; (strcmp(aliases[i][0], ref_type) != 0))</span>
+<span class="lineNum">     999 </span>            :             {
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Promised column in database '%s' has a non-matching type (%s != %s)&quot;,</span>
+<span class="lineNum">    1001 </span>            :                       pp-&gt;promiser, ref_type, type);
+<span class="lineNum">    1002 </span>            :             }
+<span class="lineNum">    1003 </span>            :         }
+<span class="lineNum">    1004 </span>            :         else
+<span class="lineNum">    1005 </span>            :         {
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :             if (strcmp(type, ref_type) != 0)</span>
+<span class="lineNum">    1007 </span>            :             {
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Promised column in database '%s' has a non-matching type (%s != %s)&quot;,</span>
+<span class="lineNum">    1009 </span>            :                       pp-&gt;promiser, ref_type, type);
+<span class="lineNum">    1010 </span>            :             }
+<span class="lineNum">    1011 </span>            :         }
+<span class="lineNum">    1012 </span>            :     }
+<span class="lineNum">    1013 </span>            : 
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">    1015 </span>            : }
+<span class="lineNum">    1016 </span>            : 
+<a name="1017"><span class="lineNum">    1017 </span>            : /*****************************************************************************/</a>
+<span class="lineNum">    1018 </span>            : 
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 : static void ListTables(int type, char *query)</span>
+<span class="lineNum">    1020 </span>            : {
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :     switch (type)</span>
+<span class="lineNum">    1022 </span>            :     {
+<span class="lineNum">    1023 </span>            :     case DATABASE_TYPE_MYSQL:
+<span class="lineNum">    1024 </span><span class="lineNoCov">          0 :         snprintf(query, CF_MAXVARSIZE - 1, &quot;show tables&quot;);</span>
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1026 </span>            : 
+<span class="lineNum">    1027 </span>            :     case DATABASE_TYPE_POSTGRES:
+<span class="lineNum">    1028 </span>            :         /* This gibberish is the simplest thing I can find in postgres */
+<span class="lineNum">    1029 </span>            : 
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :         snprintf(query, CF_MAXVARSIZE - 1,</span>
+<span class="lineNum">    1031 </span>            :                  &quot;SELECT c.relname as \&quot;Name\&quot; FROM pg_catalog.pg_class c JOIN pg_catalog.pg_roles r ON r.oid = c.relowner LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public'&quot;);
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1033 </span>            : 
+<span class="lineNum">    1034 </span>            :     default:
+<span class="lineNum">    1035 </span><span class="lineNoCov">          0 :         snprintf(query, CF_MAXVARSIZE, &quot;NULL QUERY&quot;);</span>
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1037 </span>            :     }
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

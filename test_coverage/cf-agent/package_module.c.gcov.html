@@ -1,0 +1,1811 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - cf-agent/package_module.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cf-agent</a> - package_module.c<span style="font-size: 80%;"> (source / <a href="package_module.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntry">717</td>
+            <td class="headerCovTableEntryLo">3.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">33</td>
+            <td class="headerCovTableEntryLo">9.1 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;package_module.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;pipes.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;signals.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;buffer.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;actuator.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;file_lib.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;known_dirs.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;locks.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;rlist.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;policy.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #define INVENTORY_LIST_BUFFER_SIZE 100 * 80 /* 100 entries with 80 characters 
+<span class="lineNum">      39 </span>            :                                              * per line */
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : static bool UpdateSinglePackageModuleCache(EvalContext *ctx,
+<span class="lineNum">      42 </span>            :                                     const PackageModuleWrapper *module_wrapper,
+<span class="lineNum">      43 </span>            :                                     UpdateType type, bool force_update);
+<span class="lineNum">      44 </span>            : static char *GetPackageModuleRealPath(const char *package_manager_name);
+<span class="lineNum">      45 </span>            : static int NegotiateSupportedAPIVersion(PackageModuleWrapper *wrapper);
+<a name="46"><span class="lineNum">      46 </span>            : </a>
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 : void DeletePackageModuleWrapper(PackageModuleWrapper *wrapper)</span>
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     free(wrapper-&gt;path);</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     free(wrapper-&gt;name);</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     free(wrapper);</span>
+<a name="53"><span class="lineNum">      53 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 : PackageModuleWrapper *NewPackageModuleWrapper(PackageModuleBody *package_module)</span>
+<span class="lineNum">      56 </span>            : {
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     assert(package_module &amp;&amp; package_module-&gt;name);</span>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     PackageModuleWrapper *wrapper = xmalloc(sizeof(PackageModuleWrapper));</span>
+<span class="lineNum">      60 </span>            :     
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     wrapper-&gt;path = GetPackageModuleRealPath(package_module-&gt;name);</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     wrapper-&gt;name = SafeStringDuplicate(package_module-&gt;name);</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     wrapper-&gt;package_module = package_module;</span>
+<span class="lineNum">      64 </span>            :     
+<span class="lineNum">      65 </span>            :     /* Check if file exists */
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     if (!wrapper-&gt;path || (access(wrapper-&gt;path, X_OK) != 0))</span>
+<span class="lineNum">      67 </span>            :     {
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">      69 </span>            :             &quot;can not find package wrapper in provided location '%s' &quot;
+<span class="lineNum">      70 </span>            :             &quot;or access to file is restricted: %d&quot;,
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :             wrapper-&gt;path, errno);</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         DeletePackageModuleWrapper(wrapper);</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">      74 </span>            :     }
+<span class="lineNum">      75 </span>            :     
+<span class="lineNum">      76 </span>            :     /* Negotiate API version */
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     wrapper-&gt;supported_api_version = NegotiateSupportedAPIVersion(wrapper);</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     if (wrapper-&gt;supported_api_version != 1)</span>
+<span class="lineNum">      79 </span>            :     {
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">      81 </span>            :             &quot;unsupported package module wrapper API version: %d&quot;,
+<span class="lineNum">      82 </span>            :             wrapper-&gt;supported_api_version);
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :         DeletePackageModuleWrapper(wrapper);</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">      85 </span>            :     }
+<span class="lineNum">      86 </span>            :     
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">      88 </span>            :         &quot;Successfully created package module wrapper for '%s' package module.&quot;,
+<span class="lineNum">      89 </span>            :         package_module-&gt;name);
+<span class="lineNum">      90 </span>            :     
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     return wrapper;</span>
+<span class="lineNum">      92 </span>            : }
+<a name="93"><span class="lineNum">      93 </span>            : </a>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineCov">          1 : void UpdatePackagesCache(EvalContext *ctx, bool force_update)</span>
+<span class="lineNum">      96 </span>            : {
+<span class="lineNum">      97 </span><span class="lineCov">          1 :     Log(LOG_LEVEL_DEBUG, &quot;Updating package cache.&quot;);</span>
+<span class="lineNum">      98 </span>            :     
+<span class="lineNum">      99 </span><span class="lineCov">          1 :     PackagePromiseGlobalLock package_lock = </span>
+<span class="lineNum">     100 </span>            :             AcquireGlobalPackagePromiseLock(ctx);
+<span class="lineNum">     101 </span>            :                         
+<span class="lineNum">     102 </span><span class="lineCov">          1 :     if (package_lock.g_lock.lock == NULL)</span>
+<span class="lineNum">     103 </span>            :     {
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Can not acquire global lock for package promise. &quot;</span>
+<span class="lineNum">     105 </span>            :             &quot;Skipping updating cache.&quot;);
+<span class="lineNum">     106 </span><span class="lineCov">          1 :         return;</span>
+<span class="lineNum">     107 </span>            :     }
+<span class="lineNum">     108 </span>            :                         
+<span class="lineNum">     109 </span><span class="lineCov">          1 :     Rlist *default_inventory = GetDefaultInventoryFromContext(ctx);</span>
+<span class="lineNum">     110 </span>            :     
+<span class="lineNum">     111 </span><span class="lineCov">          1 :     for (const Rlist *rp = default_inventory; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     112 </span>            :     {
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :         const char *pm_name =  RlistScalarValue(rp);</span>
+<span class="lineNum">     114 </span>            :         
+<span class="lineNum">     115 </span>            :         /* We don't want inventory to be reported. */
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         if (StringSafeEqual(pm_name, &quot;cf_null&quot;))</span>
+<span class="lineNum">     117 </span>            :         {
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     119 </span>            :         }
+<span class="lineNum">     120 </span>            :         
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         PackageModuleBody *module = GetPackageModuleFromContext(ctx, pm_name);</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         if (!module)</span>
+<span class="lineNum">     123 </span>            :         {
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     125 </span>            :                 &quot;Can not find body for package module: %s&quot;, pm_name);
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     127 </span>            :         }
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :         PackageModuleWrapper *module_wrapper = NewPackageModuleWrapper(module);</span>
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         if (!module_wrapper)</span>
+<span class="lineNum">     132 </span>            :         {
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     134 </span>            :                 &quot;Can not set up wrapper for module: %s&quot;, pm_name);
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     136 </span>            :         }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         UpdateSinglePackageModuleCache(ctx, module_wrapper,</span>
+<span class="lineNum">     139 </span>            :                                        UPDATE_TYPE_INSTALLED, force_update);
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :         UpdateSinglePackageModuleCache(ctx, module_wrapper,</span>
+<span class="lineNum">     141 </span>            :                                        force_update ? UPDATE_TYPE_UPDATES : 
+<span class="lineNum">     142 </span>            :                                            UPDATE_TYPE_LOCAL_UPDATES,
+<span class="lineNum">     143 </span>            :                                        force_update);
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         DeletePackageModuleWrapper(module_wrapper);</span>
+<span class="lineNum">     146 </span>            :     }
+<span class="lineNum">     147 </span><span class="lineCov">          1 :     YieldGlobalPackagePromiseLock(package_lock);</span>
+<a name="148"><span class="lineNum">     148 </span>            : }</a>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineCov">          1 : PackagePromiseGlobalLock AcquireGlobalPackagePromiseLock(EvalContext *ctx)</span>
+<span class="lineNum">     151 </span>            : {
+<span class="lineNum">     152 </span><span class="lineCov">          1 :     Bundle bundle = {.name = &quot;package_global&quot;};</span>
+<span class="lineNum">     153 </span><span class="lineCov">          1 :     PromiseType promise_type = {.name = &quot;package_global&quot;,</span>
+<span class="lineNum">     154 </span>            :                                .parent_bundle = &amp;bundle};
+<span class="lineNum">     155 </span><span class="lineCov">          1 :     Promise pp = {.promiser = &quot;package_global&quot;,</span>
+<span class="lineNum">     156 </span>            :                   .parent_promise_type = &amp;promise_type};
+<span class="lineNum">     157 </span>            :     
+<span class="lineNum">     158 </span>            :     CfLock package_promise_global_lock;
+<span class="lineNum">     159 </span>            :     
+<span class="lineNum">     160 </span><span class="lineCov">          1 :     package_promise_global_lock =</span>
+<span class="lineNum">     161 </span><span class="lineCov">          1 :             AcquireLock(ctx, GLOBAL_PACKAGE_PROMISE_LOCK_NAME, VUQNAME, CFSTARTTIME,</span>
+<span class="lineNum">     162 </span><span class="lineCov">          1 :                         (TransactionContext) {.ifelapsed = 0,</span>
+<span class="lineNum">     163 </span>            :                                               .expireafter = VEXPIREAFTER},
+<span class="lineNum">     164 </span>            :                         &amp;pp, false);
+<span class="lineNum">     165 </span>            :                         
+<span class="lineNum">     166 </span><span class="lineCov">          1 :     return (PackagePromiseGlobalLock) {.g_lock = package_promise_global_lock,</span>
+<span class="lineNum">     167 </span>            :                                        .lock_ctx = ctx};
+<a name="168"><span class="lineNum">     168 </span>            : }</a>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineCov">          1 : void YieldGlobalPackagePromiseLock(PackagePromiseGlobalLock lock)</span>
+<span class="lineNum">     171 </span>            : {
+<span class="lineNum">     172 </span><span class="lineCov">          1 :     Bundle bundle = {.name = &quot;package_global&quot;};</span>
+<span class="lineNum">     173 </span><span class="lineCov">          1 :     PromiseType promise_type = {.name = &quot;package_global&quot;,</span>
+<span class="lineNum">     174 </span>            :                                .parent_bundle = &amp;bundle};
+<span class="lineNum">     175 </span><span class="lineCov">          1 :     Promise pp = {.promiser = &quot;package_global&quot;,</span>
+<span class="lineNum">     176 </span>            :                   .parent_promise_type = &amp;promise_type};
+<span class="lineNum">     177 </span>            :     
+<span class="lineNum">     178 </span><span class="lineCov">          1 :     YieldCurrentLockAndRemoveFromCache(lock.lock_ctx, lock.g_lock,</span>
+<span class="lineNum">     179 </span>            :                                        GLOBAL_PACKAGE_PROMISE_LOCK_NAME, &amp;pp);
+<a name="180"><span class="lineNum">     180 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 : static void ParseAndLogErrorMessage(const Rlist *data)</span>
+<span class="lineNum">     183 </span>            : {
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     for (const Rlist *rp = data; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     185 </span>            :     {
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         char *line = RlistScalarValue(rp);</span>
+<span class="lineNum">     187 </span>            :                    
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         if (StringStartsWith(line, &quot;Error=&quot;))</span>
+<span class="lineNum">     189 </span>            :         {
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Caught error: %s&quot;, line + strlen(&quot;Error=&quot;));</span>
+<span class="lineNum">     191 </span>            :         }
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         else if (StringStartsWith(line, &quot;ErrorMessage=&quot;))</span>
+<span class="lineNum">     193 </span>            :         {
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO, &quot;Caught error message: %s&quot;, </span>
+<span class="lineNum">     195 </span>            :                 line + strlen(&quot;ErrorMessage=&quot;));
+<span class="lineNum">     196 </span>            :         }
+<span class="lineNum">     197 </span>            :         else
+<span class="lineNum">     198 </span>            :         {
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO, &quot;Caught unsupported error info: %s&quot;, line);</span>
+<span class="lineNum">     200 </span>            :         }
+<span class="lineNum">     201 </span>            :     }
+<a name="202"><span class="lineNum">     202 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 : static int IsReadWriteReady(const IOData *io, int timeout_sec)</span>
+<span class="lineNum">     205 </span>            : {
+<span class="lineNum">     206 </span>            :     fd_set  rset;
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     FD_ZERO(&amp;rset);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     FD_SET(io-&gt;read_fd, &amp;rset);</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     struct timeval tv = {</span>
+<span class="lineNum">     211 </span>            :         .tv_sec = timeout_sec,
+<span class="lineNum">     212 </span>            :         .tv_usec = 0,
+<span class="lineNum">     213 </span>            :     };
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :     //TODO: For Windows we will need different method and select might not 
+<span class="lineNum">     216 </span>            :     //      work with file descriptors.
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     int ret = select(io-&gt;read_fd + 1, &amp;rset, NULL, NULL, &amp;tv);</span>
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     if (ret &lt; 0)</span>
+<span class="lineNum">     220 </span>            :     {
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Failed checking for data. (select: %s)&quot;,</span>
+<span class="lineNum">     222 </span>            :             GetErrorStr());
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     224 </span>            :     }
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     else if (FD_ISSET(io-&gt;read_fd, &amp;rset))</span>
+<span class="lineNum">     226 </span>            :     {
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         return io-&gt;read_fd;</span>
+<span class="lineNum">     228 </span>            :     }
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span>            :     /* We have reached timeout */
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     if (ret == 0)</span>
+<span class="lineNum">     232 </span>            :     {
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG, &quot;Timeout reading from package module.&quot;);</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     235 </span>            :     }
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     238 </span>            :         &quot;Unknown outcome (ret &gt; 0 but our only fd is not set).&quot;);
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     return -1;</span>
+<a name="241"><span class="lineNum">     241 </span>            : }</a>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 : static Rlist *ReadDataFromPackageScript(const IOData *io)</span>
+<span class="lineNum">     244 </span>            : {
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     char buff[CF_BUFSIZE] = {0};</span>
+<span class="lineNum">     246 </span>            :     
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     Buffer *data = BufferNew();</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     if (!data)</span>
+<span class="lineNum">     249 </span>            :     {
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, </span>
+<span class="lineNum">     251 </span>            :             &quot;Unable to allocate buffer for handling package module responses.&quot;);
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     253 </span>            :     }
+<span class="lineNum">     254 </span>            :     
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :     int timeout_seconds_left = PACKAGE_PROMISE_SCRIPT_TIMEOUT_SEC;</span>
+<span class="lineNum">     256 </span>            :     
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     while (!IsPendingTermination() &amp;&amp; timeout_seconds_left &gt; 0)</span>
+<span class="lineNum">     258 </span>            :     {
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         int fd = IsReadWriteReady(io, PACKAGE_PROMISE_TERMINATION_CHECK_SEC);</span>
+<span class="lineNum">     260 </span>            :         
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         if (fd &lt; 0)</span>
+<span class="lineNum">     262 </span>            :         {
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, </span>
+<span class="lineNum">     264 </span>            :                 &quot;Error reading data from package module: %s&quot;,
+<span class="lineNum">     265 </span>            :                 GetErrorStr());
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     267 </span>            :         }
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         else if (fd == io-&gt;read_fd)</span>
+<span class="lineNum">     269 </span>            :         {
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :             ssize_t res = read(fd, buff, sizeof(buff) - 1);</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             if (res == -1)</span>
+<span class="lineNum">     272 </span>            :             {
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                 if (errno == EINTR)</span>
+<span class="lineNum">     274 </span>            :                 {
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     276 </span>            :                 }
+<span class="lineNum">     277 </span>            :                 else
+<span class="lineNum">     278 </span>            :                 {
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     280 </span>            :                         &quot;Unable to read output from package module: %s&quot;,
+<span class="lineNum">     281 </span>            :                         GetErrorStr());
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                     BufferDestroy(data);</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :                     return NULL;</span>
+<span class="lineNum">     284 </span>            :                 }
+<span class="lineNum">     285 </span>            :             }
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :             else if (res == 0) /* reached EOF */</span>
+<span class="lineNum">     287 </span>            :             {
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     289 </span>            :             }
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Data read from package module: %zu [%s]&quot;,</span>
+<span class="lineNum">     291 </span>            :                 res, buff);
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :             BufferAppendString(data, buff);</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             memset(buff, 0, sizeof(buff));</span>
+<span class="lineNum">     295 </span>            :         }
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         else if (fd == 0) /* timeout */</span>
+<span class="lineNum">     297 </span>            :         {
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :             timeout_seconds_left -= PACKAGE_PROMISE_TERMINATION_CHECK_SEC;</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     300 </span>            :         }
+<span class="lineNum">     301 </span>            :     }
+<span class="lineNum">     302 </span>            :     
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     char *read_string = BufferClose(data);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     Rlist *response_lines = RlistFromSplitString(read_string, '\n');</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     free(read_string);</span>
+<span class="lineNum">     306 </span>            :     
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     return response_lines;</span>
+<a name="308"><span class="lineNum">     308 </span>            : }</a>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 : static int WriteScriptData(const char *data, IOData *io)</span>
+<span class="lineNum">     311 </span>            : {
+<span class="lineNum">     312 </span>            :     /* If there is nothing to write close writing end of pipe. */
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     if (data == NULL || strlen(data) == 0)</span>
+<span class="lineNum">     314 </span>            :     {
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :         if (io-&gt;write_fd &gt;= 0)</span>
+<span class="lineNum">     316 </span>            :         {
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             cf_pclose_full_duplex_side(io-&gt;write_fd);</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             io-&gt;write_fd = -1;</span>
+<span class="lineNum">     319 </span>            :         }
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     321 </span>            :     }
+<span class="lineNum">     322 </span>            :     
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     ssize_t wrt = write(io-&gt;write_fd, data, strlen(data));</span>
+<span class="lineNum">     324 </span>            :     
+<span class="lineNum">     325 </span>            :     /* Make sure to close write_fd after sending all data. */
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     if (io-&gt;write_fd &gt;= 0)</span>
+<span class="lineNum">     327 </span>            :     {
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         cf_pclose_full_duplex_side(io-&gt;write_fd);</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         io-&gt;write_fd = -1;</span>
+<span class="lineNum">     330 </span>            :     }
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     return wrt;</span>
+<a name="332"><span class="lineNum">     332 </span>            : }</a>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 : int WriteDataToPackageModule(const char *args, const char *data,</span>
+<span class="lineNum">     335 </span>            :                              const PackageModuleWrapper *wrapper)
+<span class="lineNum">     336 </span>            : {
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :     char *command = StringFormat(&quot;%s %s&quot;, wrapper-&gt;path, args);</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     IOData io = cf_popen_full_duplex(command, false);</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     free(command);</span>
+<span class="lineNum">     340 </span>            :     
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     if (io.write_fd == -1 || io.read_fd == -1)</span>
+<span class="lineNum">     342 </span>            :     {
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Error occurred while opening pipes for &quot;</span>
+<span class="lineNum">     344 </span>            :             &quot;communication with package module.&quot;);
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     346 </span>            :     }
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Opened fds %d and %d for command '%s'.&quot;,</span>
+<span class="lineNum">     349 </span>            :         io.read_fd, io.write_fd, args);
+<span class="lineNum">     350 </span>            :     
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     int res = 0;</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     if (WriteScriptData(data, &amp;io) != strlen(data))</span>
+<span class="lineNum">     353 </span>            :     {
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     355 </span>            :             &quot;Was not able to send whole data to package module.&quot;);
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :         res = -1;</span>
+<span class="lineNum">     357 </span>            :     }
+<span class="lineNum">     358 </span>            :     
+<span class="lineNum">     359 </span>            :     /* If script returns non 0 status */
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     int close = cf_pclose_full_duplex(&amp;io);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     if (close != EXIT_SUCCESS)</span>
+<span class="lineNum">     362 </span>            :     {
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     364 </span>            :             &quot;Package module returned with non zero return code: %d&quot;,
+<span class="lineNum">     365 </span>            :             close);
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         res = -1;</span>
+<span class="lineNum">     367 </span>            :     }
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     return res;</span>
+<span class="lineNum">     369 </span>            : }
+<span class="lineNum">     370 </span>            : 
+<a name="371"><span class="lineNum">     371 </span>            : /* In some cases the response is expected to be not filled out. Some requests</a>
+<span class="lineNum">     372 </span>            :    will have response filled only in case of errors. */
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 : static int ReadWriteDataToPackageScript(const char *args, const char *request,</span>
+<span class="lineNum">     374 </span>            :                                         Rlist **response,
+<span class="lineNum">     375 </span>            :                                         const PackageModuleWrapper *wrapper)
+<span class="lineNum">     376 </span>            : {
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     assert(args &amp;&amp; wrapper);</span>
+<span class="lineNum">     378 </span>            :     
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     char *command = StringFormat(&quot;%s %s&quot;, wrapper-&gt;path, args);</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     IOData io = cf_popen_full_duplex(command, false);</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     free(command);</span>
+<span class="lineNum">     382 </span>            :     
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     if (io.write_fd == -1 || io.read_fd == -1)</span>
+<span class="lineNum">     384 </span>            :     {
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Some error occurred while communicating &quot;</span>
+<span class="lineNum">     386 </span>            :             &quot;package module.&quot;);
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     388 </span>            :     }
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Opened fds %d and %d for command '%s'.&quot;,</span>
+<span class="lineNum">     391 </span>            :         io.read_fd, io.write_fd, args);
+<span class="lineNum">     392 </span>            :     
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     if (WriteScriptData(request, &amp;io) != strlen(request))</span>
+<span class="lineNum">     394 </span>            :     {
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Couldn't send whole data to package module.&quot;);</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     397 </span>            :     }
+<span class="lineNum">     398 </span>            :     
+<span class="lineNum">     399 </span>            :     /* We can have some error message here. */
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     Rlist *res = ReadDataFromPackageScript(&amp;io);</span>
+<span class="lineNum">     401 </span>            :     
+<span class="lineNum">     402 </span>            :     /* If script returns non 0 status */
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     int close = cf_pclose_full_duplex(&amp;io);</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     if (close != EXIT_SUCCESS)</span>
+<span class="lineNum">     405 </span>            :     {
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     407 </span>            :             &quot;Package module returned with non zero return code: %d&quot;,
+<span class="lineNum">     408 </span>            :             close);
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         RlistDestroy(res);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     411 </span>            :     }
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     *response = res;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     return 0;</span>
+<a name="415"><span class="lineNum">     415 </span>            : }</a>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 : static void FreePackageInfo(PackageInfo *package_info)</span>
+<span class="lineNum">     418 </span>            : {
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     if (package_info)</span>
+<span class="lineNum">     420 </span>            :     {
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :         free(package_info-&gt;arch);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         free(package_info-&gt;name);</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         free(package_info-&gt;version);</span>
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         free(package_info);</span>
+<span class="lineNum">     426 </span>            :     }
+<a name="427"><span class="lineNum">     427 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 : static char *ParseOptions(Rlist *options)</span>
+<span class="lineNum">     430 </span>            : {
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     if (RlistIsNullList(options))</span>
+<span class="lineNum">     432 </span>            :     {
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         return SafeStringDuplicate(&quot;&quot;);</span>
+<span class="lineNum">     434 </span>            :     }
+<span class="lineNum">     435 </span>            :     
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     Buffer *data = BufferNew();</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     for (Rlist *rp = options; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     438 </span>            :     {
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         char *value = RlistScalarValue(rp);</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         BufferAppendString(data, &quot;options=&quot;);</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         BufferAppendString(data, value);</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         BufferAppendString(data, &quot;\n&quot;);</span>
+<span class="lineNum">     443 </span>            :     }
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     return BufferClose(data);</span>
+<a name="445"><span class="lineNum">     445 </span>            : }</a>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 : static PackageInfo *ParseAndCheckPackageDataReply(const Rlist *data)</span>
+<span class="lineNum">     448 </span>            : {
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     PackageInfo * package_data = xcalloc(1, sizeof(PackageInfo));</span>
+<span class="lineNum">     450 </span>            :     
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     for (const Rlist *rp = data; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     452 </span>            :     {
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         const char *line = RlistScalarValue(rp);</span>
+<span class="lineNum">     454 </span>            :                    
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :         if (StringStartsWith(line, &quot;PackageType=&quot;))</span>
+<span class="lineNum">     456 </span>            :         {
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :             const char *type = line + strlen(&quot;PackageType=&quot;);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :             if (StringSafeEqual(type, &quot;file&quot;))</span>
+<span class="lineNum">     459 </span>            :             {
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                 package_data-&gt;type = PACKAGE_TYPE_FILE;</span>
+<span class="lineNum">     461 </span>            :             }
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :             else if (StringSafeEqual(type, &quot;repo&quot;))</span>
+<span class="lineNum">     463 </span>            :             {
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :                 package_data-&gt;type = PACKAGE_TYPE_REPO;</span>
+<span class="lineNum">     465 </span>            :             }
+<span class="lineNum">     466 </span>            :             else
+<span class="lineNum">     467 </span>            :             {
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;unsupported package type: %s&quot;, type);</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                 free(package_data);</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     471 </span>            :             }
+<span class="lineNum">     472 </span>            :         }
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         else if (StringStartsWith(line, &quot;Name=&quot;))</span>
+<span class="lineNum">     474 </span>            :         {
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :             if (package_data-&gt;name)</span>
+<span class="lineNum">     476 </span>            :             {
+<span class="lineNum">     477 </span>            :                 /* Some error occurred as we already have name for 
+<span class="lineNum">     478 </span>            :                  * given package. */
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     480 </span>            :                     &quot;Extraneous package name line received: [%s] %s&quot;,
+<span class="lineNum">     481 </span>            :                     line, package_data-&gt;name);
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :                 free(package_data);</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     484 </span>            :             }
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :             package_data-&gt;name = </span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :                 SafeStringDuplicate(line + strlen(&quot;Name=&quot;));</span>
+<span class="lineNum">     487 </span>            :         }
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :         else if (StringStartsWith(line, &quot;Version=&quot;))</span>
+<span class="lineNum">     489 </span>            :         {
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :             if (package_data-&gt;version)</span>
+<span class="lineNum">     491 </span>            :             {
+<span class="lineNum">     492 </span>            :                 /* Some error occurred as we already have version for 
+<span class="lineNum">     493 </span>            :                  * given package. */
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     495 </span>            :                     &quot;Extraneous package version line received: [%s] %s&quot;,
+<span class="lineNum">     496 </span>            :                     line, package_data-&gt;version);
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                 free(package_data);</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     499 </span>            :             }
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :             package_data-&gt;version = </span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :                 SafeStringDuplicate(line + strlen(&quot;Version=&quot;));</span>
+<span class="lineNum">     502 </span>            :         }
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :         else if (StringStartsWith(line, &quot;Architecture=&quot;))</span>
+<span class="lineNum">     504 </span>            :         {
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :             if (package_data-&gt;arch)</span>
+<span class="lineNum">     506 </span>            :             {
+<span class="lineNum">     507 </span>            :                 /* Some error occurred as we already have arch for 
+<span class="lineNum">     508 </span>            :                  * given package. */
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :                Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     510 </span>            :                    &quot;Extraneous package architecture line received: [%s] %s&quot;,
+<span class="lineNum">     511 </span>            :                    line, package_data-&gt;arch);
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :                 free(package_data);</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     514 </span>            :             }
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :             package_data-&gt;arch = </span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :                 SafeStringDuplicate(line + strlen(&quot;Architecture=&quot;));</span>
+<span class="lineNum">     517 </span>            :         }
+<span class="lineNum">     518 </span>            :         /* For handling errors */
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :         else if (StringStartsWith(line, &quot;Error=&quot;))</span>
+<span class="lineNum">     520 </span>            :         {
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;package_module - have error: %s&quot;,</span>
+<span class="lineNum">     522 </span>            :                 line + strlen(&quot;Error=&quot;));
+<span class="lineNum">     523 </span>            :         }
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         else if (StringStartsWith(line, &quot;ErrorMessage=&quot;))</span>
+<span class="lineNum">     525 </span>            :         {
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;package_module - have error message: %s&quot;,</span>
+<span class="lineNum">     527 </span>            :                 line + strlen(&quot;ErrorMessage=&quot;));
+<span class="lineNum">     528 </span>            :         }
+<span class="lineNum">     529 </span>            :         else
+<span class="lineNum">     530 </span>            :         {
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;unsupported option: %s&quot;, line);</span>
+<span class="lineNum">     532 </span>            :         }
+<span class="lineNum">     533 </span>            :     }
+<span class="lineNum">     534 </span>            :     
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     return package_data;</span>
+<a name="536"><span class="lineNum">     536 </span>            : }</a>
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 : static int NegotiateSupportedAPIVersion(PackageModuleWrapper *wrapper)</span>
+<span class="lineNum">     539 </span>            : {
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Getting supported API version.&quot;);</span>
+<span class="lineNum">     541 </span>            :     
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :     int api_version = -1;</span>
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :     Rlist *response = NULL;</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 :     if (ReadWriteDataToPackageScript(&quot;supports-api-version&quot;, &quot;&quot;,</span>
+<span class="lineNum">     546 </span>            :                                      &amp;response, wrapper) != 0)
+<span class="lineNum">     547 </span>            :     {
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     549 </span>            :             &quot;Error occurred while getting supported API version.&quot;);
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     551 </span>            :     }
+<span class="lineNum">     552 </span>            :     
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     if (response)</span>
+<span class="lineNum">     554 </span>            :     {
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         if (RlistLen(response) == 1)</span>
+<span class="lineNum">     556 </span>            :         {
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :             api_version = atoi(RlistScalarValue(response));</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;package wrapper API version: %d&quot;, api_version);</span>
+<span class="lineNum">     559 </span>            :         }
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :         RlistDestroy(response);</span>
+<span class="lineNum">     561 </span>            :     }
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :     return api_version;</span>
+<span class="lineNum">     563 </span>            : }
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span>            : /* IMPORTANT: this might not return all the data we need like version
+<a name="566"><span class="lineNum">     566 </span>            :               or architecture but package name MUST be known. */</a>
+<span class="lineNum">     567 </span>            : static
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 : PackageInfo *GetPackageData(const char *name, const char *version,</span>
+<span class="lineNum">     569 </span>            :                             const char *architecture, Rlist *options,
+<span class="lineNum">     570 </span>            :                             const PackageModuleWrapper *wrapper)
+<span class="lineNum">     571 </span>            : {   
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Getting package '%s' data.&quot;, name);</span>
+<span class="lineNum">     573 </span>            :     
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :     char *options_str = ParseOptions(options);</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     char *ver = version ?</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :         StringFormat(&quot;Version=%s\n&quot;, version) : NULL;</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     char *arch = architecture ?</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :         StringFormat(&quot;Architecture=%s\n&quot;, architecture) : NULL;</span>
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :     char *request =</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :             StringFormat(&quot;%sFile=%s\n%s%s&quot;, options_str, name,</span>
+<span class="lineNum">     582 </span>            :                          ver ? ver : &quot;&quot;, arch ? arch : &quot;&quot;);
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     free(ver);</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :     free(arch);</span>
+<span class="lineNum">     585 </span>            :     
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     Rlist *response = NULL;</span>
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :     if (ReadWriteDataToPackageScript(&quot;get-package-data&quot;, request, &amp;response,</span>
+<span class="lineNum">     588 </span>            :             wrapper) != 0)
+<span class="lineNum">     589 </span>            :     {
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Some error occurred while communicating with &quot;</span>
+<span class="lineNum">     591 </span>            :             &quot;package module while collecting package data.&quot;);
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :         free(options_str);</span>
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :         free(request);</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     595 </span>            :     }
+<span class="lineNum">     596 </span>            :     
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :     PackageInfo *package_data = NULL;</span>
+<span class="lineNum">     598 </span>            :     
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :     if (response)</span>
+<span class="lineNum">     600 </span>            :     {   
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :         package_data = ParseAndCheckPackageDataReply(response);</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :         RlistDestroy(response);</span>
+<span class="lineNum">     603 </span>            :         
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :         if (package_data)</span>
+<span class="lineNum">     605 </span>            :         {
+<span class="lineNum">     606 </span>            :             /* At this point at least package name and type MUST be known
+<span class="lineNum">     607 </span>            :              * (if no error) */
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :             if (!package_data-&gt;name || package_data-&gt;type == PACKAGE_TYPE_NONE)</span>
+<span class="lineNum">     609 </span>            :             {
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_INFO, &quot;Unknown package name or type.&quot;);</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :                 FreePackageInfo(package_data);</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :                 package_data = NULL;</span>
+<span class="lineNum">     613 </span>            :             }
+<span class="lineNum">     614 </span>            :         }
+<span class="lineNum">     615 </span>            :     }
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :     free(options_str);</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :     free(request);</span>
+<span class="lineNum">     618 </span>            :         
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :     return package_data;</span>
+<a name="620"><span class="lineNum">     620 </span>            : }</a>
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 : static char *GetPackageModuleRealPath(const char *package_module_name)</span>
+<span class="lineNum">     623 </span>            : {
+<span class="lineNum">     624 </span>            :     
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :     return StringFormat(&quot;%s%c%s%c%s%c%s&quot;, GetWorkDir(), FILE_SEPARATOR,</span>
+<span class="lineNum">     626 </span>            :                         &quot;modules&quot;, FILE_SEPARATOR, &quot;packages&quot;, FILE_SEPARATOR,
+<span class="lineNum">     627 </span>            :                         package_module_name);
+<a name="628"><span class="lineNum">     628 </span>            : }</a>
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 : static int IsPackageInCache(EvalContext *ctx,</span>
+<span class="lineNum">     631 </span>            :                             const PackageModuleWrapper *module_wrapper,
+<span class="lineNum">     632 </span>            :                             const char *name, const char *ver, const char *arch)
+<span class="lineNum">     633 </span>            : {
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     const char *version = ver;</span>
+<span class="lineNum">     635 </span>            :     /* Handle latest version in specific way for repo packages. 
+<span class="lineNum">     636 </span>            :      * Please note that for file packages 'latest' version is not supported
+<span class="lineNum">     637 </span>            :      * and check against that is made in CheckPolicyAndPackageInfoMatch(). */
+<span class="lineNum">     638 </span><span class="lineNoCov">          0 :     if (version &amp;&amp; StringSafeEqual(version, &quot;latest&quot;))</span>
+<span class="lineNum">     639 </span>            :     {
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :         version = NULL;</span>
+<span class="lineNum">     641 </span>            :     }
+<span class="lineNum">     642 </span>            :     
+<span class="lineNum">     643 </span>            :     /* Make sure cache is updated. */
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :     if (ctx)</span>
+<span class="lineNum">     645 </span>            :     {
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :         if (!UpdateSinglePackageModuleCache(ctx, module_wrapper,</span>
+<span class="lineNum">     647 </span>            :                                             UPDATE_TYPE_INSTALLED, false))
+<span class="lineNum">     648 </span>            :         {
+<span class="lineNum">     649 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Can not update cache.&quot;);</span>
+<span class="lineNum">     650 </span>            :         }
+<span class="lineNum">     651 </span>            :     }
+<span class="lineNum">     652 </span>            :     
+<span class="lineNum">     653 </span>            :     CF_DB *db_cached;
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :     if (!OpenSubDB(&amp;db_cached, dbid_packages_installed,</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :                    module_wrapper-&gt;package_module-&gt;name))</span>
+<span class="lineNum">     656 </span>            :     {
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Can not open cache database.&quot;);</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     659 </span>            :     }
+<span class="lineNum">     660 </span>            :     
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :     char *key = NULL;</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :     if (version &amp;&amp; arch)</span>
+<span class="lineNum">     663 </span>            :     {
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :         key = StringFormat(&quot;N&lt;%s&gt;V&lt;%s&gt;A&lt;%s&gt;&quot;, name, version, arch);</span>
+<span class="lineNum">     665 </span>            :     }
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :     else if (version)</span>
+<span class="lineNum">     667 </span>            :     {
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :         key = StringFormat(&quot;N&lt;%s&gt;V&lt;%s&gt;&quot;, name, version);</span>
+<span class="lineNum">     669 </span>            :     }
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :     else if (arch)</span>
+<span class="lineNum">     671 </span>            :     {
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :         key = StringFormat(&quot;N&lt;%s&gt;A&lt;%s&gt;&quot;, name, arch);</span>
+<span class="lineNum">     673 </span>            :     }
+<span class="lineNum">     674 </span>            :     else
+<span class="lineNum">     675 </span>            :     {
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :          key = StringFormat(&quot;N&lt;%s&gt;&quot;, name);</span>
+<span class="lineNum">     677 </span>            :     }
+<span class="lineNum">     678 </span>            :     
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :     int is_in_cache = 0;</span>
+<span class="lineNum">     680 </span>            :     char buff[1];
+<span class="lineNum">     681 </span>            :     
+<span class="lineNum">     682 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Looking for key in installed packages cache: %s&quot;, key);</span>
+<span class="lineNum">     683 </span>            :     
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :     if (ReadDB(db_cached, key, buff, 1))</span>
+<span class="lineNum">     685 </span>            :     {
+<span class="lineNum">     686 </span>            :         /* Just make sure DB is not corrupted. */
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :         if (buff[0] == '1')</span>
+<span class="lineNum">     688 </span>            :         {
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :             is_in_cache = 1;</span>
+<span class="lineNum">     690 </span>            :         }
+<span class="lineNum">     691 </span>            :         else
+<span class="lineNum">     692 </span>            :         {
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     694 </span>            :                 &quot;Seem to have corrupted data in cache database&quot;);
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :             is_in_cache = -1;</span>
+<span class="lineNum">     696 </span>            :         }
+<span class="lineNum">     697 </span>            :     }
+<span class="lineNum">     698 </span>            :     
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     700 </span>            :         &quot;Looking for package %s in cache returned: %d&quot;, name, is_in_cache);
+<span class="lineNum">     701 </span>            :     
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :     CloseDB(db_cached);</span>
+<span class="lineNum">     703 </span>            :     
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :     return is_in_cache;</span>
+<a name="705"><span class="lineNum">     705 </span>            : }</a>
+<span class="lineNum">     706 </span>            : 
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 : void WritePackageDataToDB(CF_DB *db_installed,</span>
+<span class="lineNum">     708 </span>            :         const char *name, const char *ver, const char *arch,
+<span class="lineNum">     709 </span>            :         UpdateType type)
+<span class="lineNum">     710 </span>            : {
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     char package_key[strlen(name) + strlen(ver) +</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :                      strlen(arch) + 11];</span>
+<span class="lineNum">     713 </span>            :     
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :     xsnprintf(package_key, sizeof(package_key),</span>
+<span class="lineNum">     715 </span>            :               &quot;N&lt;%s&gt;&quot;, name);
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :     if (type == UPDATE_TYPE_INSTALLED)</span>
+<span class="lineNum">     717 </span>            :     {
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :         WriteDB(db_installed, package_key, &quot;1&quot;, 1);</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :         xsnprintf(package_key, sizeof(package_key),</span>
+<span class="lineNum">     720 </span>            :                 &quot;N&lt;%s&gt;V&lt;%s&gt;&quot;, name, ver);
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :         WriteDB(db_installed, package_key, &quot;1&quot;, 1);</span>
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :         xsnprintf(package_key, sizeof(package_key),</span>
+<span class="lineNum">     723 </span>            :                 &quot;N&lt;%s&gt;A&lt;%s&gt;&quot;, name, arch);
+<span class="lineNum">     724 </span><span class="lineNoCov">          0 :         WriteDB(db_installed, package_key, &quot;1&quot;, 1);</span>
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :         xsnprintf(package_key, sizeof(package_key),</span>
+<span class="lineNum">     726 </span>            :                 &quot;N&lt;%s&gt;V&lt;%s&gt;A&lt;%s&gt;&quot;, name, ver, arch);
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :         WriteDB(db_installed, package_key, &quot;1&quot;, 1);</span>
+<span class="lineNum">     728 </span>            :     }
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :     else if (HasKeyDB(db_installed, package_key, strlen(package_key) + 1))</span>
+<span class="lineNum">     730 </span>            :     {
+<span class="lineNum">     731 </span>            :         /* type == UPDATE_TYPE_UPDATES || type == UPDATE_TYPE_LOCAL_UPDATES */
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :         size_t val_size =</span>
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :                 ValueSizeDB(db_installed, package_key, strlen(package_key) + 1);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :         char buff[val_size + strlen(arch) + strlen(ver) + 8];</span>
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :         ReadDB(db_installed, package_key, buff, val_size);</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :         xsnprintf(buff + val_size, sizeof(package_key), &quot;V&lt;%s&gt;A&lt;%s&gt;\n&quot;,</span>
+<span class="lineNum">     738 </span>            :                   ver, arch);
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     740 </span>            :             &quot;Updating available updates key '%s' with value '%s'&quot;,
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :             package_key, buff);</span>
+<span class="lineNum">     742 </span>            : 
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :         WriteDB(db_installed, package_key, buff, strlen(buff));</span>
+<span class="lineNum">     744 </span>            :     }
+<span class="lineNum">     745 </span>            :     else
+<span class="lineNum">     746 </span>            :     {
+<span class="lineNum">     747 </span>            :         /* type == UPDATE_TYPE_UPDATES || type == UPDATE_TYPE_LOCAL_UPDATES */
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :         char buff[strlen(arch) + strlen(ver) + 8];</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :         xsnprintf(buff, sizeof(package_key), &quot;V&lt;%s&gt;A&lt;%s&gt;\n&quot;, ver, arch);</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :         WriteDB(db_installed, package_key, buff, strlen(buff));</span>
+<span class="lineNum">     751 </span>            :     }
+<a name="752"><span class="lineNum">     752 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 : int UpdatePackagesDB(Rlist *data, const char *pm_name, UpdateType type)</span>
+<span class="lineNum">     755 </span>            : {
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :     assert(pm_name);</span>
+<span class="lineNum">     757 </span>            :     
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     bool have_error = false;</span>
+<span class="lineNum">     759 </span>            : 
+<span class="lineNum">     760 </span>            :     CF_DB *db_cached;
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :     dbid db_id = type == UPDATE_TYPE_INSTALLED ? dbid_packages_installed :</span>
+<span class="lineNum">     762 </span>            :                                                  dbid_packages_updates;
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :     if (OpenSubDB(&amp;db_cached, db_id, pm_name))</span>
+<span class="lineNum">     764 </span>            :     {
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :         CleanDB(db_cached);</span>
+<span class="lineNum">     766 </span>            :         
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :         Buffer *inventory_data = BufferNewWithCapacity(INVENTORY_LIST_BUFFER_SIZE);</span>
+<span class="lineNum">     768 </span>            : 
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :         const char *package_data[3] = {NULL, NULL, NULL};</span>
+<span class="lineNum">     770 </span>            : 
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :         for (const Rlist *rp = data; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     772 </span>            :         {
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :             const char *line = RlistScalarValue(rp);</span>
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :             if (StringStartsWith(line, &quot;Name=&quot;))</span>
+<span class="lineNum">     776 </span>            :             {
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :                 if (package_data[0])</span>
+<span class="lineNum">     778 </span>            :                 {
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :                     if (package_data[1] &amp;&amp; package_data[2])</span>
+<span class="lineNum">     780 </span>            :                     {
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :                         WritePackageDataToDB(db_cached, package_data[0],</span>
+<span class="lineNum">     782 </span>            :                                              package_data[1], package_data[2],
+<span class="lineNum">     783 </span>            :                                              type);
+<span class="lineNum">     784 </span>            : 
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :                         BufferAppendF(inventory_data, &quot;%s,%s,%s\n&quot;, </span>
+<span class="lineNum">     786 </span>            :                                       package_data[0], package_data[1],
+<span class="lineNum">     787 </span>            :                                       package_data[2]);
+<span class="lineNum">     788 </span>            :                     }
+<span class="lineNum">     789 </span>            :                     else
+<span class="lineNum">     790 </span>            :                     {
+<span class="lineNum">     791 </span>            :                         /* some error occurred */
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :                         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     793 </span>            :                                 &quot;Malformed response from package module for package %s&quot;,
+<span class="lineNum">     794 </span>            :                                 package_data[0]);
+<span class="lineNum">     795 </span>            :                     }
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :                     package_data[1] = NULL;</span>
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :                     package_data[2] = NULL;</span>
+<span class="lineNum">     798 </span>            :                 }
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span>            :                 /* This must be the first entry on a list */
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :                 package_data[0] = line + strlen(&quot;Name=&quot;);</span>
+<span class="lineNum">     802 </span>            : 
+<span class="lineNum">     803 </span>            :             }
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :             else if (StringStartsWith(line, &quot;Version=&quot;))</span>
+<span class="lineNum">     805 </span>            :             {
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :                 package_data[1] = line + strlen(&quot;Version=&quot;);</span>
+<span class="lineNum">     807 </span>            :             }
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :             else if (StringStartsWith(line, &quot;Architecture=&quot;))</span>
+<span class="lineNum">     809 </span>            :             {
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :                 package_data[2] = line + strlen(&quot;Architecture=&quot;);</span>
+<span class="lineNum">     811 </span>            :             }
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :             else if (StringStartsWith(line, &quot;Error=&quot;))</span>
+<span class="lineNum">     813 </span>            :             {
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;have error: %s&quot;,</span>
+<span class="lineNum">     815 </span>            :                     line + strlen(&quot;Error=&quot;));
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :                 have_error = true;</span>
+<span class="lineNum">     817 </span>            :             }
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :             else if (StringStartsWith(line, &quot;ErrorMessage=&quot;))</span>
+<span class="lineNum">     819 </span>            :             {
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;have error message: %s&quot;,</span>
+<span class="lineNum">     821 </span>            :                     line + strlen(&quot;ErrorMessage=&quot;));
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 :                 have_error = true;</span>
+<span class="lineNum">     823 </span>            :             }
+<span class="lineNum">     824 </span>            :             else
+<span class="lineNum">     825 </span>            :             {
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :                  Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     827 </span>            :                      &quot;Unsupported response received form package module: %s&quot;,
+<span class="lineNum">     828 </span>            :                      line);
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :                  have_error = true;</span>
+<span class="lineNum">     830 </span>            :             }
+<span class="lineNum">     831 </span>            :         }
+<span class="lineNum">     832 </span>            :         /* We should have one more entry left or empty 'package_data'. */
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :         if (package_data[0] &amp;&amp; package_data[1] &amp;&amp; package_data[2])</span>
+<span class="lineNum">     834 </span>            :         {
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :             WritePackageDataToDB(db_cached, package_data[0],</span>
+<span class="lineNum">     836 </span>            :                              package_data[1], package_data[2], type);
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :             BufferAppendF(inventory_data, &quot;%s,%s,%s\n&quot;, package_data[0],</span>
+<span class="lineNum">     839 </span>            :                           package_data[1], package_data[2]);
+<span class="lineNum">     840 </span>            :         }
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :         else if (package_data[0] || package_data[1] || package_data[2])</span>
+<span class="lineNum">     842 </span>            :         {
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     844 </span>            :                 &quot;Malformed response from package manager: [%s:%s:%s]&quot;,
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :                 package_data[0] ? package_data[0] : &quot;&quot;,</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :                 package_data[1] ? package_data[1] : &quot;&quot;,</span>
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :                 package_data[2] ? package_data[2] : &quot;&quot;);</span>
+<span class="lineNum">     848 </span>            :         }
+<span class="lineNum">     849 </span>            :         
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :         char *inventory_key = &quot;&lt;inventory&gt;&quot;;</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :         char *inventory_list = BufferClose(inventory_data);</span>
+<span class="lineNum">     852 </span>            :         
+<span class="lineNum">     853 </span>            :         /* We can have empty list of installed software or available updates. */
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :         if (!inventory_list)</span>
+<span class="lineNum">     855 </span>            :         {
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :             WriteDB(db_cached, inventory_key, &quot;\n&quot;, 1);</span>
+<span class="lineNum">     857 </span>            :         }
+<span class="lineNum">     858 </span>            :         else
+<span class="lineNum">     859 </span>            :         {
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :             WriteDB(db_cached, inventory_key, inventory_list,</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :                     strlen(inventory_list));</span>
+<span class="lineNum">     862 </span><span class="lineNoCov">          0 :             free(inventory_list);</span>
+<span class="lineNum">     863 </span>            :         }
+<span class="lineNum">     864 </span>            :         
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :         CloseDB(db_cached);</span>
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :         return have_error ? -1 : 0;</span>
+<span class="lineNum">     867 </span>            :     }
+<span class="lineNum">     868 </span>            :     /* Unable to open database. */
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     870 </span>            : }
+<a name="871"><span class="lineNum">     871 </span>            : </a>
+<span class="lineNum">     872 </span>            : 
+<span class="lineNum">     873 </span><span class="lineNoCov">          0 : bool UpdateCache(Rlist* options, const PackageModuleWrapper *wrapper,</span>
+<span class="lineNum">     874 </span>            :                  UpdateType type)
+<span class="lineNum">     875 </span>            : {
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Updating cache: %d&quot;, type);</span>
+<span class="lineNum">     877 </span>            :     
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :     char *options_str = ParseOptions(options);</span>
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :     Rlist *response = NULL;</span>
+<span class="lineNum">     880 </span>            :     
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :     const char *req_type = NULL;</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :     if (type == UPDATE_TYPE_INSTALLED)</span>
+<span class="lineNum">     883 </span>            :     {
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :         req_type = &quot;list-installed&quot;;</span>
+<span class="lineNum">     885 </span>            :     }
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :     else if (type == UPDATE_TYPE_UPDATES)</span>
+<span class="lineNum">     887 </span>            :     {
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :         req_type = &quot;list-updates&quot;;</span>
+<span class="lineNum">     889 </span>            :     }
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :     else if (type == UPDATE_TYPE_LOCAL_UPDATES)</span>
+<span class="lineNum">     891 </span>            :     {
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :         req_type = &quot;list-updates-local&quot;;</span>
+<span class="lineNum">     893 </span>            :     }
+<span class="lineNum">     894 </span><span class="lineNoCov">          0 :     if (ReadWriteDataToPackageScript(req_type, options_str, &amp;response,</span>
+<span class="lineNum">     895 </span>            :             wrapper) != 0)
+<span class="lineNum">     896 </span>            :     {
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Some error occurred while communicating with &quot;</span>
+<span class="lineNum">     898 </span>            :                 &quot;package module while updating cache.&quot;);
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :         free(options_str);</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     901 </span>            :     }
+<span class="lineNum">     902 </span>            :     
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :     if (!response)</span>
+<span class="lineNum">     904 </span>            :     {
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     906 </span>            :             &quot;Received empty packages list after requesting: %s&quot;, req_type);
+<span class="lineNum">     907 </span>            :     }
+<span class="lineNum">     908 </span>            :     
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :     bool ret = true;</span>
+<span class="lineNum">     910 </span>            :     
+<span class="lineNum">     911 </span>            :     /* We still need to update DB with empty data. */
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :     if (UpdatePackagesDB(response, wrapper-&gt;name, type) != 0)</span>
+<span class="lineNum">     913 </span>            :     {
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Error updating packages cache.&quot;);</span>
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :         ret = false;</span>
+<span class="lineNum">     916 </span>            :     }
+<span class="lineNum">     917 </span>            :     
+<span class="lineNum">     918 </span><span class="lineNoCov">          0 :     RlistDestroy(response);</span>
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :     free(options_str);</span>
+<span class="lineNum">     920 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">     921 </span>            : }
+<a name="922"><span class="lineNum">     922 </span>            : </a>
+<span class="lineNum">     923 </span>            : 
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 : PromiseResult ValidateChangedPackage(const NewPackages *policy_data,</span>
+<span class="lineNum">     925 </span>            :                                      const PackageModuleWrapper *wrapper,
+<span class="lineNum">     926 </span>            :                                      const PackageInfo *package_info,
+<span class="lineNum">     927 </span>            :                                      NewPackageAction action_type)
+<span class="lineNum">     928 </span>            : {
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :     assert(package_info &amp;&amp; package_info-&gt;name);</span>
+<span class="lineNum">     930 </span>            :     
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Validating package: %s&quot;, package_info-&gt;name);</span>
+<span class="lineNum">     932 </span>            :     
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :     if (!UpdateCache(policy_data-&gt;package_options, wrapper,</span>
+<span class="lineNum">     934 </span>            :                      UPDATE_TYPE_INSTALLED))
+<span class="lineNum">     935 </span>            :     {
+<span class="lineNum">     936 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     937 </span>            :             &quot;Can not update installed packages cache after package installation&quot;);
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     939 </span>            :     }
+<span class="lineNum">     940 </span>            :     
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :     if (!UpdateCache(policy_data-&gt;package_options, wrapper,</span>
+<span class="lineNum">     942 </span>            :                      UPDATE_TYPE_LOCAL_UPDATES))
+<span class="lineNum">     943 </span>            :     {
+<span class="lineNum">     944 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     945 </span>            :             &quot;Can not update available updates cache after package installation&quot;);
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     947 </span>            :     }
+<span class="lineNum">     948 </span>            : 
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :     int is_in_cache = IsPackageInCache(NULL, wrapper, package_info-&gt;name,</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :                                        package_info-&gt;version,</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :                                        package_info-&gt;arch);</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :     if (is_in_cache == 1)</span>
+<span class="lineNum">     953 </span>            :     {
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :         return action_type == NEW_PACKAGE_ACTION_PRESENT ? </span>
+<span class="lineNum">     955 </span>            :             PROMISE_RESULT_CHANGE : PROMISE_RESULT_FAIL;
+<span class="lineNum">     956 </span>            :     }
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :     else if (is_in_cache == 0)</span>
+<span class="lineNum">     958 </span>            :     {
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :         return action_type == NEW_PACKAGE_ACTION_PRESENT ? </span>
+<span class="lineNum">     960 </span>            :             PROMISE_RESULT_FAIL : PROMISE_RESULT_CHANGE;
+<span class="lineNum">     961 </span>            :     }
+<span class="lineNum">     962 </span>            :     else
+<span class="lineNum">     963 </span>            :     {
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     965 </span>            :             &quot;Some error occurred while reading installed packages cache.&quot;);
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     967 </span>            :     }
+<a name="968"><span class="lineNum">     968 </span>            : }</a>
+<span class="lineNum">     969 </span>            : 
+<span class="lineNum">     970 </span><span class="lineNoCov">          0 : PromiseResult RemovePackage(const char *name, Rlist* options, </span>
+<span class="lineNum">     971 </span>            :                             const char *version, const char *architecture,
+<span class="lineNum">     972 </span>            :                             const PackageModuleWrapper *wrapper)
+<span class="lineNum">     973 </span>            : {
+<span class="lineNum">     974 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Removing package '%s'&quot;, name);</span>
+<span class="lineNum">     975 </span>            :              
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :     char *options_str = ParseOptions(options);</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     char *ver = version ? </span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :         StringFormat(&quot;Version=%s\n&quot;, version) : NULL;</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :     char *arch = architecture ? </span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :         StringFormat(&quot;Architecture=%s\n&quot;, architecture) : NULL;</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :     char *request = StringFormat(&quot;%sName=%s\n%s%s&quot;,</span>
+<span class="lineNum">     982 </span>            :             options_str, name, ver ? ver : &quot;&quot;, arch ? arch : &quot;&quot;);
+<span class="lineNum">     983 </span>            :     
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :     PromiseResult res = PROMISE_RESULT_CHANGE;</span>
+<span class="lineNum">     985 </span>            :     
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :     Rlist *error_message = NULL;</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :     if (ReadWriteDataToPackageScript(&quot;remove&quot;, request, </span>
+<span class="lineNum">     988 </span>            :             &amp;error_message, wrapper) != 0)
+<span class="lineNum">     989 </span>            :     {
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     991 </span>            :             &quot;Error communicating package module while removing package.&quot;);
+<span class="lineNum">     992 </span><span class="lineNoCov">          0 :         res = PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     993 </span>            :     }
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :     if (error_message)</span>
+<span class="lineNum">     995 </span>            :     {
+<span class="lineNum">     996 </span><span class="lineNoCov">          0 :         ParseAndLogErrorMessage(error_message);</span>
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :         res = PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :         RlistDestroy(error_message);</span>
+<span class="lineNum">     999 </span>            :     }
+<span class="lineNum">    1000 </span>            :     
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :     free(request);</span>
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :     free(options_str);</span>
+<span class="lineNum">    1003 </span><span class="lineNoCov">          0 :     free(ver);</span>
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :     free(arch);</span>
+<span class="lineNum">    1005 </span>            :     
+<span class="lineNum">    1006 </span>            :     /* We assume that at this point package is removed correctly. */
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :     return res;    </span>
+<span class="lineNum">    1008 </span>            : }
+<a name="1009"><span class="lineNum">    1009 </span>            : </a>
+<span class="lineNum">    1010 </span>            : 
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 : static PromiseResult InstallPackageGeneric(Rlist *options, </span>
+<span class="lineNum">    1012 </span>            :         PackageType type, const char *packages_list_formatted,
+<span class="lineNum">    1013 </span>            :         const PackageModuleWrapper *wrapper)
+<span class="lineNum">    1014 </span>            : {
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">    1016 </span>            :         &quot;Installing %s type package: '%s'&quot;, 
+<span class="lineNum">    1017 </span>            :         type == PACKAGE_TYPE_FILE ? &quot;file&quot; : &quot;repo&quot;,
+<span class="lineNum">    1018 </span>            :         packages_list_formatted);
+<span class="lineNum">    1019 </span>            :     
+<span class="lineNum">    1020 </span><span class="lineNoCov">          0 :     char *options_str = ParseOptions(options);</span>
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :     char *request = StringFormat(&quot;%s%s&quot;, options_str, packages_list_formatted);</span>
+<span class="lineNum">    1022 </span>            :     
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :     PromiseResult res = PROMISE_RESULT_CHANGE;</span>
+<span class="lineNum">    1024 </span>            :     
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :     const char *package_install_command = NULL;</span>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :     if (type == PACKAGE_TYPE_FILE)</span>
+<span class="lineNum">    1027 </span>            :     {
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :         package_install_command = &quot;file-install&quot;;</span>
+<span class="lineNum">    1029 </span>            :     }
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :     else if (type == PACKAGE_TYPE_REPO)</span>
+<span class="lineNum">    1031 </span>            :     {
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :         package_install_command = &quot;repo-install&quot;;</span>
+<span class="lineNum">    1033 </span>            :     }
+<span class="lineNum">    1034 </span>            :     else
+<span class="lineNum">    1035 </span>            :     {
+<span class="lineNum">    1036 </span>            :         /* If we end up here something bad has happened. */
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;Unsupported package type&quot;);</span>
+<span class="lineNum">    1038 </span>            :     }
+<span class="lineNum">    1039 </span>            : 
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">    1041 </span>            :         &quot;Sending install command to package module: '%s'&quot;,
+<span class="lineNum">    1042 </span>            :         request);
+<span class="lineNum">    1043 </span>            :     
+<span class="lineNum">    1044 </span><span class="lineNoCov">          0 :     Rlist *error_message = NULL;</span>
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :     if (ReadWriteDataToPackageScript(package_install_command, request, </span>
+<span class="lineNum">    1046 </span>            :                                      &amp;error_message, wrapper) != 0)
+<span class="lineNum">    1047 </span>            :     {
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Some error occurred while communicating with &quot;</span>
+<span class="lineNum">    1049 </span>            :             &quot;package module while installing package.&quot;);
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :         res = PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1051 </span>            :     }
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :     if (error_message)</span>
+<span class="lineNum">    1053 </span>            :     {
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :         ParseAndLogErrorMessage(error_message);</span>
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :         res = PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :         RlistDestroy(error_message);</span>
+<span class="lineNum">    1057 </span>            :     }
+<span class="lineNum">    1058 </span>            :     
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :     free(request);</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :     free(options_str);</span>
+<span class="lineNum">    1061 </span>            :     
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :     return res;</span>
+<a name="1063"><span class="lineNum">    1063 </span>            : }</a>
+<span class="lineNum">    1064 </span>            : 
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 : PromiseResult InstallPackage(Rlist *options, </span>
+<span class="lineNum">    1066 </span>            :         PackageType type, const char *package_to_install,
+<span class="lineNum">    1067 </span>            :         const char *version, const char *architecture,
+<span class="lineNum">    1068 </span>            :         const PackageModuleWrapper *wrapper)
+<span class="lineNum">    1069 </span>            : {
+<span class="lineNum">    1070 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Installing package '%s'&quot;, package_to_install);</span>
+<span class="lineNum">    1071 </span>            :              
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :     char *ver = version ? </span>
+<span class="lineNum">    1073 </span><span class="lineNoCov">          0 :         StringFormat(&quot;Version=%s\n&quot;, version) : NULL;</span>
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :     char *arch = architecture ? </span>
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :         StringFormat(&quot;Architecture=%s\n&quot;, architecture) : NULL;</span>
+<span class="lineNum">    1076 </span><span class="lineNoCov">          0 :     char *request = NULL;</span>
+<span class="lineNum">    1077 </span>            :     
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :     PromiseResult res = PROMISE_RESULT_CHANGE;</span>
+<span class="lineNum">    1079 </span>            :     
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :     if (type == PACKAGE_TYPE_FILE)</span>
+<span class="lineNum">    1081 </span>            :     {
+<span class="lineNum">    1082 </span><span class="lineNoCov">          0 :         request = StringFormat(&quot;File=%s\n%s%s&quot;,</span>
+<span class="lineNum">    1083 </span>            :                                package_to_install,
+<span class="lineNum">    1084 </span>            :                                ver ? ver : &quot;&quot;,
+<span class="lineNum">    1085 </span>            :                                arch ? arch : &quot;&quot;);
+<span class="lineNum">    1086 </span>            :     }
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :     else if (type == PACKAGE_TYPE_REPO)</span>
+<span class="lineNum">    1088 </span>            :     {
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :         request = StringFormat(&quot;Name=%s\n%s%s&quot;,</span>
+<span class="lineNum">    1090 </span>            :                                package_to_install,
+<span class="lineNum">    1091 </span>            :                                ver ? ver : &quot;&quot;,
+<span class="lineNum">    1092 </span>            :                                arch ? arch : &quot;&quot;);
+<span class="lineNum">    1093 </span>            :     }
+<span class="lineNum">    1094 </span>            :     else
+<span class="lineNum">    1095 </span>            :     {
+<span class="lineNum">    1096 </span>            :         /* If we end up here something bad has happened. */
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;Unsupported package type&quot;);</span>
+<span class="lineNum">    1098 </span>            :     }
+<span class="lineNum">    1099 </span>            :     
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :     res = InstallPackageGeneric(options, type, request, wrapper);</span>
+<span class="lineNum">    1101 </span>            :     
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :     free(request);</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :     free(ver);</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :     free(arch);</span>
+<span class="lineNum">    1105 </span>            :     
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :     return res;</span>
+<a name="1107"><span class="lineNum">    1107 </span>            : }</a>
+<span class="lineNum">    1108 </span>            : 
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 : PromiseResult FileInstallPackage(const char *package_file_path, </span>
+<span class="lineNum">    1110 </span>            :                                  const PackageInfo *info,
+<span class="lineNum">    1111 </span>            :                                  const NewPackages *policy_data,
+<span class="lineNum">    1112 </span>            :                                  const PackageModuleWrapper *wrapper,
+<span class="lineNum">    1113 </span>            :                                  int is_in_cache, enum cfopaction action)
+<span class="lineNum">    1114 </span>            : {
+<span class="lineNum">    1115 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Installing file type package.&quot;);</span>
+<span class="lineNum">    1116 </span>            :     
+<span class="lineNum">    1117 </span>            :     /* We have some packages matching file package promise in cache. */
+<span class="lineNum">    1118 </span><span class="lineNoCov">          0 :     if (is_in_cache == 1)</span>
+<span class="lineNum">    1119 </span>            :     {
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Package exists in cache. Skipping installation.&quot;);</span>
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1122 </span>            :     }
+<span class="lineNum">    1123 </span>            :     
+<span class="lineNum">    1124 </span>            :     PromiseResult res;
+<span class="lineNum">    1125 </span>            :      
+<span class="lineNum">    1126 </span><span class="lineNoCov">          0 :     if (action == cfa_warn || DONTDO)</span>
+<span class="lineNum">    1127 </span>            :     {
+<span class="lineNum">    1128 </span><span class="lineNoCov">          0 :          Log(LOG_LEVEL_WARNING, &quot;Should install file type package: %s&quot;,</span>
+<span class="lineNum">    1129 </span>            :              package_file_path);
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :         res = PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1131 </span>            :     }
+<span class="lineNum">    1132 </span>            :     else
+<span class="lineNum">    1133 </span>            :     {
+<span class="lineNum">    1134 </span><span class="lineNoCov">          0 :         res = InstallPackage(policy_data-&gt;package_options,</span>
+<span class="lineNum">    1135 </span>            :                              PACKAGE_TYPE_FILE, package_file_path,
+<span class="lineNum">    1136 </span>            :                              NULL, NULL, wrapper);
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :         if (res == PROMISE_RESULT_CHANGE)</span>
+<span class="lineNum">    1138 </span>            :         {
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Validating package: %s&quot;, package_file_path);</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :             return ValidateChangedPackage(policy_data, wrapper, info,</span>
+<span class="lineNum">    1141 </span>            :                                           NEW_PACKAGE_ACTION_PRESENT);
+<span class="lineNum">    1142 </span>            :         }
+<span class="lineNum">    1143 </span>            :     }
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :     return res;</span>
+<span class="lineNum">    1145 </span>            : }
+<a name="1146"><span class="lineNum">    1146 </span>            : </a>
+<span class="lineNum">    1147 </span>            : 
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 : Seq *GetVersionsFromUpdates(EvalContext *ctx, const PackageInfo *info,</span>
+<span class="lineNum">    1149 </span>            :                             const PackageModuleWrapper *module_wrapper)
+<span class="lineNum">    1150 </span>            : {   
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :     assert(info &amp;&amp; info-&gt;name);</span>
+<span class="lineNum">    1152 </span>            :     
+<span class="lineNum">    1153 </span>            :     CF_DB *db_updates;
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :     dbid db_id = dbid_packages_updates;</span>
+<span class="lineNum">    1155 </span><span class="lineNoCov">          0 :     Seq *updates_list = NULL;</span>
+<span class="lineNum">    1156 </span>            :     
+<span class="lineNum">    1157 </span>            :     /* Make sure cache is updated. */
+<span class="lineNum">    1158 </span><span class="lineNoCov">          0 :     if (!UpdateSinglePackageModuleCache(ctx, module_wrapper,</span>
+<span class="lineNum">    1159 </span>            :                                         UPDATE_TYPE_UPDATES, false))
+<span class="lineNum">    1160 </span>            :     {
+<span class="lineNum">    1161 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Can not update packages cache.&quot;);</span>
+<span class="lineNum">    1162 </span>            :     }
+<span class="lineNum">    1163 </span>            :     
+<span class="lineNum">    1164 </span><span class="lineNoCov">          0 :     if (OpenSubDB(&amp;db_updates, db_id, module_wrapper-&gt;package_module-&gt;name))</span>
+<span class="lineNum">    1165 </span>            :     {
+<span class="lineNum">    1166 </span><span class="lineNoCov">          0 :         char package_key[strlen(info-&gt;name) + 4];</span>
+<span class="lineNum">    1167 </span>            : 
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :         xsnprintf(package_key, sizeof(package_key),</span>
+<span class="lineNum">    1169 </span>            :                 &quot;N&lt;%s&gt;&quot;, info-&gt;name);
+<span class="lineNum">    1170 </span>            :         
+<span class="lineNum">    1171 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG, &quot;Looking for key in updates: %s&quot;, package_key);</span>
+<span class="lineNum">    1172 </span>            :          
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :         if (HasKeyDB(db_updates, package_key, sizeof(package_key)))</span>
+<span class="lineNum">    1174 </span>            :         {
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Found key in updates database&quot;);</span>
+<span class="lineNum">    1176 </span>            :             
+<span class="lineNum">    1177 </span><span class="lineNoCov">          0 :             updates_list = SeqNew(3, FreePackageInfo);</span>
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :             size_t val_size =</span>
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 :                     ValueSizeDB(db_updates, package_key, sizeof(package_key));</span>
+<span class="lineNum">    1180 </span><span class="lineNoCov">          0 :             char buff[val_size + 1];</span>
+<span class="lineNum">    1181 </span><span class="lineNoCov">          0 :             buff[val_size] = '\0';</span>
+<span class="lineNum">    1182 </span>            : 
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :             ReadDB(db_updates, package_key, buff, val_size);</span>
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :             Seq* updates = SeqStringFromString(buff, '\n');</span>
+<span class="lineNum">    1185 </span>            :             
+<span class="lineNum">    1186 </span><span class="lineNoCov">          0 :             for (int i = 0; i &lt; SeqLength(updates); i++)</span>
+<span class="lineNum">    1187 </span>            :             {
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :                 char *package_line = SeqAt(updates, i);</span>
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_DEBUG, &quot;Got line in updates database: '%s&quot;,</span>
+<span class="lineNum">    1190 </span>            :                     package_line);
+<span class="lineNum">    1191 </span>            : 
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :                 char version[strlen(package_line)];</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :                 char arch[strlen(package_line)];</span>
+<span class="lineNum">    1194 </span>            : 
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :                 if (sscanf(package_line, &quot;V&lt;%[^&gt;]&gt;A&lt;%[^&gt;]&gt;&quot;, version, arch) == 2)</span>
+<span class="lineNum">    1196 </span>            :                 {
+<span class="lineNum">    1197 </span><span class="lineNoCov">          0 :                     PackageInfo *package = xcalloc(1, sizeof(PackageInfo));</span>
+<span class="lineNum">    1198 </span>            :                     
+<span class="lineNum">    1199 </span><span class="lineNoCov">          0 :                     package-&gt;name = SafeStringDuplicate(info-&gt;name);</span>
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :                     package-&gt;version = SafeStringDuplicate(version);</span>
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :                     package-&gt;arch = SafeStringDuplicate(arch);</span>
+<span class="lineNum">    1202 </span><span class="lineNoCov">          0 :                     SeqAppend(updates_list, package);</span>
+<span class="lineNum">    1203 </span>            :                 }
+<span class="lineNum">    1204 </span>            :                 else
+<span class="lineNum">    1205 </span>            :                 {
+<span class="lineNum">    1206 </span>            :                     /* Some error occurred while scanning package updates. */
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">    1208 </span>            :                         &quot;Unable to parse available updates line: %s&quot;,
+<span class="lineNum">    1209 </span>            :                         package_line);
+<span class="lineNum">    1210 </span>            :                 }
+<span class="lineNum">    1211 </span>            :             }
+<span class="lineNum">    1212 </span>            :         }
+<span class="lineNum">    1213 </span><span class="lineNoCov">          0 :         CloseDB(db_updates);</span>
+<span class="lineNum">    1214 </span>            :     }
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :     return updates_list;</span>
+<a name="1216"><span class="lineNum">    1216 </span>            : }</a>
+<span class="lineNum">    1217 </span>            : 
+<span class="lineNum">    1218 </span><span class="lineNoCov">          0 : PromiseResult RepoInstall(EvalContext *ctx,</span>
+<span class="lineNum">    1219 </span>            :                           PackageInfo *package_info,
+<span class="lineNum">    1220 </span>            :                           const NewPackages *policy_data,
+<span class="lineNum">    1221 </span>            :                           const PackageModuleWrapper *wrapper,
+<span class="lineNum">    1222 </span>            :                           int is_in_cache,
+<span class="lineNum">    1223 </span>            :                           enum cfopaction action,
+<span class="lineNum">    1224 </span>            :                           bool *verified)
+<span class="lineNum">    1225 </span>            : {
+<span class="lineNum">    1226 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Installing repo type package: %d&quot;, is_in_cache);</span>
+<span class="lineNum">    1227 </span>            :     
+<span class="lineNum">    1228 </span>            :     /* Package is not present in cache. */
+<span class="lineNum">    1229 </span><span class="lineNoCov">          0 :     if (is_in_cache == 0)</span>
+<span class="lineNum">    1230 </span>            :     {
+<span class="lineNum">    1231 </span>            :         /* Make sure cache is updated. */
+<span class="lineNum">    1232 </span><span class="lineNoCov">          0 :         if (!UpdateSinglePackageModuleCache(ctx, wrapper,</span>
+<span class="lineNum">    1233 </span>            :                                             UPDATE_TYPE_UPDATES, false))
+<span class="lineNum">    1234 </span>            :         {
+<span class="lineNum">    1235 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO, &quot;Can not update packages cache.&quot;);</span>
+<span class="lineNum">    1236 </span>            :         }
+<span class="lineNum">    1237 </span>            :         
+<span class="lineNum">    1238 </span><span class="lineNoCov">          0 :         const char *version = package_info-&gt;version;</span>
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :         if (package_info-&gt;version &amp;&amp;</span>
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 :                 StringSafeEqual(package_info-&gt;version, &quot;latest&quot;))</span>
+<span class="lineNum">    1241 </span>            :         {
+<span class="lineNum">    1242 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Clearing latest package version&quot;);</span>
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :             version = NULL;</span>
+<span class="lineNum">    1244 </span>            :         }
+<span class="lineNum">    1245 </span><span class="lineNoCov">          0 :         if (action == cfa_warn || DONTDO)</span>
+<span class="lineNum">    1246 </span>            :         {
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_WARNING, &quot;Should install repo type package: %s&quot;,</span>
+<span class="lineNum">    1248 </span>            :                 package_info-&gt;name);
+<span class="lineNum">    1249 </span><span class="lineNoCov">          0 :             return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1250 </span>            :         }
+<span class="lineNum">    1251 </span>            :         
+<span class="lineNum">    1252 </span><span class="lineNoCov">          0 :         *verified = false; /* Verification will be done in RepoInstallPackage(). */</span>
+<span class="lineNum">    1253 </span><span class="lineNoCov">          0 :         return InstallPackage(policy_data-&gt;package_options, PACKAGE_TYPE_REPO,</span>
+<span class="lineNum">    1254 </span><span class="lineNoCov">          0 :                               package_info-&gt;name, version, package_info-&gt;arch,</span>
+<span class="lineNum">    1255 </span>            :                               wrapper);
+<span class="lineNum">    1256 </span>            :     }
+<span class="lineNum">    1257 </span>            :     
+<span class="lineNum">    1258 </span>            :     
+<span class="lineNum">    1259 </span>            :     /* We have some packages matching already installed at this point. */
+<span class="lineNum">    1260 </span>            :     
+<span class="lineNum">    1261 </span>            :     
+<span class="lineNum">    1262 </span>            :     /* We have 'latest' version in policy. */
+<span class="lineNum">    1263 </span><span class="lineNoCov">          0 :     if (package_info-&gt;version &amp;&amp;</span>
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 :         StringSafeEqual(package_info-&gt;version, &quot;latest&quot;))</span>
+<span class="lineNum">    1265 </span>            :     {
+<span class="lineNum">    1266 </span>            :         /* This can return more than one latest version if we have packages
+<span class="lineNum">    1267 </span>            :          * with different architectures installed. */
+<span class="lineNum">    1268 </span><span class="lineNoCov">          0 :         Seq *latest_versions = </span>
+<span class="lineNum">    1269 </span>            :                 GetVersionsFromUpdates(ctx, package_info, wrapper);
+<span class="lineNum">    1270 </span><span class="lineNoCov">          0 :         if (!latest_versions)</span>
+<span class="lineNum">    1271 </span>            :         {
+<span class="lineNum">    1272 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">    1273 </span>            :                 &quot;Package '%s' is already in the latest version. &quot;
+<span class="lineNum">    1274 </span>            :                 &quot;Skipping instalation.&quot;, package_info-&gt;name);
+<span class="lineNum">    1275 </span>            : 
+<span class="lineNum">    1276 </span><span class="lineNoCov">          0 :             return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1277 </span>            :         }
+<span class="lineNum">    1278 </span>            :         
+<span class="lineNum">    1279 </span><span class="lineNoCov">          0 :         PromiseResult res = PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1280 </span><span class="lineNoCov">          0 :         Buffer *install_buffer = BufferNew();</span>
+<span class="lineNum">    1281 </span><span class="lineNoCov">          0 :         Seq *packages_to_install = SeqNew(1, NULL);</span>
+<span class="lineNum">    1282 </span>            : 
+<span class="lineNum">    1283 </span>            :         /* Loop through possible updates. */
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :         for (int i = 0; i &lt; SeqLength(latest_versions); i++)</span>
+<span class="lineNum">    1285 </span>            :         {
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :             PackageInfo *update_package = SeqAt(latest_versions, i);</span>
+<span class="lineNum">    1287 </span>            : 
+<span class="lineNum">    1288 </span>            :             /* We can have multiple packages with different architectures
+<span class="lineNum">    1289 </span>            :              * in updates available but we are interested only in updating
+<span class="lineNum">    1290 </span>            :              * package with specific architecture. */
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :             if (package_info-&gt;arch &amp;&amp;</span>
+<span class="lineNum">    1292 </span><span class="lineNoCov">          0 :                     !StringSafeEqual(package_info-&gt;arch, update_package-&gt;arch))</span>
+<span class="lineNum">    1293 </span>            :             {
+<span class="lineNum">    1294 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">    1295 </span>            :                     &quot;Skipping update check of package '%s' as updates&quot;
+<span class="lineNum">    1296 </span>            :                     &quot;architecure doesn't match specified in policy: %s != %s.&quot;,
+<span class="lineNum">    1297 </span>            :                     package_info-&gt;name, package_info-&gt;arch,
+<span class="lineNum">    1298 </span>            :                     update_package-&gt;arch);
+<span class="lineNum">    1299 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1300 </span>            :             }
+<span class="lineNum">    1301 </span>            :             
+<span class="lineNum">    1302 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">    1303 </span>            :                 &quot;Checking for package '%s' version '%s' in available updates&quot;,
+<span class="lineNum">    1304 </span>            :                 package_info-&gt;name, update_package-&gt;version);
+<span class="lineNum">    1305 </span>            :             
+<span class="lineNum">    1306 </span>            :             /* Just in case some package managers will report highest possible 
+<span class="lineNum">    1307 </span>            :              * version in updates list instead of removing entry if package is 
+<span class="lineNum">    1308 </span>            :              * already in the latest version. */
+<span class="lineNum">    1309 </span><span class="lineNoCov">          0 :             int is_in_cache = IsPackageInCache(ctx, wrapper, package_info-&gt;name,</span>
+<span class="lineNum">    1310 </span><span class="lineNoCov">          0 :                                                update_package-&gt;version,</span>
+<span class="lineNum">    1311 </span><span class="lineNoCov">          0 :                                                update_package-&gt;arch);</span>
+<span class="lineNum">    1312 </span><span class="lineNoCov">          0 :             if (is_in_cache == 1)</span>
+<span class="lineNum">    1313 </span>            :             {
+<span class="lineNum">    1314 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">    1315 </span>            :                     &quot;Package version from updates matches one installed. &quot;
+<span class="lineNum">    1316 </span>            :                     &quot;Skipping package instalation.&quot;);
+<span class="lineNum">    1317 </span><span class="lineNoCov">          0 :                 res = PromiseResultUpdate(res, PROMISE_RESULT_NOOP);</span>
+<span class="lineNum">    1318 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1319 </span>            :             }
+<span class="lineNum">    1320 </span><span class="lineNoCov">          0 :             else if (is_in_cache == -1)</span>
+<span class="lineNum">    1321 </span>            :             {
+<span class="lineNum">    1322 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">    1323 </span>            :                     &quot;Skipping package installation due to error with checking &quot;
+<span class="lineNum">    1324 </span>            :                     &quot;packages cache.&quot;);
+<span class="lineNum">    1325 </span><span class="lineNoCov">          0 :                 res = PromiseResultUpdate(res, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">    1326 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1327 </span>            :             }
+<span class="lineNum">    1328 </span>            :             else
+<span class="lineNum">    1329 </span>            :             {
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :                 if (action == cfa_warn || DONTDO)</span>
+<span class="lineNum">    1331 </span>            :                 {
+<span class="lineNum">    1332 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_WARNING, &quot;Should install repo type package: %s&quot;,</span>
+<span class="lineNum">    1333 </span>            :                         package_info-&gt;name);
+<span class="lineNum">    1334 </span><span class="lineNoCov">          0 :                     res = PromiseResultUpdate(res, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">    1335 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">    1336 </span>            :                 }
+<span class="lineNum">    1337 </span>            :                 
+<span class="lineNum">    1338 </span>            :                 /* Append package data to buffer. At the end all packages 
+<span class="lineNum">    1339 </span>            :                  * data that need to be updated will be sent to package module
+<span class="lineNum">    1340 </span>            :                  * at once. This is important if we have package in more than 
+<span class="lineNum">    1341 </span>            :                  * one architecture. If we would update one after another we 
+<span class="lineNum">    1342 </span>            :                  * may end up with the ones doesn't matching default 
+<span class="lineNum">    1343 </span>            :                  * architecture being removed. */
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :                 BufferAppendF(install_buffer, </span>
+<span class="lineNum">    1345 </span>            :                               &quot;Name=%s\nVersion=%s\nArchitecture=%s\n&quot;,
+<span class="lineNum">    1346 </span>            :                               package_info-&gt;name,
+<span class="lineNum">    1347 </span>            :                               update_package-&gt;version,
+<span class="lineNum">    1348 </span>            :                               update_package-&gt;arch);
+<span class="lineNum">    1349 </span>            :                 
+<span class="lineNum">    1350 </span>            :                 /* Here we are adding latest_versions elements to different 
+<span class="lineNum">    1351 </span>            :                  * seq. Make sure to not free those and not free latest_versions
+<span class="lineNum">    1352 </span>            :                  * before we are done with packages_to_install. 
+<span class="lineNum">    1353 </span>            :                  * This is needed for later verification if package was 
+<span class="lineNum">    1354 </span>            :                  * installed correctly. */
+<span class="lineNum">    1355 </span><span class="lineNoCov">          0 :                 SeqAppend(packages_to_install, update_package);</span>
+<span class="lineNum">    1356 </span>            :             }
+<span class="lineNum">    1357 </span>            :         }
+<span class="lineNum">    1358 </span>            :         
+<span class="lineNum">    1359 </span><span class="lineNoCov">          0 :         char *install_formatted_list = BufferClose(install_buffer);</span>
+<span class="lineNum">    1360 </span>            :         
+<span class="lineNum">    1361 </span><span class="lineNoCov">          0 :         if (install_formatted_list)</span>
+<span class="lineNum">    1362 </span>            :         {
+<span class="lineNum">    1363 </span>            :             /* If we have some packages to install. */
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :             if (strlen(install_formatted_list) &gt; 0)</span>
+<span class="lineNum">    1365 </span>            :             {
+<span class="lineNum">    1366 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">    1367 </span>            :                     &quot;Formatted list of packages to be send to package module: &quot;
+<span class="lineNum">    1368 </span>            :                     &quot;[%s]&quot;, install_formatted_list);
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 :                 res = InstallPackageGeneric(policy_data-&gt;package_options,</span>
+<span class="lineNum">    1370 </span>            :                                       PACKAGE_TYPE_REPO,
+<span class="lineNum">    1371 </span>            :                                       install_formatted_list, wrapper);
+<span class="lineNum">    1372 </span>            :                 
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 :                 for (int i = 0; i &lt; SeqLength(packages_to_install); i++)</span>
+<span class="lineNum">    1374 </span>            :                 {
+<span class="lineNum">    1375 </span><span class="lineNoCov">          0 :                     PackageInfo *to_verify = SeqAt(packages_to_install, i);</span>
+<span class="lineNum">    1376 </span><span class="lineNoCov">          0 :                     PromiseResult validate = </span>
+<span class="lineNum">    1377 </span>            :                             ValidateChangedPackage(policy_data, wrapper,
+<span class="lineNum">    1378 </span>            :                                                    to_verify,
+<span class="lineNum">    1379 </span>            :                                                    NEW_PACKAGE_ACTION_PRESENT);
+<span class="lineNum">    1380 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">    1381 </span>            :                         &quot;Validating package %s:%s:%s installation result: %d&quot;,
+<span class="lineNum">    1382 </span>            :                          to_verify-&gt;name, to_verify-&gt;version,
+<span class="lineNum">    1383 </span>            :                          to_verify-&gt;arch, validate);
+<span class="lineNum">    1384 </span><span class="lineNoCov">          0 :                     res = PromiseResultUpdate(res, validate);</span>
+<span class="lineNum">    1385 </span><span class="lineNoCov">          0 :                     *verified = true;</span>
+<span class="lineNum">    1386 </span>            :                 }
+<span class="lineNum">    1387 </span>            :             }
+<span class="lineNum">    1388 </span><span class="lineNoCov">          0 :             free(install_formatted_list);</span>
+<span class="lineNum">    1389 </span>            :         }
+<span class="lineNum">    1390 </span>            :         
+<span class="lineNum">    1391 </span><span class="lineNoCov">          0 :         SeqDestroy(packages_to_install);</span>
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :         SeqDestroy(latest_versions);</span>
+<span class="lineNum">    1393 </span><span class="lineNoCov">          0 :         return res;</span>
+<span class="lineNum">    1394 </span>            :     }
+<span class="lineNum">    1395 </span>            :     /* No version or explicit version specified. */
+<span class="lineNum">    1396 </span>            :     else
+<span class="lineNum">    1397 </span>            :     {
+<span class="lineNum">    1398 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Package '%s' already installed&quot;,</span>
+<span class="lineNum">    1399 </span>            :             package_info-&gt;name);
+<span class="lineNum">    1400 </span>            :             
+<span class="lineNum">    1401 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1402 </span>            :     }
+<span class="lineNum">    1403 </span>            :     /* Just to keep compiler happy; we shouldn't reach this point. */
+<span class="lineNum">    1404 </span>            :     return PROMISE_RESULT_FAIL;
+<a name="1405"><span class="lineNum">    1405 </span>            : }</a>
+<span class="lineNum">    1406 </span>            : 
+<span class="lineNum">    1407 </span><span class="lineNoCov">          0 : PromiseResult RepoInstallPackage(EvalContext *ctx, </span>
+<span class="lineNum">    1408 </span>            :                                  PackageInfo *package_info,
+<span class="lineNum">    1409 </span>            :                                  const NewPackages *policy_data,
+<span class="lineNum">    1410 </span>            :                                  const PackageModuleWrapper *wrapper,
+<span class="lineNum">    1411 </span>            :                                  int is_in_cache,
+<span class="lineNum">    1412 </span>            :                                  enum cfopaction action)
+<span class="lineNum">    1413 </span>            : {
+<span class="lineNum">    1414 </span><span class="lineNoCov">          0 :     bool verified = false;</span>
+<span class="lineNum">    1415 </span><span class="lineNoCov">          0 :     PromiseResult res = RepoInstall(ctx, package_info, policy_data, wrapper,</span>
+<span class="lineNum">    1416 </span>            :                                     is_in_cache, action, &amp;verified);
+<span class="lineNum">    1417 </span>            :     
+<span class="lineNum">    1418 </span><span class="lineNoCov">          0 :     if (res == PROMISE_RESULT_CHANGE &amp;&amp; !verified)</span>
+<span class="lineNum">    1419 </span>            :     {
+<span class="lineNum">    1420 </span><span class="lineNoCov">          0 :         return ValidateChangedPackage(policy_data, wrapper, package_info,</span>
+<span class="lineNum">    1421 </span>            :                                       NEW_PACKAGE_ACTION_PRESENT);
+<span class="lineNum">    1422 </span>            :     }
+<span class="lineNum">    1423 </span><span class="lineNoCov">          0 :     return res;</span>
+<a name="1424"><span class="lineNum">    1424 </span>            : }</a>
+<span class="lineNum">    1425 </span>            : 
+<span class="lineNum">    1426 </span><span class="lineNoCov">          0 : static bool CheckPolicyAndPackageInfoMatch(const NewPackages *packages_policy,</span>
+<span class="lineNum">    1427 </span>            :                                            const PackageInfo *info)
+<span class="lineNum">    1428 </span>            : {
+<span class="lineNum">    1429 </span><span class="lineNoCov">          0 :     if (packages_policy-&gt;package_version &amp;&amp;</span>
+<span class="lineNum">    1430 </span><span class="lineNoCov">          0 :         StringSafeEqual(packages_policy-&gt;package_version, &quot;latest&quot;))</span>
+<span class="lineNum">    1431 </span>            :     {
+<span class="lineNum">    1432 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_WARNING, &quot;Unsupported 'latest' version for package &quot;</span>
+<span class="lineNum">    1433 </span>            :                 &quot;promise of type file.&quot;);
+<span class="lineNum">    1434 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">    1435 </span>            :     }
+<span class="lineNum">    1436 </span>            : 
+<span class="lineNum">    1437 </span>            :     /* Check if file we are having matches what we want in policy. */
+<span class="lineNum">    1438 </span><span class="lineNoCov">          0 :     if (info-&gt;arch &amp;&amp; packages_policy-&gt;package_architecture &amp;&amp; </span>
+<span class="lineNum">    1439 </span><span class="lineNoCov">          0 :             !StringSafeEqual(info-&gt;arch, packages_policy-&gt;package_architecture))</span>
+<span class="lineNum">    1440 </span>            :     {
+<span class="lineNum">    1441 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_WARNING,</span>
+<span class="lineNum">    1442 </span>            :             &quot;Package arch and one specified in policy doesn't match: %s -&gt; %s&quot;,
+<span class="lineNum">    1443 </span>            :             info-&gt;arch, packages_policy-&gt;package_architecture);
+<span class="lineNum">    1444 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">    1445 </span>            :     }
+<span class="lineNum">    1446 </span>            : 
+<span class="lineNum">    1447 </span><span class="lineNoCov">          0 :     if (info-&gt;version &amp;&amp; packages_policy-&gt;package_version &amp;&amp;</span>
+<span class="lineNum">    1448 </span><span class="lineNoCov">          0 :         !StringSafeEqual(info-&gt;version, packages_policy-&gt;package_version))</span>
+<span class="lineNum">    1449 </span>            :     {
+<span class="lineNum">    1450 </span>            : 
+<span class="lineNum">    1451 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_WARNING,</span>
+<span class="lineNum">    1452 </span>            :             &quot;Package version and one specified in policy doesn't &quot;
+<span class="lineNum">    1453 </span>            :             &quot;match: %s -&gt; %s&quot;,
+<span class="lineNum">    1454 </span>            :             info-&gt;version, packages_policy-&gt;package_version);
+<span class="lineNum">    1455 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">    1456 </span>            :     }
+<span class="lineNum">    1457 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="1458"><span class="lineNum">    1458 </span>            : }</a>
+<span class="lineNum">    1459 </span>            : 
+<span class="lineNum">    1460 </span><span class="lineNoCov">          0 : PromiseResult HandlePresentPromiseAction(EvalContext *ctx, </span>
+<span class="lineNum">    1461 </span>            :                                          const char *package_name,
+<span class="lineNum">    1462 </span>            :                                          const NewPackages *policy_data,
+<span class="lineNum">    1463 </span>            :                                          const PackageModuleWrapper *wrapper,
+<span class="lineNum">    1464 </span>            :                                          enum cfopaction action)
+<span class="lineNum">    1465 </span>            : {
+<span class="lineNum">    1466 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Starting evaluating present action promise.&quot;);</span>
+<span class="lineNum">    1467 </span>            :     
+<span class="lineNum">    1468 </span>            :     /* Figure out what kind of package we are having. */
+<span class="lineNum">    1469 </span><span class="lineNoCov">          0 :     PackageInfo *package_info = GetPackageData(package_name,</span>
+<span class="lineNum">    1470 </span><span class="lineNoCov">          0 :                                                policy_data-&gt;package_version,</span>
+<span class="lineNum">    1471 </span><span class="lineNoCov">          0 :                                                policy_data-&gt;package_architecture,</span>
+<span class="lineNum">    1472 </span>            :                                                policy_data-&gt;package_options,
+<span class="lineNum">    1473 </span>            :                                                wrapper);
+<span class="lineNum">    1474 </span>            :     
+<span class="lineNum">    1475 </span><span class="lineNoCov">          0 :     PromiseResult result = PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1476 </span><span class="lineNoCov">          0 :     if (package_info)</span>
+<span class="lineNum">    1477 </span>            :     {
+<span class="lineNum">    1478 </span>            :         /* Check if data in policy matches returned by wrapper (files only). */
+<span class="lineNum">    1479 </span><span class="lineNoCov">          0 :         if (package_info-&gt;type == PACKAGE_TYPE_FILE)</span>
+<span class="lineNum">    1480 </span>            :         {
+<span class="lineNum">    1481 </span>            : 
+<span class="lineNum">    1482 </span><span class="lineNoCov">          0 :             if (!CheckPolicyAndPackageInfoMatch(policy_data, package_info))</span>
+<span class="lineNum">    1483 </span>            :             {
+<span class="lineNum">    1484 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Package data and policy doesn't match&quot;);</span>
+<span class="lineNum">    1485 </span><span class="lineNoCov">          0 :                 FreePackageInfo(package_info);</span>
+<span class="lineNum">    1486 </span><span class="lineNoCov">          0 :                 return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1487 </span>            :             }
+<span class="lineNum">    1488 </span>            :         }
+<span class="lineNum">    1489 </span><span class="lineNoCov">          0 :         else if (package_info-&gt;type == PACKAGE_TYPE_REPO)</span>
+<span class="lineNum">    1490 </span>            :         {
+<span class="lineNum">    1491 </span>            :             /* We are expecting only package name to be returned by
+<span class="lineNum">    1492 </span>            :              * 'get-package-data' in case of repo package */
+<span class="lineNum">    1493 </span><span class="lineNoCov">          0 :             if (package_info-&gt;arch)</span>
+<span class="lineNum">    1494 </span>            :             {
+<span class="lineNum">    1495 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">    1496 </span>            :                     &quot;Unexpected package architecture received from package module. Ignoring.&quot;);
+<span class="lineNum">    1497 </span><span class="lineNoCov">          0 :                 free(package_info-&gt;arch);</span>
+<span class="lineNum">    1498 </span><span class="lineNoCov">          0 :                 package_info-&gt;arch = NULL;</span>
+<span class="lineNum">    1499 </span>            :             }
+<span class="lineNum">    1500 </span><span class="lineNoCov">          0 :             if (package_info-&gt;version)</span>
+<span class="lineNum">    1501 </span>            :             {
+<span class="lineNum">    1502 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">    1503 </span>            :                     &quot;Unexpected package version received from package module. Ignoring.&quot;);
+<span class="lineNum">    1504 </span><span class="lineNoCov">          0 :                 free(package_info-&gt;version);</span>
+<span class="lineNum">    1505 </span><span class="lineNoCov">          0 :                 package_info-&gt;version = NULL;</span>
+<span class="lineNum">    1506 </span>            :             }
+<span class="lineNum">    1507 </span>            :         }
+<span class="lineNum">    1508 </span>            :         
+<span class="lineNum">    1509 </span>            :         /* Fill missing data in package_info from policy. This will allow
+<span class="lineNum">    1510 </span>            :          * to match cache against all known package details we are 
+<span class="lineNum">    1511 </span>            :          * interested in */
+<span class="lineNum">    1512 </span><span class="lineNoCov">          0 :         if (!package_info-&gt;arch &amp;&amp; policy_data-&gt;package_architecture)</span>
+<span class="lineNum">    1513 </span>            :         {
+<span class="lineNum">    1514 </span><span class="lineNoCov">          0 :             package_info-&gt;arch =</span>
+<span class="lineNum">    1515 </span><span class="lineNoCov">          0 :                     SafeStringDuplicate(policy_data-&gt;package_architecture);</span>
+<span class="lineNum">    1516 </span>            :         }
+<span class="lineNum">    1517 </span><span class="lineNoCov">          0 :         if (!package_info-&gt;version &amp;&amp; policy_data-&gt;package_version)</span>
+<span class="lineNum">    1518 </span>            :         {
+<span class="lineNum">    1519 </span><span class="lineNoCov">          0 :             package_info-&gt;version =</span>
+<span class="lineNum">    1520 </span><span class="lineNoCov">          0 :                     SafeStringDuplicate(policy_data-&gt;package_version);</span>
+<span class="lineNum">    1521 </span>            :         }
+<span class="lineNum">    1522 </span>            :         
+<span class="lineNum">    1523 </span>            :         /* Check if package exists in cache */
+<span class="lineNum">    1524 </span><span class="lineNoCov">          0 :         int is_in_cache = IsPackageInCache(ctx, wrapper,</span>
+<span class="lineNum">    1525 </span><span class="lineNoCov">          0 :                                            package_info-&gt;name,</span>
+<span class="lineNum">    1526 </span><span class="lineNoCov">          0 :                                            package_info-&gt;version,</span>
+<span class="lineNum">    1527 </span><span class="lineNoCov">          0 :                                            package_info-&gt;arch);</span>
+<span class="lineNum">    1528 </span>            :         
+<span class="lineNum">    1529 </span><span class="lineNoCov">          0 :         if (is_in_cache == -1)</span>
+<span class="lineNum">    1530 </span>            :         {
+<span class="lineNum">    1531 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO, &quot;Some error occurred while looking for package &quot;</span>
+<span class="lineNum">    1532 </span>            :                     &quot;'%s' in cache.&quot;, package_name);
+<span class="lineNum">    1533 </span><span class="lineNoCov">          0 :             return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1534 </span>            :         }
+<span class="lineNum">    1535 </span>            :         
+<span class="lineNum">    1536 </span><span class="lineNoCov">          0 :         switch (package_info-&gt;type)</span>
+<span class="lineNum">    1537 </span>            :         {
+<span class="lineNum">    1538 </span>            :             case PACKAGE_TYPE_FILE:
+<span class="lineNum">    1539 </span><span class="lineNoCov">          0 :                 result = FileInstallPackage(package_name, package_info,</span>
+<span class="lineNum">    1540 </span>            :                                             policy_data,
+<span class="lineNum">    1541 </span>            :                                             wrapper,
+<span class="lineNum">    1542 </span>            :                                             is_in_cache,
+<span class="lineNum">    1543 </span>            :                                             action);
+<span class="lineNum">    1544 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1545 </span>            :             case PACKAGE_TYPE_REPO:
+<span class="lineNum">    1546 </span><span class="lineNoCov">          0 :                 result = RepoInstallPackage(ctx, package_info, policy_data,</span>
+<span class="lineNum">    1547 </span>            :                                             wrapper,
+<span class="lineNum">    1548 </span>            :                                             is_in_cache, action);
+<span class="lineNum">    1549 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1550 </span>            :             default:
+<span class="lineNum">    1551 </span>            :                 /* We shouldn't end up here. If we are having unsupported 
+<span class="lineNum">    1552 </span>            :                  package type this should be detected and handled
+<span class="lineNum">    1553 </span>            :                  in ParseAndCheckPackageDataReply(). */
+<span class="lineNum">    1554 </span><span class="lineNoCov">          0 :                 ProgrammingError(&quot;Unsupported package type&quot;);</span>
+<span class="lineNum">    1555 </span>            :         }
+<span class="lineNum">    1556 </span>            :         
+<span class="lineNum">    1557 </span><span class="lineNoCov">          0 :         FreePackageInfo(package_info);</span>
+<span class="lineNum">    1558 </span>            :     }
+<span class="lineNum">    1559 </span>            :     else
+<span class="lineNum">    1560 </span>            :     {
+<span class="lineNum">    1561 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Can not obtain package data for promise: %s&quot;,</span>
+<span class="lineNum">    1562 </span>            :             package_name);
+<span class="lineNum">    1563 </span>            :     }
+<span class="lineNum">    1564 </span>            :         
+<span class="lineNum">    1565 </span>            :     
+<span class="lineNum">    1566 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Evaluating present action promise status: %c&quot;, result);</span>
+<span class="lineNum">    1567 </span><span class="lineNoCov">          0 :     return result;</span>
+<span class="lineNum">    1568 </span>            : }
+<a name="1569"><span class="lineNum">    1569 </span>            : </a>
+<span class="lineNum">    1570 </span>            : 
+<span class="lineNum">    1571 </span><span class="lineNoCov">          0 : PromiseResult HandleAbsentPromiseAction(EvalContext *ctx,</span>
+<span class="lineNum">    1572 </span>            :                                         char *package_name,
+<span class="lineNum">    1573 </span>            :                                         const NewPackages *policy_data, 
+<span class="lineNum">    1574 </span>            :                                         const PackageModuleWrapper *wrapper,
+<span class="lineNum">    1575 </span>            :                                         enum cfopaction action)
+<span class="lineNum">    1576 </span>            : {
+<span class="lineNum">    1577 </span>            :     /* Check if we are not having 'latest' version. */
+<span class="lineNum">    1578 </span><span class="lineNoCov">          0 :     if (policy_data-&gt;package_version &amp;&amp;</span>
+<span class="lineNum">    1579 </span><span class="lineNoCov">          0 :             StringSafeEqual(policy_data-&gt;package_version, &quot;latest&quot;))</span>
+<span class="lineNum">    1580 </span>            :     {
+<span class="lineNum">    1581 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Package version 'latest' not supported for&quot;</span>
+<span class="lineNum">    1582 </span>            :                 &quot;absent package promise&quot;);
+<span class="lineNum">    1583 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1584 </span>            :     }
+<span class="lineNum">    1585 </span>            :     
+<span class="lineNum">    1586 </span>            :     /* Check if package exists in cache */
+<span class="lineNum">    1587 </span><span class="lineNoCov">          0 :     int is_in_cache = IsPackageInCache(ctx, wrapper, package_name,</span>
+<span class="lineNum">    1588 </span><span class="lineNoCov">          0 :                                        policy_data-&gt;package_version,</span>
+<span class="lineNum">    1589 </span><span class="lineNoCov">          0 :                                        policy_data-&gt;package_architecture);</span>
+<span class="lineNum">    1590 </span><span class="lineNoCov">          0 :     if (is_in_cache == 1)</span>
+<span class="lineNum">    1591 </span>            :     {
+<span class="lineNum">    1592 </span>            :         /* Remove package(s) */
+<span class="lineNum">    1593 </span>            :         PromiseResult res;
+<span class="lineNum">    1594 </span>            :         
+<span class="lineNum">    1595 </span><span class="lineNoCov">          0 :         if (action == cfa_warn || DONTDO)</span>
+<span class="lineNum">    1596 </span>            :         {
+<span class="lineNum">    1597 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_WARNING, &quot;Need to remove package: %s&quot;, package_name);</span>
+<span class="lineNum">    1598 </span><span class="lineNoCov">          0 :             res = PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1599 </span>            :         }
+<span class="lineNum">    1600 </span>            :         else
+<span class="lineNum">    1601 </span>            :         {
+<span class="lineNum">    1602 </span><span class="lineNoCov">          0 :             res = RemovePackage(package_name,</span>
+<span class="lineNum">    1603 </span><span class="lineNoCov">          0 :                     policy_data-&gt;package_options, policy_data-&gt;package_version,</span>
+<span class="lineNum">    1604 </span><span class="lineNoCov">          0 :                     policy_data-&gt;package_architecture, wrapper);</span>
+<span class="lineNum">    1605 </span>            : 
+<span class="lineNum">    1606 </span><span class="lineNoCov">          0 :             if (res == PROMISE_RESULT_CHANGE)</span>
+<span class="lineNum">    1607 </span>            :             {
+<span class="lineNum">    1608 </span>            :                 /* Check if package was removed. */
+<span class="lineNum">    1609 </span><span class="lineNoCov">          0 :                 return ValidateChangedPackage(policy_data, wrapper, </span>
+<span class="lineNum">    1610 </span><span class="lineNoCov">          0 :                         &amp;((PackageInfo){.name = package_name, </span>
+<span class="lineNum">    1611 </span><span class="lineNoCov">          0 :                                         .version = policy_data-&gt;package_version, </span>
+<span class="lineNum">    1612 </span><span class="lineNoCov">          0 :                                         .arch = policy_data-&gt;package_architecture}),</span>
+<span class="lineNum">    1613 </span>            :                         NEW_PACKAGE_ACTION_ABSENT);
+<span class="lineNum">    1614 </span>            :             }
+<span class="lineNum">    1615 </span>            :         }
+<span class="lineNum">    1616 </span>            :         
+<span class="lineNum">    1617 </span><span class="lineNoCov">          0 :         return res;</span>
+<span class="lineNum">    1618 </span>            :     }
+<span class="lineNum">    1619 </span><span class="lineNoCov">          0 :     else if (is_in_cache == -1)</span>
+<span class="lineNum">    1620 </span>            :     {
+<span class="lineNum">    1621 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Error occurred while checking package '%s' &quot;</span>
+<span class="lineNum">    1622 </span>            :             &quot;existence in cache.&quot;, package_name);
+<span class="lineNum">    1623 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1624 </span>            :     }
+<span class="lineNum">    1625 </span>            :     else
+<span class="lineNum">    1626 </span>            :     {
+<span class="lineNum">    1627 </span>            :         /* Package is not in cache which means it is already removed. */
+<span class="lineNum">    1628 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG, &quot;Package '%s' not installed. Skipping removing.&quot;,</span>
+<span class="lineNum">    1629 </span>            :                 package_name);
+<span class="lineNum">    1630 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1631 </span>            :     }
+<span class="lineNum">    1632 </span>            : }
+<span class="lineNum">    1633 </span>            : 
+<span class="lineNum">    1634 </span>            : 
+<a name="1635"><span class="lineNum">    1635 </span>            : /* IMPORTANT: This must be called under protection of </a>
+<span class="lineNum">    1636 </span>            :  * GLOBAL_PACKAGE_PROMISE_LOCK_NAME lock! */
+<span class="lineNum">    1637 </span><span class="lineNoCov">          0 : bool UpdateSinglePackageModuleCache(EvalContext *ctx,</span>
+<span class="lineNum">    1638 </span>            :                                     const PackageModuleWrapper *module_wrapper,
+<span class="lineNum">    1639 </span>            :                                     UpdateType type, bool force_update)
+<span class="lineNum">    1640 </span>            : {
+<span class="lineNum">    1641 </span><span class="lineNoCov">          0 :     assert(module_wrapper-&gt;package_module-&gt;name);</span>
+<span class="lineNum">    1642 </span>            :     
+<span class="lineNum">    1643 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">    1644 </span>            :         &quot;Trying to%s update cache type: %d.&quot;,
+<span class="lineNum">    1645 </span>            :         force_update ? &quot; force&quot; : &quot;&quot;, type);
+<span class="lineNum">    1646 </span>            :     
+<span class="lineNum">    1647 </span><span class="lineNoCov">          0 :     if (!force_update)</span>
+<span class="lineNum">    1648 </span>            :     {
+<span class="lineNum">    1649 </span><span class="lineNoCov">          0 :         if (module_wrapper-&gt;package_module-&gt;installed_ifelapsed == CF_NOINT ||</span>
+<span class="lineNum">    1650 </span><span class="lineNoCov">          0 :             module_wrapper-&gt;package_module-&gt;updates_ifelapsed == CF_NOINT)</span>
+<span class="lineNum">    1651 </span>            :         {
+<span class="lineNum">    1652 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">    1653 </span>            :                 &quot;Invalid or missing arguments in package_module body '%s':  &quot;
+<span class="lineNum">    1654 </span>            :                 &quot;query_installed_ifelapsed = %d query_updates_ifelapsed = %d&quot;,
+<span class="lineNum">    1655 </span><span class="lineNoCov">          0 :                 module_wrapper-&gt;package_module-&gt;name, </span>
+<span class="lineNum">    1656 </span><span class="lineNoCov">          0 :                 module_wrapper-&gt;package_module-&gt;installed_ifelapsed,</span>
+<span class="lineNum">    1657 </span><span class="lineNoCov">          0 :                 module_wrapper-&gt;package_module-&gt;updates_ifelapsed);</span>
+<span class="lineNum">    1658 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">    1659 </span>            :         }
+<span class="lineNum">    1660 </span>            :     }
+<span class="lineNum">    1661 </span>            :     
+<span class="lineNum">    1662 </span><span class="lineNoCov">          0 :     Bundle bundle = {.name = &quot;package_cache&quot;};</span>
+<span class="lineNum">    1663 </span><span class="lineNoCov">          0 :     PromiseType promie_type = {.name = &quot;package_cache&quot;,</span>
+<span class="lineNum">    1664 </span>            :                                .parent_bundle = &amp;bundle};
+<span class="lineNum">    1665 </span><span class="lineNoCov">          0 :     Promise pp = {.promiser = &quot;package_cache&quot;,</span>
+<span class="lineNum">    1666 </span>            :                   .parent_promise_type = &amp;promie_type};
+<span class="lineNum">    1667 </span>            : 
+<span class="lineNum">    1668 </span>            :     CfLock cache_updates_lock;
+<span class="lineNum">    1669 </span>            :     char cache_updates_lock_name[CF_BUFSIZE];
+<span class="lineNum">    1670 </span><span class="lineNoCov">          0 :     int ifelapsed_time = -1;</span>
+<span class="lineNum">    1671 </span>            : 
+<span class="lineNum">    1672 </span>            :     dbid dbid_val;
+<span class="lineNum">    1673 </span>            : 
+<span class="lineNum">    1674 </span><span class="lineNoCov">          0 :     if (type == UPDATE_TYPE_INSTALLED)</span>
+<span class="lineNum">    1675 </span>            :     {
+<span class="lineNum">    1676 </span><span class="lineNoCov">          0 :         dbid_val = dbid_packages_installed;</span>
+<span class="lineNum">    1677 </span><span class="lineNoCov">          0 :         snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,</span>
+<span class="lineNum">    1678 </span><span class="lineNoCov">          0 :                  &quot;package-cache-installed-%s&quot;, module_wrapper-&gt;package_module-&gt;name);</span>
+<span class="lineNum">    1679 </span><span class="lineNoCov">          0 :         ifelapsed_time = module_wrapper-&gt;package_module-&gt;installed_ifelapsed;</span>
+<span class="lineNum">    1680 </span>            :     }
+<span class="lineNum">    1681 </span>            :     else
+<span class="lineNum">    1682 </span>            :     {
+<span class="lineNum">    1683 </span><span class="lineNoCov">          0 :         dbid_val = dbid_packages_updates;</span>
+<span class="lineNum">    1684 </span><span class="lineNoCov">          0 :         snprintf(cache_updates_lock_name, CF_BUFSIZE - 1,</span>
+<span class="lineNum">    1685 </span><span class="lineNoCov">          0 :                 &quot;package-cache-updates-%s&quot;, module_wrapper-&gt;package_module-&gt;name);</span>
+<span class="lineNum">    1686 </span><span class="lineNoCov">          0 :         ifelapsed_time = module_wrapper-&gt;package_module-&gt;updates_ifelapsed;</span>
+<span class="lineNum">    1687 </span>            :     }
+<span class="lineNum">    1688 </span>            : 
+<span class="lineNum">    1689 </span><span class="lineNoCov">          0 :     char *db_name = DBIdToSubPath(dbid_val, module_wrapper-&gt;name);</span>
+<span class="lineNum">    1690 </span>            :     struct stat statbuf;
+<span class="lineNum">    1691 </span><span class="lineNoCov">          0 :     if (!force_update)</span>
+<span class="lineNum">    1692 </span>            :     {
+<span class="lineNum">    1693 </span><span class="lineNoCov">          0 :         if (stat(db_name, &amp;statbuf) == -1 &amp;&amp; errno == ENOENT)</span>
+<span class="lineNum">    1694 </span>            :         {
+<span class="lineNum">    1695 </span>            :             /* Force update if database file doesn't exist. Not strictly 
+<span class="lineNum">    1696 </span>            :              * necessary with the locks we have, but good to have for tests 
+<span class="lineNum">    1697 </span>            :              * that delete the database. */
+<span class="lineNum">    1698 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">    1699 </span>            :                 &quot;Forcing package list update due to missing database&quot;);
+<span class="lineNum">    1700 </span><span class="lineNoCov">          0 :             force_update = true;</span>
+<span class="lineNum">    1701 </span>            :         }
+<span class="lineNum">    1702 </span>            : 
+<span class="lineNum">    1703 </span><span class="lineNoCov">          0 :         cache_updates_lock =</span>
+<span class="lineNum">    1704 </span><span class="lineNoCov">          0 :                 AcquireLock(ctx, cache_updates_lock_name, VUQNAME, CFSTARTTIME,</span>
+<span class="lineNum">    1705 </span><span class="lineNoCov">          0 :                             (TransactionContext) { .ifelapsed = ifelapsed_time,</span>
+<span class="lineNum">    1706 </span>            :                                                    .expireafter = VEXPIREAFTER},
+<span class="lineNum">    1707 </span>            :                             &amp;pp, false);
+<span class="lineNum">    1708 </span>            :     }
+<span class="lineNum">    1709 </span><span class="lineNoCov">          0 :     free(db_name);</span>
+<span class="lineNum">    1710 </span>            : 
+<span class="lineNum">    1711 </span><span class="lineNoCov">          0 :     bool ret = true;</span>
+<span class="lineNum">    1712 </span>            :     
+<span class="lineNum">    1713 </span><span class="lineNoCov">          0 :     if (force_update || cache_updates_lock.lock != NULL)</span>
+<span class="lineNum">    1714 </span>            :     {
+<span class="lineNum">    1715 </span>            :         
+<span class="lineNum">    1716 </span>            :         /* Update available updates cache. */
+<span class="lineNum">    1717 </span><span class="lineNoCov">          0 :         if (!UpdateCache(module_wrapper-&gt;package_module-&gt;options, module_wrapper, type))</span>
+<span class="lineNum">    1718 </span>            :         {
+<span class="lineNum">    1719 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">    1720 </span>            :                 &quot;Some error occurred while updating available updates cache.&quot;);
+<span class="lineNum">    1721 </span><span class="lineNoCov">          0 :             ret = false;</span>
+<span class="lineNum">    1722 </span>            :         }
+<span class="lineNum">    1723 </span><span class="lineNoCov">          0 :         if (cache_updates_lock.lock != NULL)</span>
+<span class="lineNum">    1724 </span>            :         {
+<span class="lineNum">    1725 </span><span class="lineNoCov">          0 :             YieldCurrentLock(cache_updates_lock);</span>
+<span class="lineNum">    1726 </span>            :         }
+<span class="lineNum">    1727 </span>            :     }
+<span class="lineNum">    1728 </span>            :     else
+<span class="lineNum">    1729 </span>            :     {
+<span class="lineNum">    1730 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Skipping %s package cache update.&quot;,</span>
+<span class="lineNum">    1731 </span>            :             type == UPDATE_TYPE_INSTALLED ? 
+<span class="lineNum">    1732 </span>            :                     &quot;installed packages&quot; : &quot;available updates&quot;);
+<span class="lineNum">    1733 </span>            :     }
+<span class="lineNum">    1734 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">    1735 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

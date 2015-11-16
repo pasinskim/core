@@ -1,0 +1,591 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - cf-promises/cf-promises.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cf-promises</a> - cf-promises.c<span style="font-size: 80%;"> (source / <a href="cf-promises.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntry">189</td>
+            <td class="headerCovTableEntryLo">13.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;generic_agent.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;conversion.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;syntax.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;rlist.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;parser.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;known_dirs.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;man.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;bootstrap.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;loading.h&gt;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #include &lt;time.h&gt;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : static GenericAgentConfig *CheckOpts(int argc, char **argv);
+<span class="lineNum">      41 </span>            : static void ShowContextsFormatted(EvalContext *ctx);
+<span class="lineNum">      42 </span>            : static void ShowVariablesFormatted(EvalContext *ctx);
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : /*******************************************************************/
+<span class="lineNum">      45 </span>            : /* Command line options                                            */
+<span class="lineNum">      46 </span>            : /*******************************************************************/
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : static const char *const CF_PROMISES_SHORT_DESCRIPTION =
+<span class="lineNum">      49 </span>            :     &quot;validate and analyze CFEngine policy code&quot;;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : static const char *const CF_PROMISES_MANPAGE_LONG_DESCRIPTION = &quot;cf-promises is a tool for checking CFEngine policy code. &quot;
+<span class="lineNum">      52 </span>            :     &quot;It operates by first parsing policy code checing for syntax errors. Second, it validates the integrity of &quot;
+<span class="lineNum">      53 </span>            :     &quot;policy consisting of multiple files. Third, it checks for semantic errors, e.g. specific attribute set rules. &quot;
+<span class="lineNum">      54 </span>            :     &quot;Finally, cf-promises attempts to expose errors by partially evaluating the policy, resolving as many variable and &quot;
+<span class="lineNum">      55 </span>            :     &quot;classes promise statements as possible. At no point does cf-promises make any changes to the system.&quot;;
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : /* Long-style only options, values must start above max ASCII value. */
+<span class="lineNum">      58 </span>            : enum
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span>            :     OPT_EVAL_FUNCTIONS = 256,
+<span class="lineNum">      61 </span>            :     OPT_SHOW_CLASSES,
+<span class="lineNum">      62 </span>            :     OPT_SHOW_VARS
+<span class="lineNum">      63 </span>            : };
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : static const struct option OPTIONS[] =
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span>            :     {&quot;eval-functions&quot;, optional_argument, 0, OPT_EVAL_FUNCTIONS },
+<span class="lineNum">      68 </span>            :     {&quot;show-classes&quot;, no_argument, 0, OPT_SHOW_CLASSES },
+<span class="lineNum">      69 </span>            :     {&quot;show-vars&quot;, no_argument, 0, OPT_SHOW_VARS },
+<span class="lineNum">      70 </span>            :     {&quot;help&quot;, no_argument, 0, 'h'},
+<span class="lineNum">      71 </span>            :     {&quot;bundlesequence&quot;, required_argument, 0, 'b'},
+<span class="lineNum">      72 </span>            :     {&quot;debug&quot;, no_argument, 0, 'd'},
+<span class="lineNum">      73 </span>            :     {&quot;verbose&quot;, no_argument, 0, 'v'},
+<span class="lineNum">      74 </span>            :     {&quot;dry-run&quot;, no_argument, 0, 'n'},
+<span class="lineNum">      75 </span>            :     {&quot;version&quot;, no_argument, 0, 'V'},
+<span class="lineNum">      76 </span>            :     {&quot;file&quot;, required_argument, 0, 'f'},
+<span class="lineNum">      77 </span>            :     {&quot;define&quot;, required_argument, 0, 'D'},
+<span class="lineNum">      78 </span>            :     {&quot;negate&quot;, required_argument, 0, 'N'},
+<span class="lineNum">      79 </span>            :     {&quot;inform&quot;, no_argument, 0, 'I'},
+<span class="lineNum">      80 </span>            :     {&quot;diagnostic&quot;, no_argument, 0, 'x'},
+<span class="lineNum">      81 </span>            :     {&quot;reports&quot;, no_argument, 0, 'r'},
+<span class="lineNum">      82 </span>            :     {&quot;policy-output-format&quot;, required_argument, 0, 'p'},
+<span class="lineNum">      83 </span>            :     {&quot;syntax-description&quot;, required_argument, 0, 's'},
+<span class="lineNum">      84 </span>            :     {&quot;full-check&quot;, no_argument, 0, 'c'},
+<span class="lineNum">      85 </span>            :     {&quot;warn&quot;, required_argument, 0, 'W'},
+<span class="lineNum">      86 </span>            :     {&quot;color&quot;, optional_argument, 0, 'C'},
+<span class="lineNum">      87 </span>            :     {&quot;tag-release&quot;, required_argument, 0, 'T'},
+<span class="lineNum">      88 </span>            :     {&quot;timestamp&quot;, no_argument, 0, 'l'},
+<span class="lineNum">      89 </span>            :     {NULL, 0, 0, '\0'}
+<span class="lineNum">      90 </span>            : };
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : static const char *const HINTS[] =
+<span class="lineNum">      93 </span>            : {
+<span class="lineNum">      94 </span>            :     &quot;Evaluate functions during syntax checking (may catch more run-time errors). Possible values: 'yes', 'no'. Default is 'yes'&quot;,
+<span class="lineNum">      95 </span>            :     &quot;Show discovered classes, including those defined in common bundles in policy&quot;,
+<span class="lineNum">      96 </span>            :     &quot;Show discovered variables, including those defined without dependency to user-defined classes in policy&quot;,
+<span class="lineNum">      97 </span>            :     &quot;Print the help message&quot;,
+<span class="lineNum">      98 </span>            :     &quot;Use the specified bundlesequence for verification&quot;,
+<span class="lineNum">      99 </span>            :     &quot;Enable debugging output&quot;,
+<span class="lineNum">     100 </span>            :     &quot;Output verbose information about the behaviour of the agent&quot;,
+<span class="lineNum">     101 </span>            :     &quot;All talk and no action mode - make no changes, only inform of promises not kept&quot;,
+<span class="lineNum">     102 </span>            :     &quot;Output the version of the software&quot;,
+<span class="lineNum">     103 </span>            :     &quot;Specify an alternative input file than the default&quot;,
+<span class="lineNum">     104 </span>            :     &quot;Define a list of comma separated classes to be defined at the start of execution&quot;,
+<span class="lineNum">     105 </span>            :     &quot;Define a list of comma separated classes to be undefined at the start of execution&quot;,
+<span class="lineNum">     106 </span>            :     &quot;Print basic information about changes made to the system, i.e. promises repaired&quot;,
+<span class="lineNum">     107 </span>            :     &quot;Activate internal diagnostics (developers only)&quot;,
+<span class="lineNum">     108 </span>            :     &quot;Generate reports about configuration and insert into CFDB&quot;,
+<span class="lineNum">     109 </span>            :     &quot;Output the parsed policy. Possible values: 'none', 'cf', 'json'. Default is 'none'. (experimental)&quot;,
+<span class="lineNum">     110 </span>            :     &quot;Output a document describing the available syntax elements of CFEngine. Possible values: 'none', 'json'. Default is 'none'.&quot;,
+<span class="lineNum">     111 </span>            :     &quot;Ensure full policy integrity checks&quot;,
+<span class="lineNum">     112 </span>            :     &quot;Pass comma-separated &lt;warnings&gt;|all to enable non-default warnings, or error=&lt;warnings&gt;|all&quot;,
+<span class="lineNum">     113 </span>            :     &quot;Enable colorized output. Possible values: 'always', 'auto', 'never'. If option is used, the default value is 'auto'&quot;,
+<span class="lineNum">     114 </span>            :     &quot;Tag a directory with promises.cf with cf_promises_validated and cf_promises_release_id&quot;,
+<span class="lineNum">     115 </span>            :     &quot;Log timestamps on each line of log output&quot;,
+<span class="lineNum">     116 </span>            :     NULL
+<span class="lineNum">     117 </span>            : };
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : /*******************************************************************/
+<span class="lineNum">     120 </span>            : /* Level 0 : Main                                                  */
+<a name="121"><span class="lineNum">     121 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineCov">          1 : int main(int argc, char *argv[])</span>
+<span class="lineNum">     124 </span>            : {
+<span class="lineNum">     125 </span><span class="lineCov">          1 :     GenericAgentConfig *config = CheckOpts(argc, argv);</span>
+<span class="lineNum">     126 </span><span class="lineCov">          1 :     EvalContext *ctx = EvalContextNew();</span>
+<span class="lineNum">     127 </span><span class="lineCov">          1 :     GenericAgentConfigApply(ctx, config);</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineCov">          1 :     GenericAgentDiscoverContext(ctx, config);</span>
+<span class="lineNum">     130 </span><span class="lineCov">          1 :     Policy *policy = LoadPolicy(ctx, config);</span>
+<span class="lineNum">     131 </span><span class="lineCov">          1 :     if (!policy)</span>
+<span class="lineNum">     132 </span>            :     {
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Input files contain errors.&quot;);</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     135 </span>            :     }
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineCov">          1 :     GenericAgentPostLoadInit(ctx);</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineCov">          1 :     if (NULL != config-&gt;tag_release_dir)</span>
+<span class="lineNum">     140 </span>            :     {
+<span class="lineNum">     141 </span>            :         // write the validated file and the release ID
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         bool tagged = GenericAgentTagReleaseDirectory(config, config-&gt;tag_release_dir, true, true);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         if (tagged)</span>
+<span class="lineNum">     144 </span>            :         {
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Release tagging done!&quot;);</span>
+<span class="lineNum">     146 </span>            :         }
+<span class="lineNum">     147 </span>            :         else
+<span class="lineNum">     148 </span>            :         {
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;The given directory could not be tagged, sorry.&quot;);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :             exit(EXIT_FAILURE);</span>
+<span class="lineNum">     151 </span>            :         }
+<span class="lineNum">     152 </span>            :     }
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">          1 :     if (SHOWREPORTS)</span>
+<span class="lineNum">     155 </span>            :     {
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         ShowPromises(policy-&gt;bundles, policy-&gt;bodies);</span>
+<span class="lineNum">     157 </span>            :     }
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineCov">          1 :     switch (config-&gt;agent_specific.common.policy_output_format)</span>
+<span class="lineNum">     160 </span>            :     {
+<span class="lineNum">     161 </span>            :     case GENERIC_AGENT_CONFIG_COMMON_POLICY_OUTPUT_FORMAT_CF:
+<span class="lineNum">     162 </span>            :     {
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         Policy *output_policy = ParserParseFile(AGENT_TYPE_COMMON, config-&gt;input_file,</span>
+<span class="lineNum">     164 </span>            :                                                 config-&gt;agent_specific.common.parser_warnings,
+<span class="lineNum">     165 </span>            :                                                 config-&gt;agent_specific.common.parser_warnings_error);
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         Writer *writer = FileWriter(stdout);</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         PolicyToString(policy, writer);</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         WriterClose(writer);</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         PolicyDestroy(output_policy);</span>
+<span class="lineNum">     170 </span>            :     }
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            :     case GENERIC_AGENT_CONFIG_COMMON_POLICY_OUTPUT_FORMAT_JSON:
+<span class="lineNum">     174 </span>            :     {
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :         Policy *output_policy = ParserParseFile(AGENT_TYPE_COMMON, config-&gt;input_file,</span>
+<span class="lineNum">     176 </span>            :                                                 config-&gt;agent_specific.common.parser_warnings,
+<span class="lineNum">     177 </span>            :                                                 config-&gt;agent_specific.common.parser_warnings_error);
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         JsonElement *json_policy = PolicyToJson(output_policy);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         Writer *writer = FileWriter(stdout);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         JsonWrite(writer, json_policy, 2);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         WriterClose(writer);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         JsonDestroy(json_policy);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :         PolicyDestroy(output_policy);</span>
+<span class="lineNum">     184 </span>            :     }
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     break;</span>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            :     case GENERIC_AGENT_CONFIG_COMMON_POLICY_OUTPUT_FORMAT_NONE:
+<span class="lineNum">     188 </span><span class="lineCov">          1 :         break;</span>
+<span class="lineNum">     189 </span>            :     }
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineCov">          1 :     if(config-&gt;agent_specific.common.show_classes)</span>
+<span class="lineNum">     192 </span>            :     {
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         ShowContextsFormatted(ctx);</span>
+<span class="lineNum">     194 </span>            :     }
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span><span class="lineCov">          1 :     if(config-&gt;agent_specific.common.show_variables)</span>
+<span class="lineNum">     197 </span>            :     {
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :         ShowVariablesFormatted(ctx);</span>
+<span class="lineNum">     199 </span>            :     }
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineCov">          1 :     PolicyDestroy(policy);</span>
+<span class="lineNum">     202 </span><span class="lineCov">          1 :     GenericAgentFinalize(ctx, config);</span>
+<span class="lineNum">     203 </span>            : }
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            : /*******************************************************************/
+<span class="lineNum">     206 </span>            : /* Level 1                                                         */
+<a name="207"><span class="lineNum">     207 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span><span class="lineCov">          1 : GenericAgentConfig *CheckOpts(int argc, char **argv)</span>
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :     extern char *optarg;
+<span class="lineNum">     212 </span>            :     int c;
+<span class="lineNum">     213 </span><span class="lineCov">          1 :     GenericAgentConfig *config = GenericAgentConfigNewDefault(AGENT_TYPE_COMMON, GetTTYInteractive());</span>
+<span class="lineNum">     214 </span><span class="lineCov">          1 :     config-&gt;tag_release_dir = NULL;</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineCov">          3 :     while ((c = getopt_long(argc, argv, &quot;dvnIf:D:N:VSrxMb:i:p:s:cg:hW:C::T:l&quot;,</span>
+<span class="lineNum">     217 </span>            :                             OPTIONS, NULL))
+<span class="lineNum">     218 </span>            :            != -1)
+<span class="lineNum">     219 </span>            :     {
+<span class="lineNum">     220 </span><span class="lineCov">          1 :         switch (c)</span>
+<span class="lineNum">     221 </span>            :         {
+<span class="lineNum">     222 </span>            :         case OPT_EVAL_FUNCTIONS:
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :             if (!optarg)</span>
+<span class="lineNum">     224 </span>            :             {
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                 optarg = &quot;yes&quot;;</span>
+<span class="lineNum">     226 </span>            :             }
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :             config-&gt;agent_specific.common.eval_functions = strcmp(&quot;yes&quot;, optarg) == 0;</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span>            :         case OPT_SHOW_CLASSES:
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :             config-&gt;agent_specific.common.show_classes = true;</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            :         case OPT_SHOW_VARS:
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :             config-&gt;agent_specific.common.show_variables = true;</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span>            :         case 'c':
+<span class="lineNum">     239 </span><span class="lineCov">          1 :             config-&gt;check_runnable = true;</span>
+<span class="lineNum">     240 </span><span class="lineCov">          1 :             break;</span>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            :         case 'f':
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             GenericAgentConfigSetInputFile(config, GetInputDir(), optarg);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             MINUSF = true;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            :         case 'd':
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :             LogSetGlobalLevel(LOG_LEVEL_DEBUG);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :         case 'b':
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :             if (optarg)</span>
+<span class="lineNum">     253 </span>            :             {
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                 Rlist *bundlesequence = RlistFromSplitString(optarg, ',');</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :                 GenericAgentConfigSetBundleSequence(config, bundlesequence);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                 RlistDestroy(bundlesequence);</span>
+<span class="lineNum">     257 </span>            :             }
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            :         case 'p':
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             if (strcmp(&quot;none&quot;, optarg) == 0)</span>
+<span class="lineNum">     262 </span>            :             {
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :                 config-&gt;agent_specific.common.policy_output_format = GENERIC_AGENT_CONFIG_COMMON_POLICY_OUTPUT_FORMAT_NONE;</span>
+<span class="lineNum">     264 </span>            :             }
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :             else if (strcmp(&quot;cf&quot;, optarg) == 0)</span>
+<span class="lineNum">     266 </span>            :             {
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :                 config-&gt;agent_specific.common.policy_output_format = GENERIC_AGENT_CONFIG_COMMON_POLICY_OUTPUT_FORMAT_CF;</span>
+<span class="lineNum">     268 </span>            :             }
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :             else if (strcmp(&quot;json&quot;, optarg) == 0)</span>
+<span class="lineNum">     270 </span>            :             {
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                 config-&gt;agent_specific.common.policy_output_format = GENERIC_AGENT_CONFIG_COMMON_POLICY_OUTPUT_FORMAT_JSON;</span>
+<span class="lineNum">     272 </span>            :             }
+<span class="lineNum">     273 </span>            :             else
+<span class="lineNum">     274 </span>            :             {
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Invalid policy output format: '%s'. Possible values are 'none', 'cf', 'json'&quot;, optarg);</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :                 exit(EXIT_FAILURE);</span>
+<span class="lineNum">     277 </span>            :             }
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            :         case 's':
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :             if (strcmp(&quot;none&quot;, optarg) == 0)</span>
+<span class="lineNum">     282 </span>            :             {
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     284 </span>            :             }
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :             else if (strcmp(&quot;json&quot;, optarg) == 0)</span>
+<span class="lineNum">     286 </span>            :             {
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :                 JsonElement *json_syntax = SyntaxToJson();</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :                 Writer *out = FileWriter(stdout);</span>
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :                 JsonWrite(out, json_syntax, 0);</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                 FileWriterDetach(out);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :                 JsonDestroy(json_syntax);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 exit(EXIT_SUCCESS);</span>
+<span class="lineNum">     293 </span>            :             }
+<span class="lineNum">     294 </span>            :             else
+<span class="lineNum">     295 </span>            :             {
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Invalid syntax description output format: '%s'. Possible values are 'none', 'json'&quot;, optarg);</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :                 exit(EXIT_FAILURE);</span>
+<span class="lineNum">     298 </span>            :             }
+<span class="lineNum">     299 </span>            :             break;
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            :         case 'K':
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :             config-&gt;ignore_locks = true;</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :         case 'D':
+<span class="lineNum">     306 </span>            :             {
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :                 StringSet *defined_classes = StringSetFromString(optarg, ',');</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                 if (! config-&gt;heap_soft)</span>
+<span class="lineNum">     309 </span>            :                 {
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :                     config-&gt;heap_soft = defined_classes;</span>
+<span class="lineNum">     311 </span>            :                 }
+<span class="lineNum">     312 </span>            :                 else
+<span class="lineNum">     313 </span>            :                 {
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :                     StringSetJoin(config-&gt;heap_soft, defined_classes);</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                     free(defined_classes);</span>
+<span class="lineNum">     316 </span>            :                 }
+<span class="lineNum">     317 </span>            :             }
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            :         case 'N':
+<span class="lineNum">     321 </span>            :             {
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :                 StringSet *negated_classes = StringSetFromString(optarg, ',');</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :                 if (! config-&gt;heap_negated)</span>
+<span class="lineNum">     324 </span>            :                 {
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :                     config-&gt;heap_negated = negated_classes;</span>
+<span class="lineNum">     326 </span>            :                 }
+<span class="lineNum">     327 </span>            :                 else
+<span class="lineNum">     328 </span>            :                 {
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :                     StringSetJoin(config-&gt;heap_negated, negated_classes);</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :                     free(negated_classes);</span>
+<span class="lineNum">     331 </span>            :                 }
+<span class="lineNum">     332 </span>            :             }
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :         case 'I':
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :             LogSetGlobalLevel(LOG_LEVEL_INFO);</span>
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span>            :         case 'v':
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :             LogSetGlobalLevel(LOG_LEVEL_VERBOSE);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span>            :         case 'n':
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :             DONTDO = true;</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             config-&gt;ignore_locks = true;</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            :         case 'V':
+<span class="lineNum">     349 </span>            :         {
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :             Writer *w = FileWriter(stdout);</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :             GenericAgentWriteVersion(w);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :             FileWriterDetach(w);</span>
+<span class="lineNum">     353 </span>            :         }
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         exit(EXIT_SUCCESS);</span>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span>            :         case 'h':
+<span class="lineNum">     357 </span>            :         {
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :             Writer *w = FileWriter(stdout);</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             GenericAgentWriteHelp(w, &quot;cf-promises&quot;, OPTIONS, HINTS, true);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             FileWriterDetach(w);</span>
+<span class="lineNum">     361 </span>            :         }
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         exit(EXIT_SUCCESS);</span>
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            :         case 'M':
+<span class="lineNum">     365 </span>            :         {
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :             Writer *out = FileWriter(stdout);</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :             ManPageWrite(out, &quot;cf-promises&quot;, time(NULL),</span>
+<span class="lineNum">     368 </span>            :                          CF_PROMISES_SHORT_DESCRIPTION,
+<span class="lineNum">     369 </span>            :                          CF_PROMISES_MANPAGE_LONG_DESCRIPTION,
+<span class="lineNum">     370 </span>            :                          OPTIONS, HINTS,
+<span class="lineNum">     371 </span>            :                          true);
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :             FileWriterDetach(out);</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :             exit(EXIT_SUCCESS);</span>
+<span class="lineNum">     374 </span>            :         }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            :         case 'r':
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :             SHOWREPORTS = true;</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            :         case 'W':
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :             if (!GenericAgentConfigParseWarningOptions(config, optarg))</span>
+<span class="lineNum">     382 </span>            :             {
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Error parsing warning option&quot;);</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :                 exit(EXIT_FAILURE);</span>
+<span class="lineNum">     385 </span>            :             }
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            :         case 'x':
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Self-diagnostic functionality is retired.&quot;);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :             exit(EXIT_SUCCESS);</span>
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            :         case 'C':
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :             if (!GenericAgentConfigParseColor(config, optarg))</span>
+<span class="lineNum">     394 </span>            :             {
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :                 exit(EXIT_FAILURE);</span>
+<span class="lineNum">     396 </span>            :             }
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span>            :         case 'T':
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :             GenericAgentConfigSetInputFile(config, optarg, &quot;promises.cf&quot;);</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :             MINUSF = true;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :             config-&gt;tag_release_dir = xstrdup(optarg);</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span>            :         case 'l':
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :             LoggingEnableTimestamps(true);</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            :         default:
+<span class="lineNum">     410 </span>            :         {
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :             Writer *w = FileWriter(stdout);</span>
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :             GenericAgentWriteHelp(w, &quot;cf-promises&quot;, OPTIONS, HINTS, true);</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :             FileWriterDetach(w);</span>
+<span class="lineNum">     414 </span>            :         }
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            :         }
+<span class="lineNum">     418 </span>            :     }
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span><span class="lineCov">          1 :     if (!GenericAgentConfigParseArguments(config, argc - optind, argv + optind))</span>
+<span class="lineNum">     421 </span>            :     {
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Too many arguments&quot;);</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     424 </span>            :     }
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineCov">          1 :     return config;</span>
+<a name="427"><span class="lineNum">     427 </span>            : }</a>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 : static void ShowContextsFormatted(EvalContext *ctx)</span>
+<span class="lineNum">     430 </span>            : {
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     ClassTableIterator *iter = EvalContextClassTableIteratorNewGlobal(ctx, NULL, true, true);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     Class *cls = NULL;</span>
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :     Seq *seq = SeqNew(1000, free);</span>
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     while ((cls = ClassTableIteratorNext(iter)))</span>
+<span class="lineNum">     437 </span>            :     {
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :         char *class_name = ClassRefToString(cls-&gt;ns, cls-&gt;name);</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         StringSet *tagset = EvalContextClassTags(ctx, cls-&gt;ns, cls-&gt;name);</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         Buffer *tagbuf = StringSetToBuffer(tagset, ',');</span>
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span>            :         char *line;
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :         xasprintf(&amp;line, &quot;%-60s %-40s&quot;, class_name, BufferData(tagbuf));</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :         SeqAppend(seq, line);</span>
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :         BufferDestroy(tagbuf);</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         free(class_name);</span>
+<span class="lineNum">     448 </span>            :     }
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     SeqSort(seq, (SeqItemComparator)strcmp, NULL);</span>
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     printf(&quot;%-60s %-40s\n&quot;, &quot;Class name&quot;, &quot;Meta tags&quot;);</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     for (size_t i = 0; i &lt; SeqLength(seq); i++)</span>
+<span class="lineNum">     455 </span>            :     {
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :         const char *context = SeqAt(seq, i);</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         printf(&quot;%s\n&quot;, context);</span>
+<span class="lineNum">     458 </span>            :     }
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     SeqDestroy(seq);</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     ClassTableIteratorDestroy(iter);</span>
+<a name="463"><span class="lineNum">     463 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 : static void ShowVariablesFormatted(EvalContext *ctx)</span>
+<span class="lineNum">     466 </span>            : {
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     VariableTableIterator *iter = EvalContextVariableTableIteratorNew(ctx, NULL, NULL, NULL);</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :     Variable *v = NULL;</span>
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :     Seq *seq = SeqNew(2000, free);</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :     while ((v = VariableTableIteratorNext(iter)))</span>
+<span class="lineNum">     473 </span>            :     {
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :         char *varname = VarRefToString(v-&gt;ref, true);</span>
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :         Writer *w = StringWriter();</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :         RvalWrite(w, v-&gt;rval);</span>
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :         StringSet *tagset = EvalContextVariableTags(ctx, v-&gt;ref);</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :         Buffer *tagbuf = StringSetToBuffer(tagset, ',');</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span>            :         char *line;
+<span class="lineNum">     483 </span>            :         const char *var_value;
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :         if(StringIsPrintable(StringWriterData(w)))</span>
+<span class="lineNum">     486 </span>            :         {
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :             var_value = StringWriterData(w);</span>
+<span class="lineNum">     488 </span>            :         }
+<span class="lineNum">     489 </span>            :         else
+<span class="lineNum">     490 </span>            :         {
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :             var_value = &quot;&lt;non-printable&gt;&quot;;</span>
+<span class="lineNum">     492 </span>            :         }
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :         xasprintf(&amp;line, &quot;%-40s %-60s %-40s&quot;, varname, var_value, BufferData(tagbuf));</span>
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         SeqAppend(seq, line);</span>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :         BufferDestroy(tagbuf);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :         WriterClose(w);</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :         free(varname);</span>
+<span class="lineNum">     501 </span>            :     }
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :     SeqSort(seq, (SeqItemComparator)strcmp, NULL);</span>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     printf(&quot;%-40s %-60s %-40s\n&quot;, &quot;Variable name&quot;, &quot;Variable value&quot;, &quot;Meta tags&quot;);</span>
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :     for (size_t i = 0; i &lt; SeqLength(seq); i++)</span>
+<span class="lineNum">     508 </span>            :     {
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         const char *variable = SeqAt(seq, i);</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :         printf(&quot;%s\n&quot;, variable);</span>
+<span class="lineNum">     511 </span>            :     }
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     SeqDestroy(seq);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     VariableTableIteratorDestroy(iter);</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

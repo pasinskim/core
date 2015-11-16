@@ -1,0 +1,564 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - cf-agent/tokyo_check.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cf-agent</a> - tokyo_check.c<span style="font-size: 80%;"> (source / <a href="tokyo_check.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : #include &lt;tokyo_check.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #ifdef HAVE_CONFIG_H
+<span class="lineNum">      27 </span>            : #include  &lt;config.h&gt;
+<span class="lineNum">      28 </span>            : #endif
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &lt;array_map_priv.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;hash_map_priv.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;map.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;logging.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;cf3.defs.h&gt;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #ifdef TCDB
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /*
+<span class="lineNum">      40 </span>            :  * The idea behind the following code comes from : copiousfreetime@github
+<span class="lineNum">      41 </span>            :  */
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : /*
+<span class="lineNum">      44 </span>            :  * Fields we will need from a TC record
+<span class="lineNum">      45 </span>            :  */
+<span class="lineNum">      46 </span>            : typedef struct TokyoCabinetRecord
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span>            :     uint64_t offset;
+<span class="lineNum">      49 </span>            :     uint64_t length;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            :     uint64_t left;
+<span class="lineNum">      52 </span>            :     uint64_t right;
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            :     uint32_t key_size;
+<span class="lineNum">      55 </span>            :     uint32_t rec_size;
+<span class="lineNum">      56 </span>            :     uint16_t pad_size;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :     uint8_t magic;
+<span class="lineNum">      59 </span>            :     uint8_t hash;
+<span class="lineNum">      60 </span>            : } TokyoCabinetRecord;
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : /* meta information from the Hash Database
+<span class="lineNum">      63 </span>            :  * used to coordinate the other operations
+<span class="lineNum">      64 </span>            :  */
+<span class="lineNum">      65 </span>            : typedef struct DBMeta
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span>            :     uint64_t bucket_count;      /* Number of hash buckets                */
+<span class="lineNum">      68 </span>            :     uint64_t bucket_offset;     /* Start of the bucket list              */
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            :     uint64_t record_count;      /* Number of records                     */
+<span class="lineNum">      71 </span>            :     uint64_t record_offset;     /* First record  offset in file          */
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            :     short alignment_pow;        /* power of 2 for calculating offsets */
+<span class="lineNum">      74 </span>            :     short bytes_per;            /* 4 or 8 */
+<span class="lineNum">      75 </span>            :     char dbpath[PATH_MAX + 1];  /* full pathname to the database file */
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            :     int fd;
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            :     StringMap *offset_map;
+<span class="lineNum">      80 </span>            :     StringMap *record_map;
+<span class="lineNum">      81 </span>            : } DBMeta;
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : static DBMeta *DBMetaNewDirect(const char *dbfilename)
+<span class="lineNum">      84 </span>            : {
+<span class="lineNum">      85 </span>            :     char hbuf[256];
+<span class="lineNum">      86 </span>            :     DBMeta *dbmeta;
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            :     dbmeta = (DBMeta *) xcalloc(1, sizeof(DBMeta));
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :     realpath(dbfilename, dbmeta-&gt;dbpath);
+<span class="lineNum">      91 </span>            :     if (-1 == (dbmeta-&gt;fd = open(dbmeta-&gt;dbpath, O_RDONLY)))
+<span class="lineNum">      92 </span>            :     {
+<span class="lineNum">      93 </span>            :         Log(LOG_LEVEL_ERR, &quot;Failure opening file '%s'. (open: %s)&quot;, dbmeta-&gt;dbpath,
+<span class="lineNum">      94 </span>            :                 GetErrorStr());
+<span class="lineNum">      95 </span>            :         if (dbmeta)
+<span class="lineNum">      96 </span>            :         {
+<span class="lineNum">      97 </span>            :             free(dbmeta);
+<span class="lineNum">      98 </span>            :         }
+<span class="lineNum">      99 </span>            :         return NULL;
+<span class="lineNum">     100 </span>            :     }
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :     if (256 != read(dbmeta-&gt;fd, hbuf, 256))
+<span class="lineNum">     103 </span>            :     {
+<span class="lineNum">     104 </span>            :         Log(LOG_LEVEL_ERR, &quot;Failure reading from database '%s'. (read: %s)&quot;,
+<span class="lineNum">     105 </span>            :                 dbmeta-&gt;dbpath, GetErrorStr());
+<span class="lineNum">     106 </span>            :         close(dbmeta-&gt;fd);
+<span class="lineNum">     107 </span>            :         if (dbmeta)
+<span class="lineNum">     108 </span>            :         {
+<span class="lineNum">     109 </span>            :             free(dbmeta);
+<span class="lineNum">     110 </span>            :         }
+<span class="lineNum">     111 </span>            :         return NULL;
+<span class="lineNum">     112 </span>            :     }
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :     memcpy(&amp;(dbmeta-&gt;bucket_count), hbuf + 40, sizeof(uint64_t));
+<span class="lineNum">     115 </span>            :     dbmeta-&gt;bucket_offset = 256;
+<span class="lineNum">     116 </span>            :     uint8_t opts;
+<span class="lineNum">     117 </span>            :     memcpy(&amp;opts, hbuf + 36, sizeof(uint8_t));
+<span class="lineNum">     118 </span>            :     dbmeta-&gt;bytes_per =
+<span class="lineNum">     119 </span>            :         (opts &amp; (1 &lt;&lt; 0)) ? sizeof(uint64_t) : sizeof(uint32_t);
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :     memcpy(&amp;(dbmeta-&gt;record_count), hbuf + 48, sizeof(uint64_t));
+<span class="lineNum">     122 </span>            :     memcpy(&amp;(dbmeta-&gt;record_offset), hbuf + 64, sizeof(uint64_t));
+<span class="lineNum">     123 </span>            :     memcpy(&amp;(dbmeta-&gt;alignment_pow), hbuf + 34, sizeof(uint8_t));
+<span class="lineNum">     124 </span>            :     dbmeta-&gt;offset_map = StringMapNew();
+<span class="lineNum">     125 </span>            :     dbmeta-&gt;record_map = StringMapNew();
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;Database            : %s&quot;, dbmeta-&gt;dbpath);
+<span class="lineNum">     128 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;  number of buckets : %&quot; PRIu64,
+<span class="lineNum">     129 </span>            :             dbmeta-&gt;bucket_count);
+<span class="lineNum">     130 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;  offset of buckets : %&quot; PRIu64,
+<span class="lineNum">     131 </span>            :             dbmeta-&gt;bucket_offset);
+<span class="lineNum">     132 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;  bytes per pointer : %hd&quot;,
+<span class="lineNum">     133 </span>            :             dbmeta-&gt;bytes_per);
+<span class="lineNum">     134 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;  alignment power   : %hd&quot;,
+<span class="lineNum">     135 </span>            :             dbmeta-&gt;alignment_pow);
+<span class="lineNum">     136 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;  number of records : %&quot; PRIu64,
+<span class="lineNum">     137 </span>            :             dbmeta-&gt;record_count);
+<span class="lineNum">     138 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;  offset of records : %&quot; PRIu64,
+<span class="lineNum">     139 </span>            :             dbmeta-&gt;record_offset);
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            :     return dbmeta;
+<span class="lineNum">     142 </span>            : }
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            : static void DBMetaFree(DBMeta * dbmeta)
+<span class="lineNum">     145 </span>            : {
+<span class="lineNum">     146 </span>            :     StringMapDestroy(dbmeta-&gt;offset_map);
+<span class="lineNum">     147 </span>            :     StringMapDestroy(dbmeta-&gt;record_map);
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            :     close(dbmeta-&gt;fd);
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            :     if (dbmeta)
+<span class="lineNum">     152 </span>            :     {
+<span class="lineNum">     153 </span>            :         free(dbmeta);
+<span class="lineNum">     154 </span>            :     }
+<span class="lineNum">     155 </span>            : }
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            : static int AddOffsetToMapUnlessExists(StringMap ** tree, uint64_t offset,
+<span class="lineNum">     158 </span>            :                                       int64_t bucket_index)
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span>            :     char *tmp;
+<span class="lineNum">     161 </span>            :     xasprintf(&amp;tmp, &quot;%&quot; PRIu64, offset);
+<span class="lineNum">     162 </span>            :     char *val;
+<span class="lineNum">     163 </span>            :     if (StringMapHasKey(*tree, tmp) == false)
+<span class="lineNum">     164 </span>            :     {
+<span class="lineNum">     165 </span>            :         xasprintf(&amp;val, &quot;%&quot; PRIu64, bucket_index);
+<span class="lineNum">     166 </span>            :         StringMapInsert(*tree, tmp, val);
+<span class="lineNum">     167 </span>            :     }
+<span class="lineNum">     168 </span>            :     else
+<span class="lineNum">     169 </span>            :     {
+<span class="lineNum">     170 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     171 </span>            :             &quot;Duplicate offset for value %&quot; PRIu64 &quot; at index %&quot; PRId64 &quot;, other value %&quot; PRIu64 &quot;, other index '%s'&quot;,
+<span class="lineNum">     172 </span>            :              offset, bucket_index,
+<span class="lineNum">     173 </span>            :              offset, (char *) StringMapGet(*tree, tmp));
+<span class="lineNum">     174 </span>            :         free(tmp);
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span>            :     return 0;
+<span class="lineNum">     177 </span>            : }
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            : static int DBMetaPopulateOffsetMap(DBMeta * dbmeta)
+<span class="lineNum">     180 </span>            : {
+<span class="lineNum">     181 </span>            :     uint64_t i;
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :     if (lseek(dbmeta-&gt;fd, dbmeta-&gt;bucket_offset, SEEK_SET) == -1)
+<span class="lineNum">     184 </span>            :     {
+<span class="lineNum">     185 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     186 </span>            :             &quot;Error traversing bucket section to find record offsets '%s'&quot;,
+<span class="lineNum">     187 </span>            :              strerror(errno));
+<span class="lineNum">     188 </span>            :         return 1;
+<span class="lineNum">     189 </span>            :     }
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            :     for (i = 0; i &lt; dbmeta-&gt;bucket_count; i++)
+<span class="lineNum">     192 </span>            :     {
+<span class="lineNum">     193 </span>            :         uint64_t offset = 0LL;
+<span class="lineNum">     194 </span>            :         int b = read(dbmeta-&gt;fd, &amp;offset, dbmeta-&gt;bytes_per);
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            :         if (b != dbmeta-&gt;bytes_per)
+<span class="lineNum">     197 </span>            :         {
+<span class="lineNum">     198 </span>            :             Log(LOG_LEVEL_ERR, &quot;Read the wrong number of bytes (%d)&quot;, b);
+<span class="lineNum">     199 </span>            :             return 2;
+<span class="lineNum">     200 </span>            :         }
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span>            :         /* if the value is &gt; 0 then we have a number so do something with it */
+<span class="lineNum">     203 </span>            :         if (offset &gt; 0)
+<span class="lineNum">     204 </span>            :         {
+<span class="lineNum">     205 </span>            :             offset = offset &lt;&lt; dbmeta-&gt;alignment_pow;
+<span class="lineNum">     206 </span>            :             if (AddOffsetToMapUnlessExists(&amp;(dbmeta-&gt;offset_map), offset, i))
+<span class="lineNum">     207 </span>            :             {
+<span class="lineNum">     208 </span>            :                 return 3;
+<span class="lineNum">     209 </span>            :             }
+<span class="lineNum">     210 </span>            :         }
+<span class="lineNum">     211 </span>            :     }
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;Found %zu buckets with offsets&quot;,
+<span class="lineNum">     214 </span>            :             StringMapSize(dbmeta-&gt;offset_map));
+<span class="lineNum">     215 </span>            :     return 0;
+<span class="lineNum">     216 </span>            : }
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            : typedef enum
+<span class="lineNum">     219 </span>            : {                               // enumeration for magic data
+<span class="lineNum">     220 </span>            :     MAGIC_DATA_BLOCK = 0xc8,    // for data block
+<span class="lineNum">     221 </span>            :     MAGIC_FREE_BLOCK = 0xb0     // for free block
+<span class="lineNum">     222 </span>            : } TypeOfBlock;
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : static int TCReadVaryInt(int fd, uint32_t * result)
+<span class="lineNum">     225 </span>            : {
+<span class="lineNum">     226 </span>            :     uint64_t num = 0;
+<span class="lineNum">     227 </span>            :     unsigned int base = 1;
+<span class="lineNum">     228 </span>            :     unsigned int i = 0;
+<span class="lineNum">     229 </span>            :     int read_bytes = 0;
+<span class="lineNum">     230 </span>            :     char c;
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            :     while (true)
+<span class="lineNum">     233 </span>            :     {
+<span class="lineNum">     234 </span>            :         read_bytes += read(fd, &amp;c, 1);
+<span class="lineNum">     235 </span>            :         if (c &gt;= 0)
+<span class="lineNum">     236 </span>            :         {
+<span class="lineNum">     237 </span>            :             num += (c * base);
+<span class="lineNum">     238 </span>            :             break;
+<span class="lineNum">     239 </span>            :         }
+<span class="lineNum">     240 </span>            :         num += (base * (c + 1) * -1);
+<span class="lineNum">     241 </span>            :         base &lt;&lt;= 7;
+<span class="lineNum">     242 </span>            :         i += 1;
+<span class="lineNum">     243 </span>            :     }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            :     *result = num;
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            :     return read_bytes;
+<span class="lineNum">     248 </span>            : }
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            : static bool DBMetaReadOneRecord(DBMeta * dbmeta, TokyoCabinetRecord * rec)
+<span class="lineNum">     252 </span>            : {
+<span class="lineNum">     253 </span>            :     if (lseek(dbmeta-&gt;fd, rec-&gt;offset, SEEK_SET) == -1)
+<span class="lineNum">     254 </span>            :     {
+<span class="lineNum">     255 </span>            :         Log(LOG_LEVEL_ERR, &quot;Error traversing record section to find records : &quot;);
+<span class="lineNum">     256 </span>            :     }
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            :     while (true)
+<span class="lineNum">     259 </span>            :     {
+<span class="lineNum">     260 </span>            :         // get the location of the current read
+<span class="lineNum">     261 </span>            :         rec-&gt;offset = lseek(dbmeta-&gt;fd, 0, SEEK_CUR);
+<span class="lineNum">     262 </span>            :         if (rec-&gt;offset == (off_t) - 1)
+<span class="lineNum">     263 </span>            :         {
+<span class="lineNum">     264 </span>            :             Log(LOG_LEVEL_ERR,
+<span class="lineNum">     265 </span>            :                 &quot;Error traversing record section to find records&quot;);
+<span class="lineNum">     266 </span>            :         }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            :         if (1 != read(dbmeta-&gt;fd, &amp;(rec-&gt;magic), 1))
+<span class="lineNum">     269 </span>            :         {
+<span class="lineNum">     270 </span>            :             Log(LOG_LEVEL_ERR, &quot;Failure reading 1 byte, (read: %s)&quot;,
+<span class="lineNum">     271 </span>            :                     GetErrorStr());
+<span class="lineNum">     272 </span>            :             return false;
+<span class="lineNum">     273 </span>            :         }
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span>            :         if (MAGIC_DATA_BLOCK == rec-&gt;magic)
+<span class="lineNum">     276 </span>            :         {
+<span class="lineNum">     277 </span>            :             Log(LOG_LEVEL_VERBOSE, &quot;off=%&quot; PRIu64 &quot;[c8]&quot;, rec-&gt;offset);
+<span class="lineNum">     278 </span>            :             int length = 1;
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            :             length += read(dbmeta-&gt;fd, &amp;(rec-&gt;hash), 1);
+<span class="lineNum">     281 </span>            :             length += read(dbmeta-&gt;fd, &amp;(rec-&gt;left), dbmeta-&gt;bytes_per);
+<span class="lineNum">     282 </span>            :             rec-&gt;left = rec-&gt;left &lt;&lt; dbmeta-&gt;alignment_pow;
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span>            :             length += read(dbmeta-&gt;fd, &amp;(rec-&gt;right), dbmeta-&gt;bytes_per);
+<span class="lineNum">     285 </span>            :             rec-&gt;right = rec-&gt;right &lt;&lt; dbmeta-&gt;alignment_pow;
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            :             length += read(dbmeta-&gt;fd, &amp;(rec-&gt;pad_size), 2);
+<span class="lineNum">     288 </span>            :             length += rec-&gt;pad_size;
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            :             length += TCReadVaryInt(dbmeta-&gt;fd, &amp;(rec-&gt;key_size));
+<span class="lineNum">     291 </span>            :             length += TCReadVaryInt(dbmeta-&gt;fd, &amp;(rec-&gt;rec_size));
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            :             rec-&gt;length = length + rec-&gt;key_size + rec-&gt;rec_size;
+<span class="lineNum">     294 </span>            :             return true;
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span>            :         }
+<span class="lineNum">     297 </span>            :         else if (MAGIC_FREE_BLOCK == rec-&gt;magic)
+<span class="lineNum">     298 </span>            :         {
+<span class="lineNum">     299 </span>            :             Log(LOG_LEVEL_VERBOSE, &quot;off=%&quot; PRIu64 &quot;[b0]&quot;, rec-&gt;offset);
+<span class="lineNum">     300 </span>            :             uint32_t length;
+<span class="lineNum">     301 </span>            :             rec-&gt;length = 1;
+<span class="lineNum">     302 </span>            :             rec-&gt;length += read(dbmeta-&gt;fd, &amp;length, sizeof(length));
+<span class="lineNum">     303 </span>            :             rec-&gt;length += length;
+<span class="lineNum">     304 </span>            :             return true;
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            :         }
+<span class="lineNum">     307 </span>            :         else
+<span class="lineNum">     308 </span>            :         {
+<span class="lineNum">     309 </span>            :             Log(LOG_LEVEL_VERBOSE, &quot;Read a non-magic byte (skip it)&quot;);
+<span class="lineNum">     310 </span>            :         }
+<span class="lineNum">     311 </span>            :     }
+<span class="lineNum">     312 </span>            :     Log(LOG_LEVEL_ERR, &quot;Read loop reached here&quot;);
+<span class="lineNum">     313 </span>            :     return false;
+<span class="lineNum">     314 </span>            : }
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            : static int DBMetaPopulateRecordMap(DBMeta * dbmeta)
+<span class="lineNum">     317 </span>            : {
+<span class="lineNum">     318 </span>            :     off_t offset;
+<span class="lineNum">     319 </span>            :     uint64_t data_blocks = 0;
+<span class="lineNum">     320 </span>            :     uint64_t free_blocks = 0;
+<span class="lineNum">     321 </span>            :     struct stat st;
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :     offset = dbmeta-&gt;record_offset;
+<span class="lineNum">     324 </span>            :     if (fstat(dbmeta-&gt;fd, &amp;st) == -1)
+<span class="lineNum">     325 </span>            :     {
+<span class="lineNum">     326 </span>            :         Log(LOG_LEVEL_ERR, &quot;Error getting file stats. (fstat: %s)&quot;, GetErrorStr());
+<span class="lineNum">     327 </span>            :         return 1;
+<span class="lineNum">     328 </span>            :     }
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span>            :     while (offset &lt; st.st_size)
+<span class="lineNum">     331 </span>            :     {
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            :         TokyoCabinetRecord new_rec;
+<span class="lineNum">     334 </span>            :         memset(&amp;new_rec, 0, sizeof(TokyoCabinetRecord));
+<span class="lineNum">     335 </span>            :         new_rec.offset = offset;
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            :         // read a variable-length record
+<span class="lineNum">     338 </span>            :         if (!DBMetaReadOneRecord(dbmeta, &amp;new_rec))
+<span class="lineNum">     339 </span>            :         {
+<span class="lineNum">     340 </span>            :             Log(LOG_LEVEL_ERR, &quot;Unable to fetch a new record from DB file&quot;);
+<span class="lineNum">     341 </span>            :             return 2;
+<span class="lineNum">     342 </span>            :         }
+<span class="lineNum">     343 </span>            :         else
+<span class="lineNum">     344 </span>            :         {
+<span class="lineNum">     345 </span>            :             offset = new_rec.offset + new_rec.length;
+<span class="lineNum">     346 </span>            :         }
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            :         // if it is a data record then:
+<span class="lineNum">     349 </span>            :         // for the record, its left and right do:
+<span class="lineNum">     350 </span>            :         // look up that record in the offset tree
+<span class="lineNum">     351 </span>            :         // 1) remove it if it exists
+<span class="lineNum">     352 </span>            :         // 2) add it to the record_tree if it doesn't
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            :         if (MAGIC_DATA_BLOCK == new_rec.magic)
+<span class="lineNum">     355 </span>            :         {
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :             if (new_rec.offset &gt; 0)
+<span class="lineNum">     358 </span>            :             {
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span>            :                 char *key;
+<span class="lineNum">     361 </span>            :                 xasprintf(&amp;key, &quot;%&quot; PRIu64, new_rec.offset);
+<span class="lineNum">     362 </span>            :                 if (StringMapHasKey(dbmeta-&gt;offset_map, key) == true)
+<span class="lineNum">     363 </span>            :                 {
+<span class="lineNum">     364 </span>            :                     if (key)
+<span class="lineNum">     365 </span>            :                     {
+<span class="lineNum">     366 </span>            :                         free(key);
+<span class="lineNum">     367 </span>            :                     }
+<span class="lineNum">     368 </span>            :                 }
+<span class="lineNum">     369 </span>            :                 else
+<span class="lineNum">     370 </span>            :                 {
+<span class="lineNum">     371 </span>            :                     StringMapInsert(dbmeta-&gt;record_map, key, xstrdup(&quot;0&quot;));
+<span class="lineNum">     372 </span>            :                 }
+<span class="lineNum">     373 </span>            :             }
+<span class="lineNum">     374 </span>            :             else
+<span class="lineNum">     375 </span>            :             {
+<span class="lineNum">     376 </span>            :                 Log(LOG_LEVEL_ERR,
+<span class="lineNum">     377 </span>            :                     &quot;new_rec.offset cannot be &lt;= 0 ???&quot;);
+<span class="lineNum">     378 </span>            :             }
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            :             if (new_rec.left &gt; 0)
+<span class="lineNum">     381 </span>            :             {
+<span class="lineNum">     382 </span>            :                 Log(LOG_LEVEL_VERBOSE, &quot;handle left %&quot; PRIu64, new_rec.left);
+<span class="lineNum">     383 </span>            :                 if (AddOffsetToMapUnlessExists
+<span class="lineNum">     384 </span>            :                     (&amp;(dbmeta-&gt;offset_map), new_rec.left, -1))
+<span class="lineNum">     385 </span>            :                 {
+<span class="lineNum">     386 </span>            :                     return 4;
+<span class="lineNum">     387 </span>            :                 }
+<span class="lineNum">     388 </span>            :             }
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span>            :             if (new_rec.right &gt; 0)
+<span class="lineNum">     391 </span>            :             {
+<span class="lineNum">     392 </span>            :                 Log(LOG_LEVEL_VERBOSE, &quot;handle right %&quot; PRIu64, new_rec.right);
+<span class="lineNum">     393 </span>            :                 if (AddOffsetToMapUnlessExists
+<span class="lineNum">     394 </span>            :                     (&amp;(dbmeta-&gt;offset_map), new_rec.right, -1))
+<span class="lineNum">     395 </span>            :                 {
+<span class="lineNum">     396 </span>            :                     return 4;
+<span class="lineNum">     397 </span>            :                 }
+<span class="lineNum">     398 </span>            :             }
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :             data_blocks++;
+<span class="lineNum">     401 </span>            :         }
+<span class="lineNum">     402 </span>            :         else if (MAGIC_FREE_BLOCK == new_rec.magic)
+<span class="lineNum">     403 </span>            :         {
+<span class="lineNum">     404 </span>            :             // if it is a fragment record, then skip it
+<span class="lineNum">     405 </span>            :             free_blocks++;
+<span class="lineNum">     406 </span>            :         }
+<span class="lineNum">     407 </span>            :         else
+<span class="lineNum">     408 </span>            :         {
+<span class="lineNum">     409 </span>            :             Log(LOG_LEVEL_ERR, &quot;NO record found at offset %&quot; PRIu64,
+<span class="lineNum">     410 </span>            :                     new_rec.offset);
+<span class="lineNum">     411 </span>            :         }
+<span class="lineNum">     412 </span>            :     }
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            :     // if we are not at the end of the file, output the current file offset
+<span class="lineNum">     415 </span>            :     // with an appropriate message and return
+<span class="lineNum">     416 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;Found %&quot; PRIu64 &quot; data records and &quot;
+<span class="lineNum">     417 </span>            :         &quot;%&quot; PRIu64 &quot; free block records&quot;, data_blocks, free_blocks);
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :     return 0;
+<span class="lineNum">     420 </span>            : }
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span>            : static int DBMetaGetResults(DBMeta * dbmeta)
+<span class="lineNum">     423 </span>            : {
+<span class="lineNum">     424 </span>            :     uint64_t buckets_no_record = StringMapSize(dbmeta-&gt;offset_map);
+<span class="lineNum">     425 </span>            :     uint64_t records_no_bucket = StringMapSize(dbmeta-&gt;record_map);
+<span class="lineNum">     426 </span>            :     int ret = 0;
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span>            :     Log(LOG_LEVEL_VERBOSE,
+<span class="lineNum">     429 </span>            :         &quot;Found %&quot; PRIu64 &quot; offsets listed in buckets that do not have records&quot;,
+<span class="lineNum">     430 </span>            :          buckets_no_record);
+<span class="lineNum">     431 </span>            :     Log(LOG_LEVEL_VERBOSE,
+<span class="lineNum">     432 </span>            :         &quot;Found %&quot; PRIu64 &quot; records in data that do not have an offset pointing to them&quot;,
+<span class="lineNum">     433 </span>            :          records_no_bucket);
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span>            :     if (buckets_no_record &gt; 0)
+<span class="lineNum">     436 </span>            :     {
+<span class="lineNum">     437 </span>            :         ret += 1;
+<span class="lineNum">     438 </span>            :     }
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span>            :     if (records_no_bucket &gt; 0)
+<span class="lineNum">     441 </span>            :     {
+<span class="lineNum">     442 </span>            :         ret += 2;
+<span class="lineNum">     443 </span>            :     }
+<span class="lineNum">     444 </span>            :     return ret;
+<span class="lineNum">     445 </span>            : }
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span>            : int CheckTokyoDBCoherence(const char *path)
+<span class="lineNum">     448 </span>            : {
+<span class="lineNum">     449 </span>            :     int ret = 0;
+<span class="lineNum">     450 </span>            :     DBMeta *dbmeta;
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span>            :     dbmeta = DBMetaNewDirect(path);
+<span class="lineNum">     453 </span>            :     if (dbmeta == NULL)
+<span class="lineNum">     454 </span>            :     {
+<span class="lineNum">     455 </span>            :         return 1;
+<span class="lineNum">     456 </span>            :     }
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;Populating with bucket section offsets&quot;);
+<span class="lineNum">     459 </span>            :     ret = DBMetaPopulateOffsetMap(dbmeta);
+<span class="lineNum">     460 </span>            :     if (ret)
+<span class="lineNum">     461 </span>            :     {
+<span class="lineNum">     462 </span>            :         goto clean;
+<span class="lineNum">     463 </span>            :     }
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            :     Log(LOG_LEVEL_VERBOSE, &quot;Populating with record section offsets&quot;);
+<span class="lineNum">     466 </span>            :     ret = DBMetaPopulateRecordMap(dbmeta);
+<span class="lineNum">     467 </span>            :     if (ret)
+<span class="lineNum">     468 </span>            :     {
+<span class="lineNum">     469 </span>            :         goto clean;
+<span class="lineNum">     470 </span>            :     }
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            :     ret = DBMetaGetResults(dbmeta);
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span>            :   clean:
+<span class="lineNum">     475 </span>            :     if (dbmeta)
+<span class="lineNum">     476 </span>            :     {
+<span class="lineNum">     477 </span>            :         DBMetaFree(dbmeta);
+<span class="lineNum">     478 </span>            :     }
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span>            :     return ret;
+<span class="lineNum">     481 </span>            : }
+<a name="482"><span class="lineNum">     482 </span>            : </a>
+<span class="lineNum">     483 </span>            : #else
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 : int CheckTokyoDBCoherence(ARG_UNUSED const char *path)</span>
+<span class="lineNum">     485 </span>            : {
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :   return 0;</span>
+<span class="lineNum">     487 </span>            : }
+<span class="lineNum">     488 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

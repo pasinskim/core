@@ -1,0 +1,466 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libutils/sequence.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libutils</a> - sequence.c<span style="font-size: 80%;"> (source / <a href="sequence.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">67</td>
+            <td class="headerCovTableEntry">177</td>
+            <td class="headerCovTableEntryLo">37.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntryLo">51.9 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;sequence.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;alloc.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : 
+<a name="30"><span class="lineNum">      30 </span>            : static const size_t EXPAND_FACTOR = 2;</a>
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span><span class="lineCov">   19908585 : Seq *SeqNew(size_t initialCapacity, void (ItemDestroy) (void *item))</span>
+<span class="lineNum">      33 </span>            : {
+<span class="lineNum">      34 </span><span class="lineCov">   19908585 :     Seq *seq = xmalloc(sizeof(Seq));</span>
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span><span class="lineCov">   19908585 :     if (initialCapacity &lt;= 0)</span>
+<span class="lineNum">      37 </span>            :     {
+<span class="lineNum">      38 </span><span class="lineCov">         36 :         initialCapacity = 1;</span>
+<span class="lineNum">      39 </span>            :     }
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span><span class="lineCov">   19908585 :     seq-&gt;capacity = initialCapacity;</span>
+<span class="lineNum">      42 </span><span class="lineCov">   19908585 :     seq-&gt;length = 0;</span>
+<span class="lineNum">      43 </span><span class="lineCov">   19908585 :     seq-&gt;data = xcalloc(sizeof(void *), initialCapacity);</span>
+<span class="lineNum">      44 </span><span class="lineCov">   19908585 :     seq-&gt;ItemDestroy = ItemDestroy;</span>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineCov">   19908585 :     return seq;</span>
+<a name="47"><span class="lineNum">      47 </span>            : }</a>
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span><span class="lineCov">   19908740 : static void DestroyRange(Seq *seq, size_t start, size_t end)</span>
+<span class="lineNum">      50 </span>            : {
+<span class="lineNum">      51 </span><span class="lineCov">   19908740 :     if (seq-&gt;ItemDestroy)</span>
+<span class="lineNum">      52 </span>            :     {
+<span class="lineNum">      53 </span><span class="lineCov">   39821272 :         for (size_t i = start; i &lt;= end; i++)</span>
+<span class="lineNum">      54 </span>            :         {
+<span class="lineNum">      55 </span><span class="lineCov">   19912545 :             seq-&gt;ItemDestroy(seq-&gt;data[i]);</span>
+<span class="lineNum">      56 </span>            :         }
+<span class="lineNum">      57 </span>            :     }
+<a name="58"><span class="lineNum">      58 </span><span class="lineCov">   19908740 : }</span></a>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineCov">   19908585 : void SeqDestroy(Seq *seq)</span>
+<span class="lineNum">      61 </span>            : {
+<span class="lineNum">      62 </span><span class="lineCov">   19908585 :     if (seq &amp;&amp; seq-&gt;length &gt; 0)</span>
+<span class="lineNum">      63 </span>            :     {
+<span class="lineNum">      64 </span><span class="lineCov">       1944 :         DestroyRange(seq, 0, seq-&gt;length - 1);</span>
+<span class="lineNum">      65 </span>            :     }
+<span class="lineNum">      66 </span><span class="lineCov">   19908585 :     SeqSoftDestroy(seq);</span>
+<a name="67"><span class="lineNum">      67 </span><span class="lineCov">   19908585 : }</span></a>
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span><span class="lineCov">   19908585 : void SeqSoftDestroy(Seq *seq)</span>
+<span class="lineNum">      70 </span>            : {
+<span class="lineNum">      71 </span><span class="lineCov">   19908585 :     if (seq)</span>
+<span class="lineNum">      72 </span>            :     {
+<span class="lineNum">      73 </span><span class="lineCov">   19908585 :         free(seq-&gt;data);</span>
+<span class="lineNum">      74 </span><span class="lineCov">   19908585 :         free(seq);</span>
+<span class="lineNum">      75 </span>            :     }
+<a name="76"><span class="lineNum">      76 </span><span class="lineCov">   19908585 : }</span></a>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">   19912630 : static void ExpandIfNeccessary(Seq *seq)</span>
+<span class="lineNum">      79 </span>            : {
+<span class="lineNum">      80 </span><span class="lineCov">   19912630 :     assert(seq-&gt;length &lt;= seq-&gt;capacity);</span>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineCov">   19912630 :     if (seq-&gt;length == seq-&gt;capacity)</span>
+<span class="lineNum">      83 </span>            :     {
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :         seq-&gt;capacity *= EXPAND_FACTOR;</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :         seq-&gt;data = xrealloc(seq-&gt;data, sizeof(void *) * seq-&gt;capacity);</span>
+<span class="lineNum">      86 </span>            :     }
+<a name="87"><span class="lineNum">      87 </span><span class="lineCov">   19912630 : }</span></a>
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span><span class="lineCov">   22493629 : void SeqSet(Seq *seq, size_t index, void *item)</span>
+<span class="lineNum">      90 </span>            : {
+<span class="lineNum">      91 </span><span class="lineCov">   22493629 :     assert(index &lt; SeqLength(seq));</span>
+<span class="lineNum">      92 </span><span class="lineCov">   22493629 :     if (seq-&gt;ItemDestroy)</span>
+<span class="lineNum">      93 </span>            :     {
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :         seq-&gt;ItemDestroy(seq-&gt;data[index]);</span>
+<span class="lineNum">      95 </span>            :     }
+<span class="lineNum">      96 </span><span class="lineCov">   22493629 :     seq-&gt;data[index] = item;</span>
+<a name="97"><span class="lineNum">      97 </span><span class="lineCov">   22493629 : }</span></a>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineCov">   19912630 : void SeqAppend(Seq *seq, void *item)</span>
+<span class="lineNum">     100 </span>            : {
+<span class="lineNum">     101 </span><span class="lineCov">   19912630 :     ExpandIfNeccessary(seq);</span>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineCov">   19912630 :     seq-&gt;data[seq-&gt;length] = item;</span>
+<span class="lineNum">     104 </span><span class="lineCov">   19912630 :     ++(seq-&gt;length);</span>
+<a name="105"><span class="lineNum">     105 </span><span class="lineCov">   19912630 : }</span></a>
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 : void SeqAppendSeq(Seq *seq, const Seq *items)</span>
+<span class="lineNum">     108 </span>            : {
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     for (size_t i = 0; i &lt; SeqLength(items); i++)</span>
+<span class="lineNum">     110 </span>            :     {
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         SeqAppend(seq, SeqAt(items, i));</span>
+<span class="lineNum">     112 </span>            :     }
+<a name="113"><span class="lineNum">     113 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineCov">   19906796 : void SeqRemoveRange(Seq *seq, size_t start, size_t end)</span>
+<span class="lineNum">     116 </span>            : {
+<span class="lineNum">     117 </span><span class="lineCov">   19906796 :     assert(seq);</span>
+<span class="lineNum">     118 </span><span class="lineCov">   19906796 :     assert(end &lt; seq-&gt;length);</span>
+<span class="lineNum">     119 </span><span class="lineCov">   19906796 :     assert(start &lt;= end);</span>
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span><span class="lineCov">   19906796 :     DestroyRange(seq, start, end);</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineCov">   19906796 :     size_t rest_len = seq-&gt;length - end - 1;</span>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineCov">   19906796 :     if (rest_len &gt; 0)</span>
+<span class="lineNum">     126 </span>            :     {
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         memmove(seq-&gt;data + start, seq-&gt;data + end + 1, sizeof(void *) * rest_len);</span>
+<span class="lineNum">     128 </span>            :     }
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineCov">   19906796 :     seq-&gt;length -= end - start + 1;</span>
+<a name="131"><span class="lineNum">     131 </span><span class="lineCov">   19906796 : }</span></a>
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineCov">   19906796 : void SeqRemove(Seq *seq, size_t index)</span>
+<span class="lineNum">     134 </span>            : {
+<span class="lineNum">     135 </span><span class="lineCov">   19906796 :     SeqRemoveRange(seq, index, index);</span>
+<a name="136"><span class="lineNum">     136 </span><span class="lineCov">   19906796 : }</span></a>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span><span class="lineCov">        163 : void *SeqLookup(Seq *seq, const void *key, SeqItemComparator Compare)</span>
+<span class="lineNum">     139 </span>            : {
+<span class="lineNum">     140 </span><span class="lineCov">       1540 :     for (size_t i = 0; i &lt; seq-&gt;length; i++)</span>
+<span class="lineNum">     141 </span>            :     {
+<span class="lineNum">     142 </span><span class="lineCov">       1540 :         if (Compare(key, seq-&gt;data[i], NULL) == 0)</span>
+<span class="lineNum">     143 </span>            :         {
+<span class="lineNum">     144 </span><span class="lineCov">        163 :             return seq-&gt;data[i];</span>
+<span class="lineNum">     145 </span>            :         }
+<span class="lineNum">     146 </span>            :     }
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<a name="149"><span class="lineNum">     149 </span>            : }</a>
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 : void *SeqBinaryLookup(Seq *seq, const void *key, SeqItemComparator Compare)</span>
+<span class="lineNum">     152 </span>            : {
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     ssize_t index = SeqBinaryIndexOf(seq, key, Compare);</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     if (index == -1)</span>
+<span class="lineNum">     155 </span>            :     {
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     157 </span>            :     }
+<span class="lineNum">     158 </span>            :     else
+<span class="lineNum">     159 </span>            :     {
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :         return seq-&gt;data[index];</span>
+<span class="lineNum">     161 </span>            :     }
+<a name="162"><span class="lineNum">     162 </span>            : }</a>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">       1604 : ssize_t SeqIndexOf(Seq *seq, const void *key, SeqItemComparator Compare)</span>
+<span class="lineNum">     165 </span>            : {
+<span class="lineNum">     166 </span><span class="lineCov">      15221 :     for (size_t i = 0; i &lt; seq-&gt;length; i++)</span>
+<span class="lineNum">     167 </span>            :     {
+<span class="lineNum">     168 </span><span class="lineCov">      13617 :         if (Compare(key, seq-&gt;data[i], NULL) == 0)</span>
+<span class="lineNum">     169 </span>            :         {
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :             return i;</span>
+<span class="lineNum">     171 </span>            :         }
+<span class="lineNum">     172 </span>            :     }
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span><span class="lineCov">       1604 :     return -1;</span>
+<a name="175"><span class="lineNum">     175 </span>            : }</a>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 : ssize_t SeqBinaryIndexOf(Seq *seq, const void *key, SeqItemComparator Compare)</span>
+<span class="lineNum">     178 </span>            : {
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     if (seq-&gt;length == 0)</span>
+<span class="lineNum">     180 </span>            :     {
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     182 </span>            :     }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     size_t low = 0;</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     size_t high = seq-&gt;length;</span>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     while (low &lt; high)</span>
+<span class="lineNum">     188 </span>            :     {
+<span class="lineNum">     189 </span>            :         // Invariant: low &lt;= middle &lt; high
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         size_t middle = low + ((high - low) &gt;&gt; 1); // &quot;&gt;&gt; 1&quot; is division by 2.</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :         int result = Compare(key, seq-&gt;data[middle], NULL);</span>
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         if (result == 0)</span>
+<span class="lineNum">     193 </span>            :         {
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :             return middle;</span>
+<span class="lineNum">     195 </span>            :         }
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         if (result &gt; 0)</span>
+<span class="lineNum">     197 </span>            :         {
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :             low = middle + 1;</span>
+<span class="lineNum">     199 </span>            :         }
+<span class="lineNum">     200 </span>            :         else
+<span class="lineNum">     201 </span>            :         {
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :             high = middle;</span>
+<span class="lineNum">     203 </span>            :         }
+<span class="lineNum">     204 </span>            :     }
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            :     // Not found.
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     return -1;</span>
+<a name="208"><span class="lineNum">     208 </span>            : }</a>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 : static void Swap(void **l, void **r)</span>
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     void *t = *l;</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     *l = *r;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     *r = t;</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 : }</span>
+<a name="217"><span class="lineNum">     217 </span>            : </a>
+<span class="lineNum">     218 </span>            : // adopted from http://rosettacode.org/wiki/Sorting_algorithms/Quicksort#C
+<span class="lineNum">     219 </span><span class="lineCov">          1 : static void QuickSortRecursive(void **data, int n, SeqItemComparator Compare, void *user_data, size_t maxterm)</span>
+<span class="lineNum">     220 </span>            : {
+<span class="lineNum">     221 </span><span class="lineCov">          1 :     if (n &lt; 2)</span>
+<span class="lineNum">     222 </span>            :     {
+<span class="lineNum">     223 </span><span class="lineCov">          2 :         return;</span>
+<span class="lineNum">     224 </span>            :     }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     void *pivot = data[n / 2];</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     void **l = data;</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     void **r = data + n - 1;</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     while (l &lt;= r)</span>
+<span class="lineNum">     231 </span>            :     {
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         while (Compare(*l, pivot, user_data) &lt; 0)</span>
+<span class="lineNum">     233 </span>            :         {
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :             ++l;</span>
+<span class="lineNum">     235 </span>            :         }
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         while (Compare(*r, pivot, user_data) &gt; 0)</span>
+<span class="lineNum">     237 </span>            :         {
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :             --r;</span>
+<span class="lineNum">     239 </span>            :         }
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         if (l &lt;= r)</span>
+<span class="lineNum">     241 </span>            :         {
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :             Swap(l, r);</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             ++l;</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             --r;</span>
+<span class="lineNum">     245 </span>            :         }
+<span class="lineNum">     246 </span>            :     }
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     QuickSortRecursive(data, r - data + 1, Compare, user_data, maxterm + 1);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     QuickSortRecursive(l, data + n - l, Compare, user_data, maxterm + 1);</span>
+<a name="250"><span class="lineNum">     250 </span>            : }</a>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineCov">          1 : void SeqSort(Seq *seq, SeqItemComparator Compare, void *user_data)</span>
+<span class="lineNum">     253 </span>            : {
+<span class="lineNum">     254 </span><span class="lineCov">          1 :     QuickSortRecursive(seq-&gt;data, seq-&gt;length, Compare, user_data, 0);</span>
+<a name="255"><span class="lineNum">     255 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 : Seq *SeqSoftSort(const Seq *seq, SeqItemComparator compare, void *user_data)</span>
+<span class="lineNum">     258 </span>            : {
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     size_t length = SeqLength(seq);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     if (length == 0)</span>
+<span class="lineNum">     261 </span>            :     {
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         return SeqNew(0, NULL);</span>
+<span class="lineNum">     263 </span>            :     }
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     Seq *sorted_seq = SeqGetRange(seq, 0, length - 1);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     SeqSort(sorted_seq, compare, user_data);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :     return sorted_seq;</span>
+<a name="268"><span class="lineNum">     268 </span>            : }</a>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 : void SeqSoftRemoveRange(Seq *seq, size_t start, size_t end)</span>
+<span class="lineNum">     271 </span>            : {
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     assert(seq);</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     assert(end &lt; seq-&gt;length);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     assert(start &lt;= end);</span>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     size_t rest_len = seq-&gt;length - end - 1;</span>
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     if (rest_len &gt; 0)</span>
+<span class="lineNum">     279 </span>            :     {
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         memmove(seq-&gt;data + start, seq-&gt;data + end + 1, sizeof(void *) * rest_len);</span>
+<span class="lineNum">     281 </span>            :     }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     seq-&gt;length -= end - start + 1;</span>
+<a name="284"><span class="lineNum">     284 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 : void SeqClear(Seq *seq)</span>
+<span class="lineNum">     287 </span>            : {
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     if (SeqLength(seq) &gt; 0)</span>
+<span class="lineNum">     289 </span>            :     {
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         SeqRemoveRange(seq, 0, SeqLength(seq) - 1);</span>
+<span class="lineNum">     291 </span>            :     }
+<a name="292"><span class="lineNum">     292 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 : void SeqSoftRemove(Seq *seq, size_t index)</span>
+<span class="lineNum">     295 </span>            : {
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     SeqSoftRemoveRange(seq, index, index);</span>
+<a name="297"><span class="lineNum">     297 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 : void SeqReverse(Seq *seq)</span>
+<span class="lineNum">     300 </span>            : {
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     for (size_t i = 0; i &lt; (seq-&gt;length / 2); i++)</span>
+<span class="lineNum">     302 </span>            :     {
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         Swap(&amp;seq-&gt;data[i], &amp;seq-&gt;data[seq-&gt;length - 1 - i]);</span>
+<span class="lineNum">     304 </span>            :     }
+<a name="305"><span class="lineNum">     305 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov"> 7236466735 : size_t SeqLength(const Seq *seq)</span>
+<span class="lineNum">     308 </span>            : {
+<span class="lineNum">     309 </span><span class="lineCov"> 7236466735 :     assert(seq);</span>
+<span class="lineNum">     310 </span><span class="lineCov"> 7236466735 :     return seq-&gt;length;</span>
+<a name="311"><span class="lineNum">     311 </span>            : }</a>
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 : void SeqShuffle(Seq *seq, unsigned int seed)</span>
+<span class="lineNum">     314 </span>            : {
+<span class="lineNum">     315 </span>            :     /* Store current random number state for being reset at the end of function */
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :     int rand_state = rand();</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     srand(seed);</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     for (size_t i = SeqLength(seq) - 1; i &gt; 0; i--)</span>
+<span class="lineNum">     321 </span>            :     {
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         size_t j = rand() % (i + 1);</span>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :         Swap(seq-&gt;data + i, seq-&gt;data + j);</span>
+<span class="lineNum">     325 </span>            :     }
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            :     /* Restore previous random number state */
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     srand(rand_state);</span>
+<a name="329"><span class="lineNum">     329 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 : Seq *SeqGetRange(const Seq *seq, size_t start, size_t end)</span>
+<span class="lineNum">     332 </span>            : {
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     assert (seq);</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     if ((start &gt; end) || (seq-&gt;length &lt; start) || (seq-&gt;length &lt; end))</span>
+<span class="lineNum">     336 </span>            :     {
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     338 </span>            :     }
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     Seq *sub = SeqNew(end - start + 1, seq-&gt;ItemDestroy);</span>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     for (size_t i = start; i &lt;= end; i++)</span>
+<span class="lineNum">     343 </span>            :     {
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         SeqAppend(sub, SeqAt(seq, i));</span>
+<span class="lineNum">     345 </span>            :     }
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     return sub;</span>
+<a name="348"><span class="lineNum">     348 </span>            : }</a>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 : void SeqStringAddSplit(Seq *seq, const char *str, char delimiter)</span>
+<span class="lineNum">     351 </span>            : {
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     if (str) // TODO: remove this inconsistency, add assert(str)</span>
+<span class="lineNum">     353 </span>            :     {
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         const char *prev = str;</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :         const char *cur = str;</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         while (*cur != '\0')</span>
+<span class="lineNum">     358 </span>            :         {
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             if (*cur == delimiter)</span>
+<span class="lineNum">     360 </span>            :             {
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                 size_t len = cur - prev;</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                 if (len &gt; 0)</span>
+<span class="lineNum">     363 </span>            :                 {
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :                     SeqAppend(seq, xstrndup(prev, len));</span>
+<span class="lineNum">     365 </span>            :                 }
+<span class="lineNum">     366 </span>            :                 else
+<span class="lineNum">     367 </span>            :                 {
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                     SeqAppend(seq, xstrdup(&quot;&quot;));</span>
+<span class="lineNum">     369 </span>            :                 }
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                 prev = cur + 1;</span>
+<span class="lineNum">     371 </span>            :             }
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :             cur++;</span>
+<span class="lineNum">     374 </span>            :         }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         if (cur &gt; prev)</span>
+<span class="lineNum">     377 </span>            :         {
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :             SeqAppend(seq, xstrndup(prev, cur - prev));</span>
+<span class="lineNum">     379 </span>            :         }
+<span class="lineNum">     380 </span>            :     }
+<a name="381"><span class="lineNum">     381 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 : Seq *SeqStringFromString(const char *str, char delimiter)</span>
+<span class="lineNum">     384 </span>            : {
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :     Seq *seq = SeqNew(10, &amp;free);</span>
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     SeqStringAddSplit(seq, str, delimiter);</span>
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     return seq;</span>
+<span class="lineNum">     390 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

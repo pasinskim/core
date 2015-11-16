@@ -1,0 +1,531 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/sort.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - sort.c<span style="font-size: 80%;"> (source / <a href="sort.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">175</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">33</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*******************************************************************/</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            : /* The following sort functions are trivial rewrites of merge-sort
+<span class="lineNum">       4 </span>            :  * implementation by Simon Tatham
+<span class="lineNum">       5 </span>            :  * copyright 2001 Simon Tatham.
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * Permission is hereby granted, free of charge, to any person
+<span class="lineNum">       8 </span>            :  * obtaining a copy of this software and associated documentation
+<span class="lineNum">       9 </span>            :  * files (the &quot;Software&quot;), to deal in the Software without
+<span class="lineNum">      10 </span>            :  * restriction, including without limitation the rights to use,
+<span class="lineNum">      11 </span>            :  * copy, modify, merge, publish, distribute, sublicense, and/or
+<span class="lineNum">      12 </span>            :  * sell copies of the Software, and to permit persons to whom the
+<span class="lineNum">      13 </span>            :  * Software is furnished to do so, subject to the following
+<span class="lineNum">      14 </span>            :  * conditions:
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * The above copyright notice and this permission notice shall be
+<span class="lineNum">      17 </span>            :  * included in all copies or substantial portions of the Software.
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+<span class="lineNum">      20 </span>            :  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+<span class="lineNum">      21 </span>            :  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+<span class="lineNum">      22 </span>            :  * NONINFRINGEMENT.  IN NO EVENT SHALL SIMON TATHAM BE LIABLE FOR
+<span class="lineNum">      23 </span>            :  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+<span class="lineNum">      24 </span>            :  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+<span class="lineNum">      25 </span>            :  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+<span class="lineNum">      26 </span>            :  * SOFTWARE.
+<span class="lineNum">      27 </span>            :  */
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &lt;cf3.defs.h&gt;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &lt;rlist.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;item_lib.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;ip_address.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : typedef bool (*LessFn)(void *lhs, void *rhs, void *ctx);
+<span class="lineNum">      36 </span>            : typedef void * (*GetNextElementFn)(void *element);
+<a name="37"><span class="lineNum">      37 </span>            : typedef void (*PutNextElementFn)(void *element, void *next);</a>
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 : static void *Sort(void *list, LessFn less, GetNextElementFn next, PutNextElementFn putnext, void *ctx)</span>
+<span class="lineNum">      40 </span>            : {
+<span class="lineNum">      41 </span>            :     void *p, *q, *e, *tail;
+<span class="lineNum">      42 </span>            :     int insize, nmerges, psize, qsize, i;
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :     if (list == NULL)</span>
+<span class="lineNum">      45 </span>            :     {
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">      47 </span>            :     }
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     insize = 1;</span>
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            :     while (true)
+<span class="lineNum">      52 </span>            :     {
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :         p = list;</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :         list = NULL;</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         tail = NULL;</span>
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :         nmerges = 0;            /* count number of merges we do in this pass */</span>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :         while (p)</span>
+<span class="lineNum">      60 </span>            :         {
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :             nmerges++;          /* there exists a merge to be done */</span>
+<span class="lineNum">      62 </span>            :             /* step `insize' places along from p */
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :             q = p;</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :             psize = 0;</span>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :             for (i = 0; i &lt; insize; i++)</span>
+<span class="lineNum">      67 </span>            :             {
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :                 psize++;</span>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :                 q = next(q);</span>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :                 if (!q)</span>
+<span class="lineNum">      73 </span>            :                 {
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">      75 </span>            :                 }
+<span class="lineNum">      76 </span>            :             }
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            :             /* if q hasn't fallen off end, we have two lists to merge */
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :             qsize = insize;</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            :             /* now we have two lists; merge them */
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :             while ((psize &gt; 0) || ((qsize &gt; 0) &amp;&amp; q))</span>
+<span class="lineNum">      83 </span>            :             {
+<span class="lineNum">      84 </span>            :                 /* decide whether next element of merge comes from p or q */
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :                 if (psize == 0)</span>
+<span class="lineNum">      86 </span>            :                 {
+<span class="lineNum">      87 </span>            :                     /* p is empty; e must come from q. */
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :                     e = q;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :                     q = next(q);</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :                     qsize--;</span>
+<span class="lineNum">      91 </span>            :                 }
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :                 else if ((qsize == 0) || (!q))</span>
+<span class="lineNum">      93 </span>            :                 {
+<span class="lineNum">      94 </span>            :                     /* q is empty; e must come from p. */
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :                     e = p;</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :                     p = next(p);</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :                     psize--;</span>
+<span class="lineNum">      98 </span>            :                 }
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :                 else if (less(p, q, ctx))</span>
+<span class="lineNum">     100 </span>            :                 {
+<span class="lineNum">     101 </span>            :                     /* First element of p is lower (or same);
+<span class="lineNum">     102 </span>            :                      * e must come from p. */
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :                     e = p;</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :                     p = next(p);</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :                     psize--;</span>
+<span class="lineNum">     106 </span>            :                 }
+<span class="lineNum">     107 </span>            :                 else
+<span class="lineNum">     108 </span>            :                 {
+<span class="lineNum">     109 </span>            :                     /* First element of q is lower; e must come from q. */
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :                     e = q;</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :                     q = next(q);</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :                     qsize--;</span>
+<span class="lineNum">     113 </span>            :                 }
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            :                 /* add the next element to the merged list */
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :                 if (tail)</span>
+<span class="lineNum">     117 </span>            :                 {
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :                     putnext(tail, e);</span>
+<span class="lineNum">     119 </span>            :                 }
+<span class="lineNum">     120 </span>            :                 else
+<span class="lineNum">     121 </span>            :                 {
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :                     list = e;</span>
+<span class="lineNum">     123 </span>            :                 }
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :                 tail = e;</span>
+<span class="lineNum">     126 </span>            :             }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            :             /* now p has stepped `insize' places along, and q has too */
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :             p = q;</span>
+<span class="lineNum">     130 </span>            :         }
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         putnext(tail, NULL);</span>
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            :         /* If we have done only one merge, we're finished. */
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         if (nmerges &lt;= 1)       /* allow for nmerges==0, the empty list case */</span>
+<span class="lineNum">     137 </span>            :         {
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :             return list;</span>
+<span class="lineNum">     139 </span>            :         }
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            :         /* Otherwise repeat, merging lists twice the size */
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         insize *= 2;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     144 </span>            : }
+<span class="lineNum">     145 </span>            : 
+<a name="146"><span class="lineNum">     146 </span>            : /* Item* callbacks */</a>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 : static bool ItemNameLess(void *lhs, void *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     149 </span>            : {
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     return strcmp(((Item*)lhs)-&gt;name, ((Item*)rhs)-&gt;name) &lt; 0;</span>
+<a name="151"><span class="lineNum">     151 </span>            : }</a>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 : static bool ItemClassesLess(void *lhs, void *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     154 </span>            : {
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     return strcmp(((Item*)lhs)-&gt;classes, ((Item*)rhs)-&gt;classes) &lt; 0;</span>
+<a name="156"><span class="lineNum">     156 </span>            : }</a>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 : static bool ItemCounterMore(void *lhs, void *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     return ((Item*)lhs)-&gt;counter &gt; ((Item*)rhs)-&gt;counter;</span>
+<a name="161"><span class="lineNum">     161 </span>            : }</a>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 : static bool ItemTimeMore(void *lhs, void *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     164 </span>            : {
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     return ((Item*)lhs)-&gt;time &gt; ((Item*)rhs)-&gt;time;</span>
+<a name="166"><span class="lineNum">     166 </span>            : }</a>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 : static void *ItemGetNext(void *element)</span>
+<span class="lineNum">     169 </span>            : {
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     return ((Item*)element)-&gt;next;</span>
+<a name="171"><span class="lineNum">     171 </span>            : }</a>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 : static void ItemPutNext(void *element, void *next)</span>
+<span class="lineNum">     174 </span>            : {
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     ((Item*)element)-&gt;next = (Item *)next;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     177 </span>            : 
+<a name="178"><span class="lineNum">     178 </span>            : /* Item* sorting */</a>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 : Item *SortItemListNames(Item *list)</span>
+<span class="lineNum">     181 </span>            : {
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;ItemNameLess, &amp;ItemGetNext, &amp;ItemPutNext, NULL);</span>
+<a name="183"><span class="lineNum">     183 </span>            : }</a>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 : Item *SortItemListClasses(Item *list)</span>
+<span class="lineNum">     186 </span>            : {
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;ItemClassesLess, &amp;ItemGetNext, &amp;ItemPutNext, NULL);</span>
+<a name="188"><span class="lineNum">     188 </span>            : }</a>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 : Item *SortItemListCounters(Item *list)</span>
+<span class="lineNum">     191 </span>            : {
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;ItemCounterMore, &amp;ItemGetNext, &amp;ItemPutNext, NULL);</span>
+<a name="193"><span class="lineNum">     193 </span>            : }</a>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 : Item *SortItemListTimes(Item *list)</span>
+<span class="lineNum">     196 </span>            : {
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;ItemTimeMore, &amp;ItemGetNext, &amp;ItemPutNext, NULL);</span>
+<span class="lineNum">     198 </span>            : }
+<span class="lineNum">     199 </span>            : 
+<a name="200"><span class="lineNum">     200 </span>            : /* Rlist* and String* callbacks */</a>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 : static bool RlistCustomItemLess(void *lhs_, void *rhs_, void *ctx)</span>
+<span class="lineNum">     203 </span>            : {
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     Rlist *lhs = lhs_;</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     Rlist *rhs = rhs_;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :     int (*cmp)() = ctx;</span>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     return (*cmp)(lhs-&gt;val.item, rhs-&gt;val.item);</span>
+<a name="209"><span class="lineNum">     209 </span>            : }</a>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 : static bool RlistItemLess(void *lhs, void *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     212 </span>            : {
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     return strcmp(((Rlist*)lhs)-&gt;val.item, ((Rlist*)rhs)-&gt;val.item) &lt; 0;</span>
+<a name="214"><span class="lineNum">     214 </span>            : }</a>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 : static bool StringItemLess(const char *lhs, const char *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     217 </span>            : {
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     return strcmp(lhs, rhs) &lt; 0;</span>
+<a name="219"><span class="lineNum">     219 </span>            : }</a>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 : static bool StringItemNumberLess(const char *lhs, const char *rhs, ARG_UNUSED void *ctx, bool int_mode)</span>
+<span class="lineNum">     222 </span>            : {
+<span class="lineNum">     223 </span>            :     char remainder[CF_BUFSIZE];
+<span class="lineNum">     224 </span>            :     double left;
+<span class="lineNum">     225 </span>            :     double right;
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     bool matched_left = sscanf(lhs, &quot;%lf&quot;, &amp;left) &gt; 0;</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     bool matched_right = sscanf(rhs, &quot;%lf&quot;, &amp;right) &gt; 0;</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     if (!matched_left)</span>
+<span class="lineNum">     231 </span>            :     {
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         matched_left = sscanf(lhs, &quot;%lf%s&quot;, &amp;left, remainder) &gt; 0;</span>
+<span class="lineNum">     233 </span>            :     }
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     if (!matched_right)</span>
+<span class="lineNum">     236 </span>            :     {
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         matched_right = sscanf(rhs, &quot;%lf%s&quot;, &amp;right, remainder) &gt; 0;</span>
+<span class="lineNum">     238 </span>            :     }
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     if (matched_left &amp;&amp; matched_right)</span>
+<span class="lineNum">     241 </span>            :     {
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         if (int_mode)</span>
+<span class="lineNum">     243 </span>            :         {
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             return ((long int)left) - ((long int)right) &lt; 0;</span>
+<span class="lineNum">     245 </span>            :         }
+<span class="lineNum">     246 </span>            :         else
+<span class="lineNum">     247 </span>            :         {
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :             return left - right &lt; 0;</span>
+<span class="lineNum">     249 </span>            :         }
+<span class="lineNum">     250 </span>            :     }
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     if (matched_left)</span>
+<span class="lineNum">     253 </span>            :     {
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     255 </span>            :     }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     if (matched_right)</span>
+<span class="lineNum">     258 </span>            :     {
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     260 </span>            :     }
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span>            :     // neither item matched
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     return StringItemLess(lhs, rhs, ctx);</span>
+<a name="264"><span class="lineNum">     264 </span>            : }</a>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 : static bool RlistItemNumberLess(void *lhs, void *rhs, ARG_UNUSED void *ctx, bool int_mode)</span>
+<span class="lineNum">     267 </span>            : {
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     return StringItemNumberLess(RlistScalarValue((Rlist*)lhs), RlistScalarValue((Rlist*)rhs), ctx, int_mode);</span>
+<a name="269"><span class="lineNum">     269 </span>            : }</a>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 : static bool RlistItemIntLess(void *lhs, void *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     272 </span>            : {
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     return RlistItemNumberLess(lhs, rhs, ctx, true);</span>
+<a name="274"><span class="lineNum">     274 </span>            : }</a>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 : static bool RlistItemRealLess(void *lhs, void *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     277 </span>            : {
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     return RlistItemNumberLess(lhs, rhs, ctx, false);</span>
+<a name="279"><span class="lineNum">     279 </span>            : }</a>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 : static bool StringItemIPLess(const char *left_item, const char *right_item, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     282 </span>            : {
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     Buffer *left_buffer = BufferNewFrom(left_item, strlen(left_item));</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :     Buffer *right_buffer = BufferNewFrom(right_item, strlen(right_item));</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :     IPAddress *left = IPAddressNew(left_buffer);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :     IPAddress *right = IPAddressNew(right_buffer);</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     bool matched_left = left != NULL;</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     bool matched_right = right != NULL;</span>
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     BufferDestroy(left_buffer);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     BufferDestroy(right_buffer);</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     if (matched_left &amp;&amp; matched_right)</span>
+<span class="lineNum">     296 </span>            :     {
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         int less = IPAddressCompareLess(left, right);</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         IPAddressDestroy(&amp;left);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         IPAddressDestroy(&amp;right);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         return less;</span>
+<span class="lineNum">     301 </span>            :     }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     IPAddressDestroy(&amp;left);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :     IPAddressDestroy(&amp;right);</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     if (matched_left)</span>
+<span class="lineNum">     307 </span>            :     {
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     309 </span>            :     }
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     if (matched_right)</span>
+<span class="lineNum">     312 </span>            :     {
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     314 </span>            :     }
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :     // neither item matched
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     return StringItemLess(left_item, right_item, ctx);</span>
+<a name="318"><span class="lineNum">     318 </span>            : }</a>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 : static bool RlistItemIPLess(void *lhs, void *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     321 </span>            : {
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :     return StringItemIPLess(RlistScalarValue((Rlist*)lhs), RlistScalarValue((Rlist*)rhs), ctx);</span>
+<a name="323"><span class="lineNum">     323 </span>            : }</a>
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 : static long ParseEtherAddress(const char* input, unsigned char *addr)</span>
+<span class="lineNum">     326 </span>            : {
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     if (strlen(input) &gt; 12)</span>
+<span class="lineNum">     328 </span>            :     {
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         return sscanf(input, &quot;%hhx:%hhx:%hhx:%hhx:%hhx:%hhx&quot;, </span>
+<span class="lineNum">     330 </span>            :                       &amp;addr[0], &amp;addr[1], &amp;addr[2], &amp;addr[3], &amp;addr[4], &amp;addr[5]);
+<span class="lineNum">     331 </span>            :     }
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     return sscanf(input, &quot;%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx&quot;, </span>
+<span class="lineNum">     334 </span>            :                   &amp;addr[0], &amp;addr[1], &amp;addr[2], &amp;addr[3], &amp;addr[4], &amp;addr[5]);
+<a name="335"><span class="lineNum">     335 </span>            : }</a>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 : static bool StringItemMACLess(const char *lhs, const char *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     338 </span>            : {
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     int bytes = 6;</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     unsigned char left[bytes], right[bytes];</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     int matched_left = 6 == ParseEtherAddress(lhs, left);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     int matched_right = 6 == ParseEtherAddress(rhs, right);</span>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     if (matched_left &amp;&amp; matched_right)</span>
+<span class="lineNum">     345 </span>            :     {
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :         int difference = memcmp(left, right, bytes);</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :         if (difference != 0) return difference &lt; 0;</span>
+<span class="lineNum">     348 </span>            :     }
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     if (matched_left)</span>
+<span class="lineNum">     351 </span>            :     {
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     353 </span>            :     }
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     if (matched_right)</span>
+<span class="lineNum">     356 </span>            :     {
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     358 </span>            :     }
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span>            :     // neither item matched
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     return StringItemLess(lhs, rhs, ctx);</span>
+<a name="362"><span class="lineNum">     362 </span>            : }</a>
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 : static bool RlistItemMACLess(void *lhs, void *rhs, ARG_UNUSED void *ctx)</span>
+<span class="lineNum">     365 </span>            : {
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     return StringItemMACLess(RlistScalarValue((Rlist*)lhs), RlistScalarValue((Rlist*)rhs), ctx);</span>
+<a name="367"><span class="lineNum">     367 </span>            : }</a>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 : static void *RlistGetNext(void *element)</span>
+<span class="lineNum">     370 </span>            : {
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :     return ((Rlist*)element)-&gt;next;</span>
+<a name="372"><span class="lineNum">     372 </span>            : }</a>
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 : static void RlistPutNext(void *element, void *next)</span>
+<span class="lineNum">     375 </span>            : {
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     ((Rlist*)element)-&gt;next = (Rlist *)next;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     378 </span>            : 
+<a name="379"><span class="lineNum">     379 </span>            : /* Rlist* sorting */</a>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 : Rlist *SortRlist(Rlist *list, int (*CompareItems) ())</span>
+<span class="lineNum">     382 </span>            : {
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;RlistCustomItemLess, &amp;RlistGetNext, &amp;RlistPutNext, CompareItems);</span>
+<a name="384"><span class="lineNum">     384 </span>            : }</a>
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 : Rlist *AlphaSortRListNames(Rlist *list)</span>
+<span class="lineNum">     387 </span>            : {
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;RlistItemLess, &amp;RlistGetNext, &amp;RlistPutNext, NULL);</span>
+<a name="389"><span class="lineNum">     389 </span>            : }</a>
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 : Rlist *IntSortRListNames(Rlist *list)</span>
+<span class="lineNum">     392 </span>            : {
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;RlistItemIntLess, &amp;RlistGetNext, &amp;RlistPutNext, NULL);</span>
+<a name="394"><span class="lineNum">     394 </span>            : }</a>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 : Rlist *RealSortRListNames(Rlist *list)</span>
+<span class="lineNum">     397 </span>            : {
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;RlistItemRealLess, &amp;RlistGetNext, &amp;RlistPutNext, NULL);</span>
+<a name="399"><span class="lineNum">     399 </span>            : }</a>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 : Rlist *IPSortRListNames(Rlist *list)</span>
+<span class="lineNum">     402 </span>            : {
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;RlistItemIPLess, &amp;RlistGetNext, &amp;RlistPutNext, NULL);</span>
+<a name="404"><span class="lineNum">     404 </span>            : }</a>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 : Rlist *MACSortRListNames(Rlist *list)</span>
+<span class="lineNum">     407 </span>            : {
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     return Sort(list, &amp;RlistItemMACLess, &amp;RlistGetNext, &amp;RlistPutNext, NULL);</span>
+<a name="409"><span class="lineNum">     409 </span>            : }</a>
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 : bool GenericItemLess(const char *sort_type, void *lhs, void *rhs)</span>
+<span class="lineNum">     412 </span>            : {
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     if (strcmp(sort_type, &quot;int&quot;) == 0)</span>
+<span class="lineNum">     414 </span>            :     {
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         return RlistItemNumberLess(lhs, rhs, NULL, true);</span>
+<span class="lineNum">     416 </span>            :     }
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     else if (strcmp(sort_type, &quot;real&quot;) == 0)</span>
+<span class="lineNum">     418 </span>            :     {
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         return RlistItemNumberLess(lhs, rhs, NULL, false);</span>
+<span class="lineNum">     420 </span>            :     }
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :     else if (strcasecmp(sort_type, &quot;IP&quot;) == 0)</span>
+<span class="lineNum">     422 </span>            :     {
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :         return RlistItemIPLess(lhs, rhs, NULL);</span>
+<span class="lineNum">     424 </span>            :     }
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     else if (strcasecmp(sort_type, &quot;MAC&quot;) == 0)</span>
+<span class="lineNum">     426 </span>            :     {
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         return RlistItemMACLess(lhs, rhs, NULL);</span>
+<span class="lineNum">     428 </span>            :     }
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            :     // &quot;lex&quot;
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     return RlistItemLess(lhs, rhs, NULL);</span>
+<a name="432"><span class="lineNum">     432 </span>            : }</a>
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 : bool GenericStringItemLess(const char *sort_type, const char *lhs, const char *rhs)</span>
+<span class="lineNum">     435 </span>            : {
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :     if (strcmp(sort_type, &quot;int&quot;) == 0)</span>
+<span class="lineNum">     437 </span>            :     {
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :         return StringItemNumberLess(lhs, rhs, NULL, true);</span>
+<span class="lineNum">     439 </span>            :     }
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     else if (strcmp(sort_type, &quot;real&quot;) == 0)</span>
+<span class="lineNum">     441 </span>            :     {
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :         return StringItemNumberLess(lhs, rhs, NULL, false);</span>
+<span class="lineNum">     443 </span>            :     }
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     else if (strcasecmp(sort_type, &quot;IP&quot;) == 0)</span>
+<span class="lineNum">     445 </span>            :     {
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :         return StringItemIPLess(lhs, rhs, NULL);</span>
+<span class="lineNum">     447 </span>            :     }
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     else if (strcasecmp(sort_type, &quot;MAC&quot;) == 0)</span>
+<span class="lineNum">     449 </span>            :     {
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :         return StringItemMACLess(lhs, rhs, NULL);</span>
+<span class="lineNum">     451 </span>            :     }
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            :     // &quot;lex&quot;
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     return StringItemLess(lhs, rhs, NULL);</span>
+<span class="lineNum">     455 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

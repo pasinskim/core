@@ -1,0 +1,642 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/cf3lex.l</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - cf3lex.l<span style="font-size: 80%;"> (source / <a href="cf3lex.l.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">86</td>
+            <td class="headerCovTableEntry">207</td>
+            <td class="headerCovTableEntryLo">41.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : %{</a>
+<span class="lineNum">       2 </span>            : /* 
+<span class="lineNum">       3 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       4 </span>            : 
+<span class="lineNum">       5 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       6 </span>            :  
+<span class="lineNum">       7 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       8 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       9 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">      10 </span>            :    
+<span class="lineNum">      11 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      12 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      13 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  
+<span class="lineNum">      16 </span>            :   You should have received a copy of the GNU General Public License  
+<span class="lineNum">      17 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      21 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      22 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      23 </span>            :   included file COSL.txt.
+<span class="lineNum">      24 </span>            : */
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : /*******************************************************************/
+<span class="lineNum">      27 </span>            : /*                                                                 */
+<span class="lineNum">      28 </span>            : /*  LEXER for cfengine 3                                           */
+<span class="lineNum">      29 </span>            : /*                                                                 */
+<span class="lineNum">      30 </span>            : /*******************************************************************/
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &lt;platform.h&gt;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #include &lt;cf3parse.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;parser_state.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;file_lib.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;regex.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;feature.h&gt;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : /* yyinput/input are generated and unused */
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : #if defined(__GNUC__)
+<span class="lineNum">      43 </span>            : # define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+<span class="lineNum">      44 </span>            : # if GCC_VERSION &gt;= 40200
+<span class="lineNum">      45 </span>            : #  pragma GCC diagnostic ignored &quot;-Wunused-function&quot;
+<span class="lineNum">      46 </span>            : # endif
+<span class="lineNum">      47 </span>            : #endif
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #undef malloc
+<span class="lineNum">      50 </span>            : #undef realloc
+<span class="lineNum">      51 </span>            : #define malloc xmalloc
+<span class="lineNum">      52 </span>            : #define realloc xrealloc
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : //#define ParserDebug if (LogGetGlobalLevel() &gt;= LOG_LEVEL_DEBUG) printf
+<span class="lineNum">      55 </span>            : #define ParserDebug(...) ((void) 0)
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : static pcre *context_expression_whitespace_rx = NULL;
+<span class="lineNum">      58 </span>            : 
+<a name="59"><span class="lineNum">      59 </span>            : static int DeEscapeQuotedString(const char *from, char *to);</a>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span><span class="lineCov">          2 : int yywrap(void)</span>
+<span class="lineNum">      62 </span>            : {
+<span class="lineNum">      63 </span><span class="lineCov">          2 : return 1;</span>
+<a name="64"><span class="lineNum">      64 </span>            : }</a>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span><span class="lineCov">        244 : static void yyuseraction()</span>
+<span class="lineNum">      67 </span>            : {
+<span class="lineNum">      68 </span><span class="lineCov">        244 : P.offsets.current += yyleng;</span>
+<span class="lineNum">      69 </span><span class="lineCov">        244 : }</span>
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : #define YY_USER_ACTION yyuseraction();
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : // Do not use lex - flex only
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            : %}
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : %x if_ignore_state
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : space      [ \t]+
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : newline    ([\n]|[\xd][\xa])
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : line       ^.*$
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : comment    #[^\n]*
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : macro_if_version    ^@if\ minimum_version\([0-9]{1,10}\.[0-9]{1,10}(\.[0-9]{1,10})?\)
+<span class="lineNum">      88 </span>            : macro_if_feature    ^@if\ feature\([a-zA-Z0-9_]+\)
+<span class="lineNum">      89 </span>            : macro_endif ^@endif
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            : promises   bundle
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : body       body
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : nakedvar   [$@][(][a-zA-Z0-9_\[\]\200-\377.:]+[)]|[$@][{][a-zA-Z0-9_\[\]\200-\377.:]+[}]|[$@][(][a-zA-Z0-9_\200-\377.:]+[\[][a-zA-Z0-9_$(){}\200-\377.:]+[\]]+[)]|[$@][{][a-zA-Z0-9_\200-\377.:]+[\[][a-zA-Z0-9_$(){}\200-\377.:]+[\]]+[}]
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : id         [a-zA-Z0-9_\200-\377]+
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : symbol     [a-zA-Z0-9_\200-\377]+[:][a-zA-Z0-9_\200-\377]+
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            : assign     =&gt;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            : arrow      -&gt;
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : /*
+<span class="lineNum">     106 </span>            :  * Three types of quoted strings:
+<span class="lineNum">     107 </span>            :  *
+<span class="lineNum">     108 </span>            :  * - string in double quotes, starts with double quote, runs until another
+<span class="lineNum">     109 </span>            :  *   double quote, \&quot; masks the double quote.
+<span class="lineNum">     110 </span>            :  * - string in single quotes, starts with single quote, runs until another
+<span class="lineNum">     111 </span>            :  *   single quote, \' masks the single quote.
+<span class="lineNum">     112 </span>            :  * - string in backquotes, starts with backquote, runs until another backquote.
+<span class="lineNum">     113 </span>            :  *
+<span class="lineNum">     114 </span>            :  * The same rule formatted for the better readability:
+<span class="lineNum">     115 </span>            :  *
+<span class="lineNum">     116 </span>            :  * &lt;qstring&gt; := \&quot; &lt;dq&gt; \&quot; | \' &lt;sq&gt; \' | ` &lt;bq&gt; `
+<span class="lineNum">     117 </span>            :  * &lt;dq&gt; = &lt;dqs&gt;*
+<span class="lineNum">     118 </span>            :  * &lt;dqs&gt; = \\ &lt;any&gt; | [^&quot;\\]
+<span class="lineNum">     119 </span>            :  * &lt;sq&gt; = &lt;sqs&gt;*
+<span class="lineNum">     120 </span>            :  * &lt;sqs&gt; = \\ &lt;any&gt; | [^'\\]
+<span class="lineNum">     121 </span>            :  * &lt;bq&gt; = &lt;bqs&gt;*
+<span class="lineNum">     122 </span>            :  * &lt;bqs&gt; = [^`]
+<span class="lineNum">     123 </span>            :  * &lt;any&gt; = . | \n
+<span class="lineNum">     124 </span>            :  *
+<span class="lineNum">     125 </span>            :  */
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            : qstring        \&quot;((\\(.|\n))|[^&quot;\\])*\&quot;|\'((\\(.|\n))|[^'\\])*\'|`[^`]*`
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : class          [.|&amp;!()a-zA-Z0-9_\200-\377:][\t .|&amp;!()a-zA-Z0-9_\200-\377:]*::
+<span class="lineNum">     130 </span>            : varclass       (\&quot;[^&quot;]*\&quot;|\'[^']*\')::
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : promise_type   [a-zA-Z_]+:
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            : %%
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            : {line}                {
+<span class="lineNum">     137 </span><span class="lineCov">         42 :                           free(P.current_line);</span>
+<span class="lineNum">     138 </span><span class="lineCov">         42 :                           P.current_line = xstrdup(yytext);</span>
+<span class="lineNum">     139 </span>            :                           ParserDebug(&quot;L:line %s\n&quot;, P.current_line);
+<span class="lineNum">     140 </span><span class="lineCov">         42 :                           REJECT;</span>
+<span class="lineNum">     141 </span>            :                       }
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            : {newline}             {
+<span class="lineNum">     144 </span><span class="lineCov">         42 :                           P.line_no++;</span>
+<span class="lineNum">     145 </span><span class="lineCov">         84 :                           P.line_pos = 0;</span>
+<span class="lineNum">     146 </span>            :                       }
+<span class="lineNum">     147 </span><span class="lineCov">         42 : </span>
+<span class="lineNum">     148 </span>            : {macro_if_version}    {
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :                         const char* version_text = yytext+20;</span>
+<span class="lineNum">     150 </span>            :                         ParserDebug(&quot;\tL:macro @if %d:version=%s\n&quot;, P.line_pos, version_text);
+<span class="lineNum">     151 </span>            :                         {
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :                           int request_major = 0;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :                           int request_minor = 0;</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                           int request_patch = 0;</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :                           int request_level = 0;</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                           int major = 0;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                           int minor = 0;</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :                           int patch = 0;</span>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                           if (P.if_depth &gt; 0)</span>
+<span class="lineNum">     161 </span>            :                           {
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                             yyerror(&quot;fatal: nested @if macros are not allowed&quot;);</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                             return 0;</span>
+<span class="lineNum">     164 </span>            :                           }
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                           P.if_depth++;</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :                           if (3 == sscanf(Version(), &quot;%d.%d.%d&quot;, &amp;major, &amp;minor, &amp;patch))</span>
+<span class="lineNum">     169 </span>            :                           {
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                             request_level = sscanf(version_text, &quot;%d.%d.%d&quot;, &amp;request_major, &amp;request_minor, &amp;request_patch);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                             if (request_level &gt;= 1)</span>
+<span class="lineNum">     172 </span>            :                             {
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :                               if (request_major &gt; major) {</span>
+<span class="lineNum">     174 </span>            :                                 ParserDebug(&quot;\tL:macro @if %d:ignoring to next @endif or EOF\n&quot;, P.line_pos);
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                                 BEGIN(if_ignore_state);</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :                               } else if (request_major &lt; major || request_level == 1) {</span>
+<span class="lineNum">     177 </span>            :                                 ParserDebug(&quot;\tL:macro @if %d:accepted to next @endif\n&quot;, P.line_pos);
+<span class="lineNum">     178 </span>            :                               } else { // request_major==major &amp;&amp; request_level &gt; 1
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :                                 if (request_minor &gt; minor) {</span>
+<span class="lineNum">     180 </span>            :                                   ParserDebug(&quot;\tL:macro @if %d:ignoring to next @endif or EOF\n&quot;, P.line_pos);
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :                                   BEGIN(if_ignore_state);</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :                                 } else if (request_minor &lt; minor || request_level == 2) {</span>
+<span class="lineNum">     183 </span>            :                                   ParserDebug(&quot;\tL:macro @if %d:accepted to next @endif\n&quot;, P.line_pos);
+<span class="lineNum">     184 </span>            :                                 } else { // request_minor==minor &amp;&amp; request_level &gt; 2
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :                                   if (request_patch &gt; patch) {</span>
+<span class="lineNum">     186 </span>            :                                     ParserDebug(&quot;\tL:macro @if %d:ignoring to next @endif or EOF\n&quot;, P.line_pos);
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :                                     BEGIN(if_ignore_state);</span>
+<span class="lineNum">     188 </span>            :                                   } else { // request_patch &lt;= patch
+<span class="lineNum">     189 </span>            :                                     ParserDebug(&quot;\tL:macro @if %d:accepted to next @endif\n&quot;, P.line_pos);
+<span class="lineNum">     190 </span>            :                                   }
+<span class="lineNum">     191 </span>            :                                 }
+<span class="lineNum">     192 </span>            :                               }
+<span class="lineNum">     193 </span>            :                             }
+<span class="lineNum">     194 </span>            :                             else
+<span class="lineNum">     195 </span>            :                             {
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                               yyerror(&quot;fatal: macro @if requested an unparseable version&quot;);</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                               return 0;</span>
+<span class="lineNum">     198 </span>            :                             }
+<span class="lineNum">     199 </span>            :                           }
+<span class="lineNum">     200 </span>            :                           else
+<span class="lineNum">     201 </span>            :                           {
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                             yyerror(&quot;fatal: Version() was unparseable&quot;);</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                             return 0;</span>
+<span class="lineNum">     204 </span>            :                           }
+<span class="lineNum">     205 </span>            :                         }
+<span class="lineNum">     206 </span>            :                       }
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     208 </span>            : {macro_if_feature}    {
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                         char* feature_text = yytext+12;</span>
+<span class="lineNum">     210 </span>            :                         // remove trailing ')'
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                         feature_text[strlen(feature_text)-1] = 0;</span>
+<span class="lineNum">     212 </span>            :                         ParserDebug(&quot;\tL:macro @if %d:feature=%s\n&quot;, P.line_pos, feature_text);
+<span class="lineNum">     213 </span>            :                         {
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :                           if (P.if_depth &gt; 0)</span>
+<span class="lineNum">     215 </span>            :                           {
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :                             yyerror(&quot;fatal: nested @if macros are not allowed&quot;);</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :                             return 0;</span>
+<span class="lineNum">     218 </span>            :                           }
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :                           P.if_depth++;</span>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :                           if (KnownFeature(feature_text))</span>
+<span class="lineNum">     223 </span>            :                           {
+<span class="lineNum">     224 </span>            :                             ParserDebug(&quot;\tL:macro @if %d:accepted to next @endif\n&quot;, P.line_pos);
+<span class="lineNum">     225 </span>            :                           }
+<span class="lineNum">     226 </span>            :                           else
+<span class="lineNum">     227 </span>            :                           {
+<span class="lineNum">     228 </span>            :                             /* ignore to the next @endif */
+<span class="lineNum">     229 </span>            :                             ParserDebug(&quot;\tL:macro @if %d:ignoring to next @endif or EOF\n&quot;, P.line_pos);
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                             BEGIN(if_ignore_state);</span>
+<span class="lineNum">     231 </span>            :                           }
+<span class="lineNum">     232 </span>            :                         }
+<span class="lineNum">     233 </span>            :                       }
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     235 </span>            : {macro_endif}         {
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :                         ParserDebug(&quot;\tL:macro @endif %d\n&quot;, P.line_pos);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :                         BEGIN(INITIAL);</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :                         if (P.if_depth &lt;= 0)</span>
+<span class="lineNum">     239 </span>            :                         {
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                           yyerror(&quot;fatal: @endif macros without a matching @if are not allowed&quot;);</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                           return 0;</span>
+<span class="lineNum">     242 </span>            :                         }
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :                         P.if_depth--;</span>
+<span class="lineNum">     244 </span>            :                       }
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     246 </span>            : &lt;if_ignore_state&gt;{macro_endif} {
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :                                  ParserDebug(&quot;\tL:macro @endif %d\n&quot;, P.line_pos);</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :                                  BEGIN(INITIAL);</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :                                  if (P.if_depth &lt;= 0)</span>
+<span class="lineNum">     250 </span>            :                                  {
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                                    yyerror(&quot;fatal: @endif macros without a matching @if are not allowed&quot;);</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :                                    return 0;</span>
+<span class="lineNum">     253 </span>            :                                  }
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                                  P.if_depth--;</span>
+<span class="lineNum">     255 </span>            :                                }
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     257 </span>            : &lt;if_ignore_state&gt;[^@]      {
+<span class="lineNum">     258 </span>            :                                ParserDebug(&quot;\tL:inside macro @if, ignoring text:%s\n&quot;, yytext);
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :                            }</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     261 </span>            : {promises}            {
+<span class="lineNum">     262 </span><span class="lineCov">          2 :                           /* Note this has to come before &quot;id&quot; since it is a subset of id */</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineCov">          2 :                           if (P.currentclasses != NULL)</span>
+<span class="lineNum">     265 </span>            :                           {
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :                               free(P.currentclasses);</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :                               P.currentclasses = NULL;</span>
+<span class="lineNum">     268 </span>            :                           }
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineCov">          2 :                           if (P.currentvarclasses != NULL)</span>
+<span class="lineNum">     271 </span>            :                           {
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                               free(P.currentvarclasses);</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                               P.currentvarclasses = NULL;</span>
+<span class="lineNum">     274 </span>            :                           }
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">          2 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     277 </span>            :                           ParserDebug(&quot;\tL:bundle %d\n&quot;, P.line_pos);
+<span class="lineNum">     278 </span><span class="lineCov">          2 :                           return BUNDLE;</span>
+<span class="lineNum">     279 </span>            :                       }
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            : {body}                {
+<span class="lineNum">     282 </span><span class="lineCov">          2 :                           /* Note this has to come before &quot;id&quot; since it is a subset of id */</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineCov">          2 :                           if (P.currentclasses != NULL)</span>
+<span class="lineNum">     285 </span>            :                           {
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                               free(P.currentclasses);</span>
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :                               P.currentclasses = NULL;</span>
+<span class="lineNum">     288 </span>            :                           }
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineCov">          2 :                           if (P.currentvarclasses != NULL)</span>
+<span class="lineNum">     291 </span>            :                           {
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                               free(P.currentvarclasses);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                               P.currentvarclasses = NULL;</span>
+<span class="lineNum">     294 </span>            :                           }
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineCov">          2 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     297 </span>            :                           ParserDebug(&quot;\tL:body %d\n&quot;, P.line_pos);
+<span class="lineNum">     298 </span><span class="lineCov">          2 :                           return BODY;</span>
+<span class="lineNum">     299 </span>            :                       }
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            : {id}                  {
+<span class="lineNum">     302 </span><span class="lineCov">         22 :                           P.offsets.last_id = P.offsets.current - yyleng;</span>
+<span class="lineNum">     303 </span><span class="lineCov">         22 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     304 </span>            :                           ParserDebug(&quot;\tL:id %s %d\n&quot;, yytext, P.line_pos);
+<span class="lineNum">     305 </span><span class="lineCov">         22 :                           if (yyleng  &gt; CF_MAXVARSIZE-1)</span>
+<span class="lineNum">     306 </span>            :                           {
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :                               yyerror(&quot;identifier too long&quot;);</span>
+<span class="lineNum">     308 </span>            :                           }
+<span class="lineNum">     309 </span><span class="lineCov">         22 :                           strncpy(P.currentid, yytext, CF_MAXVARSIZE);</span>
+<span class="lineNum">     310 </span><span class="lineCov">         22 :                           return IDSYNTAX;</span>
+<span class="lineNum">     311 </span>            :                       }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 : {symbol}              {</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                           P.offsets.last_id = P.offsets.current - yyleng;</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     317 </span>            :                           ParserDebug(&quot;\tL:symbol %s %d\n&quot;, yytext, P.line_pos);
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :                           if (yyleng &gt; CF_MAXVARSIZE-1)</span>
+<span class="lineNum">     319 </span>            :                           {
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :                               yyerror(&quot;qualified identifier too long&quot;);</span>
+<span class="lineNum">     321 </span>            :                           }
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :                           strncpy(P.currentid, yytext, CF_MAXVARSIZE);</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :                           return IDSYNTAX;</span>
+<span class="lineNum">     324 </span>            :                       }
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span><span class="lineCov">          8 : {assign}              {</span>
+<span class="lineNum">     328 </span><span class="lineCov">          8 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     329 </span>            :                           ParserDebug(&quot;\tL:assign %d\n&quot;, P.line_pos);
+<span class="lineNum">     330 </span><span class="lineCov">          8 :                           return ASSIGN;</span>
+<span class="lineNum">     331 </span>            :                       }
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            : {arrow}               {
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     335 </span>            :                           ParserDebug(&quot;\tL:arrow %d\n&quot;, P.line_pos);
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :                           return ARROW;</span>
+<span class="lineNum">     337 </span>            :                       }
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span>            : {varclass}            {
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                           char *tmp = NULL;</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :                         </span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     343 </span>            :                           ParserDebug(&quot;\tL:varclass %s %d\n&quot;, yytext, P.line_pos);
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                           tmp = xstrdup(yytext+1); // remove leading quote</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :                           tmp[yyleng-4] = '\0'; // remove tail quote plus ::</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :                           if (P.currentclasses != NULL)</span>
+<span class="lineNum">     349 </span>            :                           {
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :                               free(P.currentclasses);</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :                               P.currentclasses = NULL;</span>
+<span class="lineNum">     352 </span>            :                           }
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :                           if (P.currentvarclasses != NULL)</span>
+<span class="lineNum">     355 </span>            :                           {
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :                               free(P.currentvarclasses);</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                               P.currentvarclasses = NULL;</span>
+<span class="lineNum">     358 </span>            :                           }
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                           P.currentvarclasses = xstrdup(tmp);</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                           free(tmp);</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                           return CLASS;</span>
+<span class="lineNum">     364 </span>            :                       }
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            : {class}               {
+<span class="lineNum">     367 </span><span class="lineCov">          4 :                           char *tmp = NULL;</span>
+<span class="lineNum">     368 </span>            :                         
+<span class="lineNum">     369 </span><span class="lineCov">          4 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     370 </span>            :                           ParserDebug(&quot;\tL:class %s %d\n&quot;, yytext, P.line_pos);
+<span class="lineNum">     371 </span><span class="lineCov">          4 :                           if (NULL == context_expression_whitespace_rx)</span>
+<span class="lineNum">     372 </span>            :                           {
+<span class="lineNum">     373 </span><span class="lineCov">          2 :                               context_expression_whitespace_rx = CompileRegex(CFENGINE_REGEX_WHITESPACE_IN_CONTEXTS);</span>
+<span class="lineNum">     374 </span>            :                           }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineCov">          4 :                           if (NULL == context_expression_whitespace_rx)</span>
+<span class="lineNum">     377 </span>            :                           {
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                               yyerror(&quot;The context expression whitespace regular expression could not be compiled, aborting.&quot;);</span>
+<span class="lineNum">     379 </span>            :                           }
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineCov">          4 :                           if (StringMatchFullWithPrecompiledRegex(context_expression_whitespace_rx, yytext))</span>
+<span class="lineNum">     382 </span>            :                           {
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                               yyerror(&quot;class names can't be separated by whitespace without an intervening operator&quot;);</span>
+<span class="lineNum">     384 </span>            :                           }
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineCov">          4 :                           tmp = xstrdup(yytext);</span>
+<span class="lineNum">     387 </span><span class="lineCov">          4 :                           tmp[yyleng-2] = '\0';</span>
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineCov">          4 :                           if (P.currentclasses != NULL)</span>
+<span class="lineNum">     390 </span>            :                           {
+<span class="lineNum">     391 </span><span class="lineCov">          2 :                               free(P.currentclasses);</span>
+<span class="lineNum">     392 </span><span class="lineCov">          2 :                               P.currentclasses = NULL;</span>
+<span class="lineNum">     393 </span>            :                           }
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineCov">          4 :                           if (P.currentvarclasses != NULL)</span>
+<span class="lineNum">     396 </span>            :                           {
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :                               free(P.currentvarclasses);</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :                               P.currentvarclasses = NULL;</span>
+<span class="lineNum">     399 </span>            :                           }
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineCov">          4 :                           P.currentclasses = xstrdup(tmp);</span>
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineCov">          4 :                           free(tmp);</span>
+<span class="lineNum">     404 </span><span class="lineCov">          4 :                           return CLASS;</span>
+<span class="lineNum">     405 </span>            :                       }
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            : {promise_type}        {
+<span class="lineNum">     408 </span><span class="lineCov">          4 :                           char *tmp = NULL;</span>
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span><span class="lineCov">          4 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     411 </span>            :                           ParserDebug(&quot;\tL:promise_type %s %d\n&quot;, yytext, P.line_pos);
+<span class="lineNum">     412 </span><span class="lineCov">          4 :                           P.offsets.last_promise_type_id = P.offsets.current - yyleng;</span>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineCov">          4 :                           tmp = xstrdup(yytext);</span>
+<span class="lineNum">     415 </span><span class="lineCov">          4 :                           tmp[yyleng - 1] = '\0';</span>
+<span class="lineNum">     416 </span><span class="lineCov">          4 :                           strncpy(P.currenttype, tmp, CF_MAXVARSIZE);</span>
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineCov">          4 :                           if (P.currentclasses != NULL)</span>
+<span class="lineNum">     419 </span>            :                           {
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :                               free(P.currentclasses);</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :                               P.currentclasses = NULL;</span>
+<span class="lineNum">     422 </span>            :                           }
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineCov">          4 :                           if (P.currentvarclasses != NULL)</span>
+<span class="lineNum">     425 </span>            :                           {
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :                               free(P.currentvarclasses);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                               P.currentvarclasses = NULL;</span>
+<span class="lineNum">     428 </span>            :                           }
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span><span class="lineCov">          4 :                           free(tmp);</span>
+<span class="lineNum">     431 </span><span class="lineCov">          4 :                           return PROMISE_TYPE;</span>
+<span class="lineNum">     432 </span>            :                       }
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span>            : {qstring}             {
+<span class="lineNum">     435 </span><span class="lineCov">         20 :                           char *tmp = NULL;</span>
+<span class="lineNum">     436 </span><span class="lineCov">         40 :                           int less = 0;</span>
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineCov">         20 :                           P.offsets.last_string = P.offsets.current - yyleng;</span>
+<span class="lineNum">     439 </span><span class="lineCov">         20 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     440 </span>            :                           ParserDebug(&quot;\tL:qstring %s %d\n&quot;, yytext, P.line_pos);
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span><span class="lineCov">        398 :                           for (char *c = yytext; *c; ++c)</span>
+<span class="lineNum">     443 </span>            :                           {
+<span class="lineNum">     444 </span><span class="lineCov">        378 :                               if (*c == '\n')</span>
+<span class="lineNum">     445 </span>            :                               {
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :                                   P.line_no++;</span>
+<span class="lineNum">     447 </span>            :                               }
+<span class="lineNum">     448 </span>            :                           }
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineCov">         20 :                           tmp = xmalloc(yyleng + 1);</span>
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span><span class="lineCov">         20 :                           if ((less = DeEscapeQuotedString(yytext,tmp)) &gt; 0)</span>
+<span class="lineNum">     453 </span>            :                           {
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                               yyless(less);</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :                               P.offsets.current -= less;</span>
+<span class="lineNum">     456 </span>            :                           }
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span><span class="lineCov">         20 :                           if (P.currentstring)</span>
+<span class="lineNum">     459 </span>            :                           {
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                               free(P.currentstring);</span>
+<span class="lineNum">     461 </span>            :                           }
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span><span class="lineCov">         20 :                           P.currentstring = xstrdup(tmp);</span>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineCov">         20 :                           free(tmp);</span>
+<span class="lineNum">     466 </span><span class="lineCov">         20 :                           return QSTRING;</span>
+<span class="lineNum">     467 </span>            :                       }
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 : {nakedvar}            {</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     472 </span>            :                           ParserDebug(&quot;\tL: %s %d\n&quot;, yytext, P.line_pos);
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :                           if (P.currentstring)</span>
+<span class="lineNum">     474 </span>            :                           {
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                               free(P.currentstring);</span>
+<span class="lineNum">     476 </span>            :                           }
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :                           P.currentstring = xstrdup(yytext);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                           return NAKEDVAR;</span>
+<span class="lineNum">     479 </span>            :                       }
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            : {space}+              {
+<span class="lineNum">     482 </span><span class="lineCov">         58 :                           P.line_pos += yyleng;</span>
+<span class="lineNum">     483 </span>            :                       }
+<span class="lineNum">     484 </span><span class="lineCov">         58 : </span>
+<span class="lineNum">     485 </span>            : {comment}             {
+<span class="lineNum">     486 </span><span class="lineCov">          2 :                       }</span>
+<span class="lineNum">     487 </span><span class="lineCov">          2 : </span>
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span><span class="lineCov">         38 : .                     {</span>
+<span class="lineNum">     490 </span><span class="lineCov">         38 :                           P.line_pos++;</span>
+<span class="lineNum">     491 </span><span class="lineCov">         38 :                           return yytext[0];</span>
+<span class="lineNum">     492 </span>            :                       }
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span>            : &lt;if_ignore_state&gt;&lt;&lt;EOF&gt;&gt;     {
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :                                if (P.if_depth &gt; 0)</span>
+<span class="lineNum">     496 </span>            :                                {
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                                  yyerror(&quot;EOF seen while @if was waiting for @endif in ignore_state&quot;);</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :                                  return 0;</span>
+<span class="lineNum">     499 </span>            :                                }
+<span class="lineNum">     500 </span>            :                              }
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     502 </span>            : &lt;&lt;EOF&gt;&gt;     {
+<span class="lineNum">     503 </span><span class="lineCov">          2 :               if (P.if_depth &gt; 0)</span>
+<span class="lineNum">     504 </span>            :               {
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                 yyerror(&quot;EOF seen while @if was waiting for @endif without ignore_state&quot;);</span>
+<span class="lineNum">     506 </span>            :               }
+<span class="lineNum">     507 </span><span class="lineCov">          2 :               return 0; // loops forever without this</span>
+<span class="lineNum">     508 </span>            :             }
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 : %%</span>
+<a name="511"><span class="lineNum">     511 </span><span class="lineNoCov">          0 : </span></a>
+<span class="lineNum">     512 </span>            : static int DeEscapeQuotedString(const char *from, char *to)
+<span class="lineNum">     513 </span><span class="lineCov">         20 : {</span>
+<span class="lineNum">     514 </span>            :     char *cp;
+<span class="lineNum">     515 </span>            :     const char *sp;
+<span class="lineNum">     516 </span>            :     char start = *from;
+<span class="lineNum">     517 </span><span class="lineCov">         20 :     int len = strlen(from);</span>
+<span class="lineNum">     518 </span><span class="lineCov">         20 : </span>
+<span class="lineNum">     519 </span>            :     if (len == 0)
+<span class="lineNum">     520 </span><span class="lineCov">         20 :     {</span>
+<span class="lineNum">     521 </span>            :         return 0;
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            :     for (sp = from + 1, cp = to; (sp - from) &lt; len; sp++, cp++)
+<span class="lineNum">     525 </span><span class="lineCov">        358 :     {</span>
+<span class="lineNum">     526 </span>            :         if ((*sp == start))
+<span class="lineNum">     527 </span><span class="lineCov">        358 :         {</span>
+<span class="lineNum">     528 </span>            :             *(cp) = '\0';
+<span class="lineNum">     529 </span><span class="lineCov">         20 : </span>
+<span class="lineNum">     530 </span>            :             if (*(sp + 1) != '\0')
+<span class="lineNum">     531 </span><span class="lineCov">         20 :             {</span>
+<span class="lineNum">     532 </span>            :                 return (2 + (sp - from));
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span>            :             return 0;
+<span class="lineNum">     536 </span><span class="lineCov">         20 :         }</span>
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            :       if (*sp == '\\')
+<span class="lineNum">     539 </span><span class="lineCov">        338 :       {</span>
+<span class="lineNum">     540 </span>            :             switch (*(sp + 1))
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :             {</span>
+<span class="lineNum">     542 </span>            :             case '\n':
+<span class="lineNum">     543 </span>            :                 sp += 2;
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     545 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     546 </span>            :             case ' ':
+<span class="lineNum">     547 </span>            :                 break;
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 : </span>
+<span class="lineNum">     549 </span>            :             case '\\':
+<span class="lineNum">     550 </span>            :             case '\&quot;':
+<span class="lineNum">     551 </span>            :             case '\'':
+<span class="lineNum">     552 </span>            :                 sp++;
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     555 </span>            :         }
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span>            :         *cp = *sp;
+<span class="lineNum">     558 </span><span class="lineCov">        338 :     }</span>
+<span class="lineNum">     559 </span>            : 
+<span class="lineNum">     560 </span>            :     yyerror(&quot;Runaway string&quot;);
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     *(cp) = '\0';</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span>            : /* EOF */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

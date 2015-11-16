@@ -1,0 +1,897 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - cf-agent/files_changes.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cf-agent</a> - files_changes.c<span style="font-size: 80%;"> (source / <a href="files_changes.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">331</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;files_changes.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;sequence.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;hash.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;file_lib.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;dbm_api.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;promises.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;actuator.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;files_hashes.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;known_dirs.h&gt;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : /*
+<span class="lineNum">      39 </span>            :   The format of the changes database is as follows:
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            :          Key:   |            Value:
+<span class="lineNum">      42 </span>            :   &quot;D_&lt;path&gt;&quot;    | &quot;&lt;basename&gt;\0&lt;basename&gt;\0...&quot; (SORTED!)
+<span class="lineNum">      43 </span>            :                 |
+<span class="lineNum">      44 </span>            :   &quot;H_&lt;hash_key&gt; | &quot;&lt;hash&gt;\0&quot;
+<span class="lineNum">      45 </span>            :                 |
+<span class="lineNum">      46 </span>            :   &quot;S_&lt;path&gt;     | &quot;&lt;struct stat&gt;&quot;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            :   Explanation:
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            :   - The &quot;D&quot; entry contains all the filenames that have been recorded in that
+<span class="lineNum">      51 </span>            :     directory, stored as the basename.
+<span class="lineNum">      52 </span>            :   - The &quot;H&quot; entry records the hash of a file.
+<span class="lineNum">      53 </span>            :   - The &quot;S&quot; entry records the stat information of a file.
+<span class="lineNum">      54 </span>            : */
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : #define CHANGES_HASH_STRING_LEN 7
+<span class="lineNum">      57 </span>            : #define CHANGES_HASH_FILE_NAME_OFFSET  CHANGES_HASH_STRING_LEN+1
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : typedef struct
+<span class="lineNum">      60 </span>            : {
+<span class="lineNum">      61 </span>            :     unsigned char mess_digest[EVP_MAX_MD_SIZE + 1];     /* Content digest */
+<span class="lineNum">      62 </span>            : } ChecksumValue;
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : static bool GetDirectoryListFromDatabase(CF_DB *db, const char * path, Seq *files);
+<span class="lineNum">      65 </span>            : static bool FileChangesSetDirectoryList(CF_DB *db, const char *path, const Seq *files);
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : /*
+<span class="lineNum">      68 </span>            :  * Key format:
+<span class="lineNum">      69 </span>            :  *
+<span class="lineNum">      70 </span>            :  * 7 bytes    hash name, \0 padded at right
+<span class="lineNum">      71 </span>            :  * 1 byte     \0
+<a name="72"><span class="lineNum">      72 </span>            :  * N bytes    pathname</a>
+<span class="lineNum">      73 </span>            :  */
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 : static char *NewIndexKey(char type, const char *name, int *size)</span>
+<span class="lineNum">      75 </span>            : {
+<span class="lineNum">      76 </span>            :     char *chk_key;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : // &quot;H_&quot; plus pathname plus index_str in one block + \0
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     const size_t len = strlen(name);</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     *size = len + CHANGES_HASH_FILE_NAME_OFFSET + 3;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     chk_key = xcalloc(1, *size);</span>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : // Data start after offset for index
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     strlcpy(chk_key, &quot;H_&quot;, 2);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     strlcpy(chk_key + 2, HashNameFromId(type), CHANGES_HASH_STRING_LEN);</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     memcpy(chk_key + 2 + CHANGES_HASH_FILE_NAME_OFFSET, name, len);</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     return chk_key;</span>
+<a name="91"><span class="lineNum">      91 </span>            : }</a>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 : static void DeleteIndexKey(char *key)</span>
+<span class="lineNum">      94 </span>            : {
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     free(key);</span>
+<a name="96"><span class="lineNum">      96 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 : static ChecksumValue *NewHashValue(unsigned char digest[EVP_MAX_MD_SIZE + 1])</span>
+<span class="lineNum">      99 </span>            : {
+<span class="lineNum">     100 </span>            :     ChecksumValue *chk_val;
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     chk_val = xcalloc(1, sizeof(ChecksumValue));</span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     memcpy(chk_val-&gt;mess_digest, digest, EVP_MAX_MD_SIZE + 1);</span>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     return chk_val;</span>
+<a name="107"><span class="lineNum">     107 </span>            : }</a>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 : static void DeleteHashValue(ChecksumValue *chk_val)</span>
+<span class="lineNum">     110 </span>            : {
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     free(chk_val);</span>
+<a name="112"><span class="lineNum">     112 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 : static int ReadHash(CF_DB *dbp, HashMethod type, const char *name, unsigned char digest[EVP_MAX_MD_SIZE + 1])</span>
+<span class="lineNum">     115 </span>            : {
+<span class="lineNum">     116 </span>            :     char *key;
+<span class="lineNum">     117 </span>            :     int size;
+<span class="lineNum">     118 </span>            :     ChecksumValue chk_val;
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     key = NewIndexKey(type, name, &amp;size);</span>
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     if (ReadComplexKeyDB(dbp, key, size, (void *) &amp;chk_val, sizeof(ChecksumValue)))</span>
+<span class="lineNum">     123 </span>            :     {
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         memcpy(digest, chk_val.mess_digest, EVP_MAX_MD_SIZE + 1);</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         DeleteIndexKey(key);</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     127 </span>            :     }
+<span class="lineNum">     128 </span>            :     else
+<span class="lineNum">     129 </span>            :     {
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         DeleteIndexKey(key);</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     132 </span>            :     }
+<a name="133"><span class="lineNum">     133 </span>            : }</a>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 : static int WriteHash(CF_DB *dbp, HashMethod type, const char *name, unsigned char digest[EVP_MAX_MD_SIZE + 1])</span>
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span>            :     char *key;
+<span class="lineNum">     138 </span>            :     ChecksumValue *value;
+<span class="lineNum">     139 </span>            :     int ret, keysize;
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     key = NewIndexKey(type, name, &amp;keysize);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     value = NewHashValue(digest);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :     ret = WriteComplexKeyDB(dbp, key, keysize, value, sizeof(ChecksumValue));</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     DeleteIndexKey(key);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :     DeleteHashValue(value);</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="147"><span class="lineNum">     147 </span>            : }</a>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 : static void DeleteHash(CF_DB *dbp, HashMethod type, const char *name)</span>
+<span class="lineNum">     150 </span>            : {
+<span class="lineNum">     151 </span>            :     int size;
+<span class="lineNum">     152 </span>            :     char *key;
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     key = NewIndexKey(type, name, &amp;size);</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     DeleteComplexKeyDB(dbp, key, size);</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     DeleteIndexKey(key);</span>
+<a name="157"><span class="lineNum">     157 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 : static void AddMigratedFileToDirectoryList(CF_DB *changes_db, const char *file, const char *common_msg)</span>
+<span class="lineNum">     160 </span>            : {
+<span class="lineNum">     161 </span>            :     // This is incredibly inefficient, since we add files to the list one by one,
+<span class="lineNum">     162 </span>            :     // but the migration only ever needs to be done once for each host.
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     size_t file_len = strlen(file);</span>
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     char dir[file_len + 1];</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     strcpy(dir, file);</span>
+<span class="lineNum">     166 </span>            :     const char *basefile;
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :     char *last_slash = strrchr(dir, '/');</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     if (last_slash == NULL)</span>
+<span class="lineNum">     170 </span>            :     {
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;%s: Invalid file entry: '%s'&quot;, common_msg, dir);</span>
+<span class="lineNum">     172 </span>            :         return;
+<span class="lineNum">     173 </span>            :     }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     if (last_slash == dir)</span>
+<span class="lineNum">     176 </span>            :     {
+<span class="lineNum">     177 </span>            :         // If we only have one slash, it is the root dir, so we need to have
+<span class="lineNum">     178 </span>            :         // dir be equal to &quot;/&quot;. We cannot both have that, and let basefile
+<span class="lineNum">     179 </span>            :         // point to the the next component in dir (since the first character
+<span class="lineNum">     180 </span>            :         // will then be '\0'), so point to the original file buffer instead.
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         dir[1] = '\0';</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         basefile = file + 1;</span>
+<span class="lineNum">     183 </span>            :     }
+<span class="lineNum">     184 </span>            :     else
+<span class="lineNum">     185 </span>            :     {
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         basefile = last_slash + 1;</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         *last_slash = '\0';</span>
+<span class="lineNum">     188 </span>            :     }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :     Seq *files = SeqNew(1, free);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     if (!GetDirectoryListFromDatabase(changes_db, dir, files))</span>
+<span class="lineNum">     192 </span>            :     {
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;%s: Not able to get directory index&quot;, common_msg);</span>
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         SeqDestroy(files);</span>
+<span class="lineNum">     195 </span>            :         return;
+<span class="lineNum">     196 </span>            :     }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     if (SeqBinaryIndexOf(files, basefile, (SeqItemComparator)strcmp) == -1)</span>
+<span class="lineNum">     199 </span>            :     {
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :         SeqAppend(files, xstrdup(basefile));</span>
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :         SeqSort(files, (SeqItemComparator)strcmp, NULL);</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         if (!FileChangesSetDirectoryList(changes_db, dir, files))</span>
+<span class="lineNum">     203 </span>            :         {
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;%s: Not able to update directory index&quot;, common_msg);</span>
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span>            :     }
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     SeqDestroy(files);</span>
+<a name="209"><span class="lineNum">     209 </span>            : }</a>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 : static bool MigrateOldChecksumDatabase(CF_DB *changes_db)</span>
+<span class="lineNum">     212 </span>            : {
+<span class="lineNum">     213 </span>            :     CF_DB *old_db;
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     const char *common_msg = &quot;While converting old checksum database to new format&quot;;</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :     if (!OpenDB(&amp;old_db, dbid_checksums))</span>
+<span class="lineNum">     218 </span>            :     {
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;%s: Could not open database.&quot;, common_msg);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     221 </span>            :     }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :     CF_DBC *cursor;
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     if (!NewDBCursor(old_db, &amp;cursor))</span>
+<span class="lineNum">     225 </span>            :     {
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;%s: Could not open database cursor.&quot;, common_msg);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         CloseDB(old_db);</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     229 </span>            :     }
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            :     char *key;
+<span class="lineNum">     232 </span>            :     int ksize;
+<span class="lineNum">     233 </span>            :     char *value;
+<span class="lineNum">     234 </span>            :     int vsize;
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     while (NextDB(cursor, &amp;key, &amp;ksize, (void **)&amp;value, &amp;vsize))</span>
+<span class="lineNum">     236 </span>            :     {
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         char new_key[ksize + 2];</span>
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         new_key[0] = 'H';</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         new_key[1] = '_';</span>
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         memcpy(new_key + 2, key, ksize);</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         if (!WriteComplexKeyDB(changes_db, new_key, sizeof(new_key), value, vsize))</span>
+<span class="lineNum">     242 </span>            :         {
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;%s: Could not write file checksum to database&quot;, common_msg);</span>
+<span class="lineNum">     244 </span>            :             // Keep trying for other keys.
+<span class="lineNum">     245 </span>            :         }
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         AddMigratedFileToDirectoryList(changes_db, key + CHANGES_HASH_FILE_NAME_OFFSET, common_msg);</span>
+<span class="lineNum">     247 </span>            :     }
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :     DeleteDBCursor(cursor);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     CloseDB(old_db);</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="253"><span class="lineNum">     253 </span>            : }</a>
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 : static bool MigrateOldStatDatabase(CF_DB *changes_db)</span>
+<span class="lineNum">     256 </span>            : {
+<span class="lineNum">     257 </span>            :     CF_DB *old_db;
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     const char *common_msg = &quot;While converting old filestat database to new format&quot;;</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     if (!OpenDB(&amp;old_db, dbid_filestats))</span>
+<span class="lineNum">     262 </span>            :     {
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;%s: Could not open database.&quot;, common_msg);</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     265 </span>            :     }
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            :     CF_DBC *cursor;
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     if (!NewDBCursor(old_db, &amp;cursor))</span>
+<span class="lineNum">     269 </span>            :     {
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;%s: Could not open database cursor.&quot;, common_msg);</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         CloseDB(old_db);</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     273 </span>            :     }
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span>            :     char *key;
+<span class="lineNum">     276 </span>            :     int ksize;
+<span class="lineNum">     277 </span>            :     char *value;
+<span class="lineNum">     278 </span>            :     int vsize;
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     while (NextDB(cursor, &amp;key, &amp;ksize, (void **)&amp;value, &amp;vsize))</span>
+<span class="lineNum">     280 </span>            :     {
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         char new_key[ksize + 2];</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         new_key[0] = 'S';</span>
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :         new_key[1] = '_';</span>
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 :         memcpy(new_key + 2, key, ksize);</span>
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         if (!WriteComplexKeyDB(changes_db, new_key, sizeof(new_key), value, vsize))</span>
+<span class="lineNum">     286 </span>            :         {
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;%s: Could not write filestat to database&quot;, common_msg);</span>
+<span class="lineNum">     288 </span>            :             // Keep trying for other keys.
+<span class="lineNum">     289 </span>            :         }
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         AddMigratedFileToDirectoryList(changes_db, key, common_msg);</span>
+<span class="lineNum">     291 </span>            :     }
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     DeleteDBCursor(cursor);</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     CloseDB(old_db);</span>
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="297"><span class="lineNum">     297 </span>            : }</a>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 : static bool OpenChangesDB(CF_DB **db)</span>
+<span class="lineNum">     300 </span>            : {
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     if (!OpenDB(db, dbid_changes))</span>
+<span class="lineNum">     302 </span>            :     {
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not open changes database&quot;);</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     305 </span>            :     }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            :     struct stat statbuf;
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     char *old_checksums_db = DBIdToPath(dbid_checksums);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     char *old_filestats_db = DBIdToPath(dbid_filestats);</span>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     if (stat(old_checksums_db, &amp;statbuf) != -1)</span>
+<span class="lineNum">     312 </span>            :     {
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Migrating checksum database&quot;);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         MigrateOldChecksumDatabase(*db);</span>
+<span class="lineNum">     315 </span>            :         char migrated_db_name[PATH_MAX];
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         snprintf(migrated_db_name, sizeof(migrated_db_name), &quot;%s.cf-migrated&quot;, old_checksums_db);</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;After checksum database migration: Renaming '%s' to '%s'&quot;,</span>
+<span class="lineNum">     318 </span>            :             old_checksums_db, migrated_db_name);
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         if (rename(old_checksums_db, migrated_db_name) != 0)</span>
+<span class="lineNum">     320 </span>            :         {
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Could not rename '%s' to '%s'&quot;, old_checksums_db, migrated_db_name);</span>
+<span class="lineNum">     322 </span>            :         }
+<span class="lineNum">     323 </span>            :     }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     if (stat(old_filestats_db, &amp;statbuf) != -1)</span>
+<span class="lineNum">     326 </span>            :     {
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Migrating filestat database&quot;);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         MigrateOldStatDatabase(*db);</span>
+<span class="lineNum">     329 </span>            :         char migrated_db_name[PATH_MAX];
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         snprintf(migrated_db_name, sizeof(migrated_db_name), &quot;%s.cf-migrated&quot;, old_filestats_db);</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;After filestat database migration: Renaming '%s' to '%s'&quot;,</span>
+<span class="lineNum">     332 </span>            :             old_filestats_db, migrated_db_name);
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :         if (rename(old_filestats_db, migrated_db_name) != 0)</span>
+<span class="lineNum">     334 </span>            :         {
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Could not rename '%s' to '%s'&quot;, old_filestats_db, migrated_db_name);</span>
+<span class="lineNum">     336 </span>            :         }
+<span class="lineNum">     337 </span>            :     }
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     free(old_checksums_db);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     free(old_filestats_db);</span>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="343"><span class="lineNum">     343 </span>            : }</a>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 : static void RemoveAllFileTraces(CF_DB *db, const char *path)</span>
+<span class="lineNum">     346 </span>            : {
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     for (int c = 0; c &lt; HASH_METHOD_NONE; c++)</span>
+<span class="lineNum">     348 </span>            :     {
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         DeleteHash(db, c, path);</span>
+<span class="lineNum">     350 </span>            :     }
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     char key[strlen(path) + 3];</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     xsnprintf(key, sizeof(key), &quot;S_%s&quot;, path);</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :     DeleteDB(db, key);</span>
+<a name="354"><span class="lineNum">     354 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 : static bool GetDirectoryListFromDatabase(CF_DB *db, const char *path, Seq *files)</span>
+<span class="lineNum">     357 </span>            : {
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     char key[strlen(path) + 3];</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     xsnprintf(key, sizeof(key), &quot;D_%s&quot;, path);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     if (!HasKeyDB(db, key, sizeof(key)))</span>
+<span class="lineNum">     361 </span>            :     {
+<span class="lineNum">     362 </span>            :         // Not an error, so successful, but seq remains unchanged.
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     364 </span>            :     }
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     int size = ValueSizeDB(db, key, sizeof(key));</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     if (size &lt;= 0)</span>
+<span class="lineNum">     367 </span>            :     {
+<span class="lineNum">     368 </span>            :         // Shouldn't happen, since we don't store empty lists, but play it safe
+<span class="lineNum">     369 </span>            :         // and return empty seq.
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     371 </span>            :     }
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :     char raw_entries[size];</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :     if (!ReadDB(db, key, raw_entries, size))</span>
+<span class="lineNum">     375 </span>            :     {
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not read changes database entry&quot;);</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     378 </span>            :     }
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     char *raw_entries_end = raw_entries + size;</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     for (char *pos = raw_entries; pos &lt; raw_entries_end;)</span>
+<span class="lineNum">     382 </span>            :     {
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :         char *null_pos = memchr(pos, '\0', raw_entries_end - pos);</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         if (!null_pos)</span>
+<span class="lineNum">     385 </span>            :         {
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Unexpected end of value in changes database&quot;);</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     388 </span>            :         }
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         SeqAppend(files, xstrdup(pos));</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         pos = null_pos + 1;</span>
+<span class="lineNum">     392 </span>            :     }
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="395"><span class="lineNum">     395 </span>            : }</a>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 : bool FileChangesGetDirectoryList(const char *path, Seq *files)</span>
+<span class="lineNum">     398 </span>            : {
+<span class="lineNum">     399 </span>            :     CF_DB *db;
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     if (!OpenChangesDB(&amp;db))</span>
+<span class="lineNum">     401 </span>            :     {
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not open changes database&quot;);</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     404 </span>            :     }
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     bool result = GetDirectoryListFromDatabase(db, path, files);</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :     CloseDB(db);</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :     return result;</span>
+<a name="409"><span class="lineNum">     409 </span>            : }</a>
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 : static bool FileChangesSetDirectoryList(CF_DB *db, const char *path, const Seq *files)</span>
+<span class="lineNum">     412 </span>            : {
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :     int size = 0;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     int no_files = SeqLength(files);</span>
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     char key[strlen(path) + 3];</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     xsnprintf(key, sizeof(key), &quot;D_%s&quot;, path);</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :     if (no_files == 0)</span>
+<span class="lineNum">     420 </span>            :     {
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :         DeleteDB(db, key);</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     423 </span>            :     }
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :     for (int c = 0; c &lt; no_files; c++)</span>
+<span class="lineNum">     426 </span>            :     {
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         size += strlen(SeqAt(files, c)) + 1;</span>
+<span class="lineNum">     428 </span>            :     }
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     char raw_entries[size];</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     char *pos = raw_entries;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     for (int c = 0; c &lt; no_files; c++)</span>
+<span class="lineNum">     433 </span>            :     {
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         strcpy(pos, SeqAt(files, c));</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :         pos += strlen(pos) + 1;</span>
+<span class="lineNum">     436 </span>            :     }
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     if (!WriteDB(db, key, raw_entries, size))</span>
+<span class="lineNum">     439 </span>            :     {
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not write to changes database&quot;);</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     442 </span>            :     }
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     445 </span>            : }
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span>            : /* Returns false if filename never seen before, and adds a checksum
+<a name="448"><span class="lineNum">     448 </span>            :    to the database. Returns true if hashes do not match and also</a>
+<span class="lineNum">     449 </span>            :    updates database to the new value if update is true */
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 : bool FileChangesCheckAndUpdateHash_impl(const char *filename,</span>
+<span class="lineNum">     451 </span>            :                                         unsigned char digest[EVP_MAX_MD_SIZE + 1],
+<span class="lineNum">     452 </span>            :                                         HashMethod type,
+<span class="lineNum">     453 </span>            :                                         bool update,
+<span class="lineNum">     454 </span>            :                                         const Promise *pp,
+<span class="lineNum">     455 </span>            :                                         PromiseResult *result)
+<span class="lineNum">     456 </span>            : {
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     const int size = HashSizeFromId(type);</span>
+<span class="lineNum">     458 </span>            :     unsigned char dbdigest[EVP_MAX_MD_SIZE + 1];
+<span class="lineNum">     459 </span>            :     CF_DB *dbp;
+<span class="lineNum">     460 </span>            :     bool found;
+<span class="lineNum">     461 </span>            :     bool different;
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     bool ret = false;</span>
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     if (!OpenChangesDB(&amp;dbp))</span>
+<span class="lineNum">     465 </span>            :     {
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Unable to open the hash database!&quot;);</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :         *result = PromiseResultUpdate(*result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     469 </span>            :     }
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :     if (ReadHash(dbp, type, filename, dbdigest))</span>
+<span class="lineNum">     472 </span>            :     {
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         found = true;</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :         different = (memcmp(digest, dbdigest, size) != 0);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :         if (different)</span>
+<span class="lineNum">     476 </span>            :         {
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_NOTICE, &quot;Hash '%s' for '%s' changed!&quot;, HashNameFromId(type), filename);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :             if (pp-&gt;comment)</span>
+<span class="lineNum">     479 </span>            :             {
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_NOTICE, &quot;Preceding promise '%s'&quot;, pp-&gt;comment);</span>
+<span class="lineNum">     481 </span>            :             }
+<span class="lineNum">     482 </span>            :         }
+<span class="lineNum">     483 </span>            :     }
+<span class="lineNum">     484 </span>            :     else
+<span class="lineNum">     485 </span>            :     {
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :         found = false;</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :         different = true;</span>
+<span class="lineNum">     488 </span>            :     }
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :     if (different)</span>
+<span class="lineNum">     491 </span>            :     {
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         if ((!found || update) &amp;&amp; !DONTDO)</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :         {</span>
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :             const char *action = found ? &quot;Updating&quot; : &quot;Storing&quot;;</span>
+<span class="lineNum">     495 </span>            :             char buffer[CF_HOSTKEY_STRING_SIZE];
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_NOTICE, &quot;%s %s hash for '%s' (%s)&quot;, action,</span>
+<span class="lineNum">     497 </span>            :                 HashNameFromId(type), filename,
+<span class="lineNum">     498 </span>            :                 HashPrintSafe(buffer, sizeof(buffer), digest, type, true));
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :             *result = PromiseResultUpdate(*result, PROMISE_RESULT_CHANGE);</span>
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :             WriteHash(dbp, type, filename, digest);</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :             ret = found;</span>
+<span class="lineNum">     503 </span>            :         }
+<span class="lineNum">     504 </span>            :         else
+<span class="lineNum">     505 </span>            :         {
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_NOTICE, &quot;Hash for file '%s' changed&quot;, filename);</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :             *result = PromiseResultUpdate(*result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :             ret = true;</span>
+<span class="lineNum">     509 </span>            :         }
+<span class="lineNum">     510 </span>            :     }
+<span class="lineNum">     511 </span>            :     else
+<span class="lineNum">     512 </span>            :     {
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;File hash for %s is correct&quot;, filename);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         *result = PromiseResultUpdate(*result, PROMISE_RESULT_NOOP);</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :         ret = false;</span>
+<span class="lineNum">     516 </span>            :     }
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :     CloseDB(dbp);</span>
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="520"><span class="lineNum">     520 </span>            : }</a>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 : bool FileChangesCheckAndUpdateHash(EvalContext *ctx,</span>
+<span class="lineNum">     523 </span>            :                                    const char *filename,
+<span class="lineNum">     524 </span>            :                                    unsigned char digest[EVP_MAX_MD_SIZE + 1],
+<span class="lineNum">     525 </span>            :                                    HashMethod type,
+<span class="lineNum">     526 </span>            :                                    Attributes attr,
+<span class="lineNum">     527 </span>            :                                    const Promise *pp,
+<span class="lineNum">     528 </span>            :                                    PromiseResult *result)
+<span class="lineNum">     529 </span>            : {
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     bool ret = FileChangesCheckAndUpdateHash_impl(filename, digest, type, attr.change.update, pp, result);</span>
+<span class="lineNum">     531 </span>            :     // TODO: Move cfPS even further up the call stack.
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :     cfPS(ctx, LOG_LEVEL_DEBUG, *result, pp, attr, &quot;Updating promise status for files changes promise&quot;);</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="534"><span class="lineNum">     534 </span>            : }</a>
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 : void FileChangesLogNewFile(const char *path, const Promise *pp)</span>
+<span class="lineNum">     537 </span>            : {
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_NOTICE, &quot;New file '%s' found&quot;, path);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :     FileChangesLogChange(path, FILE_STATE_NEW, &quot;New file found&quot;, pp);</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 : }</span>
+<a name="541"><span class="lineNum">     541 </span>            : </a>
+<span class="lineNum">     542 </span>            : // db_file_set should already be sorted.
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 : void FileChangesCheckAndUpdateDirectory(const char *name, const Seq *file_set, const Seq *db_file_set,</span>
+<span class="lineNum">     544 </span>            :                                         bool update, const Promise *pp, PromiseResult *result)
+<span class="lineNum">     545 </span>            : {
+<span class="lineNum">     546 </span>            :     CF_DB *db;
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :     if (!OpenChangesDB(&amp;db))</span>
+<span class="lineNum">     548 </span>            :     {
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not open changes database&quot;);</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         *result = PromiseResultUpdate(*result, PROMISE_RESULT_FAIL);</span>
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     552 </span>            :     }
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :     Seq *disk_file_set = SeqSoftSort(file_set, (SeqItemComparator)strcmp, NULL);</span>
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span>            :     // We'll traverse the union of disk_file_set and db_file_set in merged order.
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :     int num_files = SeqLength(disk_file_set);</span>
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     int num_db_files = SeqLength(db_file_set);</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :     bool changed = false;</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :     for (int disk_pos = 0, db_pos = 0; disk_pos &lt; num_files || db_pos &lt; num_db_files;)</span>
+<span class="lineNum">     562 </span>            :     {
+<span class="lineNum">     563 </span>            :         int compare_result;
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :         if (disk_pos &gt;= num_files)</span>
+<span class="lineNum">     565 </span>            :         {
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :             compare_result = 1;</span>
+<span class="lineNum">     567 </span>            :         }
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :         else if (db_pos &gt;= num_db_files)</span>
+<span class="lineNum">     569 </span>            :         {
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :             compare_result = -1;</span>
+<span class="lineNum">     571 </span>            :         }
+<span class="lineNum">     572 </span>            :         else
+<span class="lineNum">     573 </span>            :         {
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :             compare_result = strcmp(SeqAt(disk_file_set, disk_pos), SeqAt(db_file_set, db_pos));</span>
+<span class="lineNum">     575 </span>            :         }
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :         if (compare_result &lt; 0)</span>
+<span class="lineNum">     578 </span>            :         {
+<span class="lineNum">     579 </span>            :             /*
+<span class="lineNum">     580 </span>            :               We would have called this here, but we assume that DepthSearch()
+<span class="lineNum">     581 </span>            :               has already done it for us. The reason is that calling it here
+<span class="lineNum">     582 </span>            :               produces a very unnatural order, with all stat and content
+<span class="lineNum">     583 </span>            :               changes, as well as all subdirectories, appearing in the log
+<span class="lineNum">     584 </span>            :               before the message about a new file. This is because we save the
+<span class="lineNum">     585 </span>            :               list for last and *then* compare it to the saved directory list,
+<span class="lineNum">     586 </span>            :               *after* traversing the tree. So we let DepthSearch() do it while
+<span class="lineNum">     587 </span>            :               traversing instead. Removed files will still be listed last.
+<span class="lineNum">     588 </span>            :             */
+<span class="lineNum">     589 </span>            : #if 0
+<span class="lineNum">     590 </span>            :             char *file = SeqAt(disk_file_set, disk_pos);
+<span class="lineNum">     591 </span>            :             char path[strlen(name) + strlen(file) + 2];
+<span class="lineNum">     592 </span>            :             xsnprintf(path, sizeof(path), &quot;%s/%s&quot;, name, file);
+<span class="lineNum">     593 </span>            :             FileChangesLogNewFile(path, pp);
+<span class="lineNum">     594 </span>            : #endif
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :             changed = true;</span>
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :             disk_pos++;</span>
+<span class="lineNum">     598 </span>            :         }
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :         else if (compare_result &gt; 0)</span>
+<span class="lineNum">     600 </span>            :         {
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :             char *db_file = SeqAt(db_file_set, db_pos);</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :             char path[strlen(name) + strlen(db_file) + 2];</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :             xsnprintf(path, sizeof(path), &quot;%s/%s&quot;, name, db_file);</span>
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_NOTICE, &quot;File '%s' no longer exists&quot;, path);</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :             FileChangesLogChange(path, FILE_STATE_REMOVED, &quot;File removed&quot;, pp);</span>
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :             RemoveAllFileTraces(db, path);</span>
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :             changed = true;</span>
+<span class="lineNum">     611 </span><span class="lineNoCov">          0 :             db_pos++;</span>
+<span class="lineNum">     612 </span>            :         }
+<span class="lineNum">     613 </span>            :         else
+<span class="lineNum">     614 </span>            :         {
+<span class="lineNum">     615 </span>            :             // DB file entry and filesystem file entry matched.
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :             disk_pos++;</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :             db_pos++;</span>
+<span class="lineNum">     618 </span>            :         }
+<span class="lineNum">     619 </span>            :     }
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            :     PromiseResult newres;
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :     if (!changed)</span>
+<span class="lineNum">     623 </span>            :     {
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :         newres = PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">     625 </span>            :     }
+<span class="lineNum">     626 </span><span class="lineNoCov">          0 :     else if (update &amp;&amp; FileChangesSetDirectoryList(db, name, disk_file_set))</span>
+<span class="lineNum">     627 </span>            :     {
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :         newres = PROMISE_RESULT_CHANGE;</span>
+<span class="lineNum">     629 </span>            :     }
+<span class="lineNum">     630 </span>            :     else
+<span class="lineNum">     631 </span>            :     {
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :         newres = PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     633 </span>            :     }
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :     *result = PromiseResultUpdate(*result, newres);</span>
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :     SeqSoftDestroy(disk_file_set);</span>
+<span class="lineNum">     637 </span><span class="lineNoCov">          0 :     CloseDB(db);</span>
+<a name="638"><span class="lineNum">     638 </span>            : }</a>
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 : void FileChangesCheckAndUpdateStats(const char *file, struct stat *sb, bool update, const Promise *pp)</span>
+<span class="lineNum">     641 </span>            : {
+<span class="lineNum">     642 </span>            :     struct stat cmpsb;
+<span class="lineNum">     643 </span>            :     CF_DB *dbp;
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :     if (!OpenChangesDB(&amp;dbp))</span>
+<span class="lineNum">     646 </span>            :     {
+<span class="lineNum">     647 </span>            :         return;
+<span class="lineNum">     648 </span>            :     }
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :     char key[strlen(file) + 3];</span>
+<span class="lineNum">     651 </span><span class="lineNoCov">          0 :     xsnprintf(key, sizeof(key), &quot;S_%s&quot;, file);</span>
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :     if (!ReadDB(dbp, key, &amp;cmpsb, sizeof(struct stat)))</span>
+<span class="lineNum">     654 </span>            :     {
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :         if (!DONTDO)</span>
+<span class="lineNum">     656 </span>            :         {
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :             if (!WriteDB(dbp, key, sb, sizeof(struct stat)))</span>
+<span class="lineNum">     658 </span>            :             {
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Could not write stat information to database&quot;);</span>
+<span class="lineNum">     660 </span>            :             }
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :             CloseDB(dbp);</span>
+<span class="lineNum">     662 </span>            :             return;
+<span class="lineNum">     663 </span>            :         }
+<span class="lineNum">     664 </span>            :     }
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :     if (cmpsb.st_mode == sb-&gt;st_mode</span>
+<span class="lineNum">     667 </span><span class="lineNoCov">          0 :         &amp;&amp; cmpsb.st_uid == sb-&gt;st_uid</span>
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :         &amp;&amp; cmpsb.st_gid == sb-&gt;st_gid</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :         &amp;&amp; cmpsb.st_dev == sb-&gt;st_dev</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :         &amp;&amp; cmpsb.st_ino == sb-&gt;st_ino</span>
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :         &amp;&amp; cmpsb.st_mtime == sb-&gt;st_mtime)</span>
+<span class="lineNum">     672 </span>            :     {
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :         CloseDB(dbp);</span>
+<span class="lineNum">     674 </span>            :         return;
+<span class="lineNum">     675 </span>            :     }
+<span class="lineNum">     676 </span>            : 
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :     if (cmpsb.st_mode != sb-&gt;st_mode)</span>
+<span class="lineNum">     678 </span>            :     {
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_NOTICE, &quot;Permissions for '%s' changed %04jo -&gt; %04jo&quot;,</span>
+<span class="lineNum">     680 </span><span class="lineNoCov">          0 :                  file, (uintmax_t)cmpsb.st_mode, (uintmax_t)sb-&gt;st_mode);</span>
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            :         char msg_temp[CF_MAXVARSIZE];
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :         snprintf(msg_temp, sizeof(msg_temp), &quot;Permission: %04jo -&gt; %04jo&quot;,</span>
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :                  (uintmax_t)cmpsb.st_mode, (uintmax_t)sb-&gt;st_mode);</span>
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span><span class="lineNoCov">          0 :         FileChangesLogChange(file, FILE_STATE_STATS_CHANGED, msg_temp, pp);</span>
+<span class="lineNum">     687 </span>            :     }
+<span class="lineNum">     688 </span>            : 
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :     if (cmpsb.st_uid != sb-&gt;st_uid)</span>
+<span class="lineNum">     690 </span>            :     {
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_NOTICE, &quot;Owner for '%s' changed %jd -&gt; %jd&quot;,</span>
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :             file, (uintmax_t) cmpsb.st_uid, (uintmax_t) sb-&gt;st_uid);</span>
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span>            :         char msg_temp[CF_MAXVARSIZE];
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :         snprintf(msg_temp, sizeof(msg_temp), &quot;Owner: %jd -&gt; %jd&quot;,</span>
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :                  (uintmax_t)cmpsb.st_uid, (uintmax_t)sb-&gt;st_uid);</span>
+<span class="lineNum">     697 </span>            : 
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :         FileChangesLogChange(file, FILE_STATE_STATS_CHANGED, msg_temp, pp);</span>
+<span class="lineNum">     699 </span>            :     }
+<span class="lineNum">     700 </span>            : 
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :     if (cmpsb.st_gid != sb-&gt;st_gid)</span>
+<span class="lineNum">     702 </span>            :     {
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_NOTICE, &quot;Group for '%s' changed %jd -&gt; %jd&quot;,</span>
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :             file, (uintmax_t) cmpsb.st_gid, (uintmax_t) sb-&gt;st_gid);</span>
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span>            :         char msg_temp[CF_MAXVARSIZE];
+<span class="lineNum">     707 </span><span class="lineNoCov">          0 :         snprintf(msg_temp, sizeof(msg_temp), &quot;Group: %jd -&gt; %jd&quot;,</span>
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :                  (uintmax_t)cmpsb.st_gid, (uintmax_t)sb-&gt;st_gid);</span>
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :         FileChangesLogChange(file, FILE_STATE_STATS_CHANGED, msg_temp, pp);</span>
+<span class="lineNum">     711 </span>            :     }
+<span class="lineNum">     712 </span>            : 
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :     if (cmpsb.st_dev != sb-&gt;st_dev)</span>
+<span class="lineNum">     714 </span>            :     {
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_NOTICE, &quot;Device for '%s' changed %jd -&gt; %jd&quot;, file, (intmax_t) cmpsb.st_dev,</span>
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :               (intmax_t) sb-&gt;st_dev);</span>
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span>            :         char msg_temp[CF_MAXVARSIZE];
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :         snprintf(msg_temp, sizeof(msg_temp), &quot;Device: %jd -&gt; %jd&quot;,</span>
+<span class="lineNum">     720 </span>            :                  (uintmax_t)cmpsb.st_dev, (uintmax_t)sb-&gt;st_dev);
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :         FileChangesLogChange(file, FILE_STATE_STATS_CHANGED, msg_temp, pp);</span>
+<span class="lineNum">     723 </span>            :     }
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :     if (cmpsb.st_ino != sb-&gt;st_ino)</span>
+<span class="lineNum">     726 </span>            :     {
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_NOTICE, &quot;inode for '%s' changed %ju -&gt; %ju&quot;, file, (uintmax_t) cmpsb.st_ino,</span>
+<span class="lineNum">     728 </span>            :               (uintmax_t) sb-&gt;st_ino);
+<span class="lineNum">     729 </span>            :     }
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :     if (cmpsb.st_mtime != sb-&gt;st_mtime)</span>
+<span class="lineNum">     732 </span>            :     {
+<span class="lineNum">     733 </span>            :         char from[CF_MAXVARSIZE];
+<span class="lineNum">     734 </span>            :         char to[CF_MAXVARSIZE];
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :         strcpy(from, ctime(&amp;(cmpsb.st_mtime)));</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :         strcpy(to, ctime(&amp;(sb-&gt;st_mtime)));</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :         Chop(from, CF_MAXVARSIZE);</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :         Chop(to, CF_MAXVARSIZE);</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_NOTICE, &quot;Last modified time for '%s' changed '%s' -&gt; '%s'&quot;, file, from, to);</span>
+<span class="lineNum">     741 </span>            : 
+<span class="lineNum">     742 </span>            :         char msg_temp[CF_MAXVARSIZE];
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :         snprintf(msg_temp, sizeof(msg_temp), &quot;Modified time: %s -&gt; %s&quot;,</span>
+<span class="lineNum">     744 </span>            :                  from, to);
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :         FileChangesLogChange(file, FILE_STATE_STATS_CHANGED, msg_temp, pp);</span>
+<span class="lineNum">     747 </span>            :     }
+<span class="lineNum">     748 </span>            : 
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :     if (pp-&gt;comment)</span>
+<span class="lineNum">     750 </span>            :     {
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_NOTICE, &quot;Preceding promise '%s'&quot;, pp-&gt;comment);</span>
+<span class="lineNum">     752 </span>            :     }
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :     if (update &amp;&amp; !DONTDO)</span>
+<span class="lineNum">     755 </span>            :     {
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :         if (!DeleteDB(dbp, key) || !WriteDB(dbp, key, sb, sizeof(struct stat)))</span>
+<span class="lineNum">     757 </span>            :         {
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Could not write stat information to database&quot;);</span>
+<span class="lineNum">     759 </span>            :         }
+<span class="lineNum">     760 </span>            :     }
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :     CloseDB(dbp);</span>
+<a name="763"><span class="lineNum">     763 </span>            : }</a>
+<span class="lineNum">     764 </span>            : 
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 : static char FileStateToChar(FileState status)</span>
+<span class="lineNum">     766 </span>            : {
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :     switch(status)</span>
+<span class="lineNum">     768 </span>            :     {
+<span class="lineNum">     769 </span>            :     case FILE_STATE_NEW:
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :         return 'N';</span>
+<span class="lineNum">     771 </span>            : 
+<span class="lineNum">     772 </span>            :     case FILE_STATE_REMOVED:
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :         return 'R';</span>
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span>            :     case FILE_STATE_CONTENT_CHANGED:
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :         return 'C';</span>
+<span class="lineNum">     777 </span>            : 
+<span class="lineNum">     778 </span>            :     case FILE_STATE_STATS_CHANGED:
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :         return 'S';</span>
+<span class="lineNum">     780 </span>            : 
+<span class="lineNum">     781 </span>            :     default:
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;Unhandled file status in switch: %d&quot;, status);</span>
+<span class="lineNum">     783 </span>            :     }
+<a name="784"><span class="lineNum">     784 </span>            : }</a>
+<span class="lineNum">     785 </span>            : 
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 : void FileChangesLogChange(const char *file, FileState status, char *msg, const Promise *pp)</span>
+<span class="lineNum">     787 </span>            : {
+<span class="lineNum">     788 </span>            :     FILE *fp;
+<span class="lineNum">     789 </span>            :     char fname[CF_BUFSIZE];
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :     time_t now = time(NULL);</span>
+<span class="lineNum">     791 </span>            : 
+<span class="lineNum">     792 </span>            : /* This is inefficient but we don't want to lose any data */
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :     snprintf(fname, CF_BUFSIZE, &quot;%s/%s&quot;, GetStateDir(), CF_FILECHANGE_NEW);</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :     MapName(fname);</span>
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span>            : #ifndef __MINGW32__
+<span class="lineNum">     798 </span>            :     struct stat sb;
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :     if (stat(fname, &amp;sb) != -1)</span>
+<span class="lineNum">     800 </span>            :     {
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :         if (sb.st_mode &amp; (S_IWGRP | S_IWOTH))</span>
+<span class="lineNum">     802 </span>            :         {
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;File '%s' (owner %ju) was writable by others (security exception)&quot;, fname, (uintmax_t)sb.st_uid);</span>
+<span class="lineNum">     804 </span>            :         }
+<span class="lineNum">     805 </span>            :     }
+<span class="lineNum">     806 </span>            : #endif /* !__MINGW32__ */
+<span class="lineNum">     807 </span>            : 
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :     fp = safe_fopen(fname, &quot;a&quot;);</span>
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :     if (fp == NULL)</span>
+<span class="lineNum">     810 </span>            :     {
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not write to the hash change log. (fopen: %s)&quot;, GetErrorStr());</span>
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     813 </span>            :     }
+<span class="lineNum">     814 </span>            : 
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :     const char *handle = PromiseID(pp);</span>
+<span class="lineNum">     816 </span>            : 
+<span class="lineNum">     817 </span><span class="lineNoCov">          0 :     fprintf(fp, &quot;%lld,%s,%s,%c,%s\n&quot;, (long long) now, handle, file, FileStateToChar(status), msg);</span>
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :     fclose(fp);</span>
+<span class="lineNum">     819 </span>            : 
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :     safe_chmod(fname, 0600);</span>
+<span class="lineNum">     821 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

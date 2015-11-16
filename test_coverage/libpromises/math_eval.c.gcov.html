@@ -1,0 +1,221 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/math_eval.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - math_eval.c<span style="font-size: 80%;"> (source / <a href="math_eval.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">29</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* </a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            :  
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            :    
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            :  
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License  
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;math_eval.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;compiler.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #define MATH_EVAL_STACK_SIZE 1024
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : const char *const math_eval_function_names[] =
+<span class="lineNum">      31 </span>            : {
+<span class="lineNum">      32 </span>            :     &quot;ceil&quot;, &quot;floor&quot;, &quot;log10&quot;, &quot;log2&quot;, &quot;log&quot;, &quot;sqrt&quot;, &quot;sin&quot;, &quot;cos&quot;, &quot;tan&quot;, &quot;asin&quot;, &quot;acos&quot;, &quot;atan&quot;, &quot;abs&quot;, &quot;step&quot;
+<a name="33"><span class="lineNum">      33 </span>            : };</a>
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span><span class="lineNoCov">          0 : static double _math_eval_step(double p)</span>
+<span class="lineNum">      36 </span>            : {
+<span class="lineNum">      37 </span><span class="lineNoCov">          0 :     return ((p &lt; 0) ? 0 : 1);</span>
+<span class="lineNum">      38 </span>            : }
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : typedef double (*MathEvalFunctionType)(double);
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : static const MathEvalFunctionType math_eval_functions[] =
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span>            :     ceil, floor, log10, log2, log, sqrt, sin, cos, tan, asin, acos, atan, fabs, _math_eval_step
+<span class="lineNum">      45 </span>            : };
+<a name="46"><span class="lineNum">      46 </span>            : </a>
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 : double math_eval_push(double n, double *stack, int *stackp)</span>
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     if (*stackp &gt; MATH_EVAL_STACK_SIZE)</span>
+<span class="lineNum">      51 </span>            :     {
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Math evaluation stack size exceeded&quot;);</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">      54 </span>            :     }
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     return stack[++(*stackp)]= n; </span>
+<a name="57"><span class="lineNum">      57 </span>            : }</a>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 : double math_eval_pop(double *stack, int *stackp)</span>
+<span class="lineNum">      60 </span>            : {
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     if (*stackp &lt; 0)</span>
+<span class="lineNum">      62 </span>            :     {
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Math evaluation stack could not be popped, internal error!&quot;);</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">      65 </span>            :     }
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     return stack[(*stackp)--];</span>
+<span class="lineNum">      68 </span>            : }
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : #define YYSTYPE double
+<span class="lineNum">      71 </span>            : #define YYPARSE yymath_parse
+<span class="lineNum">      72 </span>            : #define YYPARSEFROM yymath_parsefrom
+<span class="lineNum">      73 </span>            : #define YY_CTX_LOCAL
+<span class="lineNum">      74 </span>            : #define YY_PARSE(T) T
+<span class="lineNum">      75 </span>            : #define YY_INPUT(ctx, buf, result, max_size) {                     \
+<span class="lineNum">      76 </span>            :     result = 0;                                                    \
+<span class="lineNum">      77 </span>            :     if (NULL != ctx-&gt;input)                                        \
+<span class="lineNum">      78 </span>            :     {                                                              \
+<span class="lineNum">      79 </span>            :         /*Log(LOG_LEVEL_ERR, &quot;YYINPUT: %s&quot;, ctx-&gt;input);*/         \
+<span class="lineNum">      80 </span>            :         strncpy(buf, ctx-&gt;input, max_size);                        \
+<span class="lineNum">      81 </span>            :         int n = strlen(ctx-&gt;input)+1;                              \
+<span class="lineNum">      82 </span>            :         if (n &gt; max_size) n = max_size;                            \
+<span class="lineNum">      83 </span>            :         if (n &gt; 0) buf[n - 1]= '\0';                               \
+<span class="lineNum">      84 </span>            :         result = strlen(buf);                                      \
+<span class="lineNum">      85 </span>            :         ctx-&gt;input = NULL;                                         \
+<span class="lineNum">      86 </span>            :     }                                                              \
+<span class="lineNum">      87 </span>            :     }
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            : #undef malloc
+<span class="lineNum">      90 </span>            : #undef realloc
+<span class="lineNum">      91 </span>            : #define malloc xmalloc
+<span class="lineNum">      92 </span>            : #define realloc xrealloc
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : #define YY_CTX_MEMBERS char *failure;                                   \
+<span class="lineNum">      95 </span>            :     const char *input;                                                  \
+<span class="lineNum">      96 </span>            :     const char *original_input;                                         \
+<span class="lineNum">      97 </span>            :     EvalContext *eval_context;                                          \
+<span class="lineNum">      98 </span>            :     double result;                                                      \
+<span class="lineNum">      99 </span>            :     char fname[50];                                                     \
+<span class="lineNum">     100 </span>            :     double stack[MATH_EVAL_STACK_SIZE];                                 \
+<span class="lineNum">     101 </span>            :     int stackp;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            : /* Mark unused functions as such */
+<span class="lineNum">     104 </span>            : struct _yycontext;
+<span class="lineNum">     105 </span>            : static int yyAccept(struct _yycontext *yy, int tp0) FUNC_UNUSED;
+<span class="lineNum">     106 </span>            : static void yyPush(struct _yycontext *yy, char *text, int count) FUNC_UNUSED;
+<span class="lineNum">     107 </span>            : static void yyPop(struct _yycontext *yy, char *text, int count) FUNC_UNUSED;
+<span class="lineNum">     108 </span>            : static void yySet(struct _yycontext *yy, char *text, int count) FUNC_UNUSED;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : #pragma GCC diagnostic push
+<span class="lineNum">     111 </span>            : #pragma GCC diagnostic ignored &quot;-Wunused-parameter&quot;
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            : #include &lt;math.pc&gt;
+<span class="lineNum">     114 </span>            : 
+<a name="115"><span class="lineNum">     115 </span>            : #pragma GCC diagnostic pop</a>
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 : double EvaluateMathInfix(EvalContext *ctx, const char *input, char *failure)</span>
+<span class="lineNum">     118 </span>            : {
+<span class="lineNum">     119 </span>            :     yycontext yyctx;
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     memset(&amp;yyctx, 0, sizeof(yycontext));</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     yyctx.failure = failure;</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     yyctx.original_input = input;</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     yyctx.input = input;</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     yyctx.eval_context = ctx;</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :     yyctx.result = 0;</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     yyctx.stackp = -1;</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     yymath_parse(&amp;yyctx);</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     yyrelease(&amp;yyctx);</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     return yyctx.result;</span>
+<a name="130"><span class="lineNum">     130 </span>            : }</a>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 : double EvaluateMathFunction(const char *f, double p)</span>
+<span class="lineNum">     133 </span>            : {
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     int count = sizeof(math_eval_functions)/sizeof(math_eval_functions[0]);</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     for (int i=0; i &lt; count; i++)</span>
+<span class="lineNum">     137 </span>            :     {
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         if (0 == strcmp(math_eval_function_names[i], f))</span>
+<span class="lineNum">     139 </span>            :         {
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :             return (*math_eval_functions[i])(p);</span>
+<span class="lineNum">     141 </span>            :         }
+<span class="lineNum">     142 </span>            :     }
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     return p;</span>
+<span class="lineNum">     145 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

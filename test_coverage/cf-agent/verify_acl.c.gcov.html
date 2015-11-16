@@ -1,0 +1,539 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - cf-agent/verify_acl.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cf-agent</a> - verify_acl.c<span style="font-size: 80%;"> (source / <a href="verify_acl.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">164</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;verify_acl.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;actuator.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;acl_posix.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;files_names.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;promises.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;rlist.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;cf-agent-enterprise-stubs.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;cf-agent-windows-functions.h&gt;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : // Valid operations (first char of mode)
+<span class="lineNum">      38 </span>            : #define CF_VALID_OPS_METHOD_OVERWRITE &quot;=+-&quot;
+<span class="lineNum">      39 </span>            : #define CF_VALID_OPS_METHOD_APPEND &quot;=+-&quot;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : static int CheckACLSyntax(const char *file, Acl acl, const Promise *pp);
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : static void SetACLDefaults(const char *path, Acl *acl);
+<span class="lineNum">      44 </span>            : static int CheckACESyntax(char *ace, char *valid_nperms, char *valid_ops, int deny_support, int mask_support,
+<span class="lineNum">      45 </span>            :                         const Promise *pp);
+<span class="lineNum">      46 </span>            : static int CheckModeSyntax(char **mode_p, char *valid_nperms, char *valid_ops, const Promise *pp);
+<span class="lineNum">      47 </span>            : static int CheckPermTypeSyntax(char *permt, int deny_support, const Promise *pp);
+<span class="lineNum">      48 </span>            : static int CheckAclDefault(const char *path, Acl *acl, const Promise *pp);
+<a name="49"><span class="lineNum">      49 </span>            : </a>
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 : PromiseResult VerifyACL(EvalContext *ctx, const char *file, Attributes a, const Promise *pp)</span>
+<span class="lineNum">      52 </span>            : {
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     if (!CheckACLSyntax(file, a.acl, pp))</span>
+<span class="lineNum">      54 </span>            :     {
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         cfPS(ctx, LOG_LEVEL_ERR, PROMISE_RESULT_INTERRUPTED, pp, a, &quot;Syntax error in access control list for '%s'&quot;, file);</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_INTERRUPTED;</span>
+<span class="lineNum">      58 </span>            :     }
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     SetACLDefaults(file, &amp;a.acl);</span>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     PromiseResult result = PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : // decide which ACL API to use
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     switch (a.acl.acl_type)</span>
+<span class="lineNum">      66 </span>            :     {
+<span class="lineNum">      67 </span>            :     case ACL_TYPE_NONE: // fallthrough: acl_type defaults to generic
+<span class="lineNum">      68 </span>            :     case ACL_TYPE_GENERIC:
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : #if defined(__linux__)
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         result = PromiseResultUpdate(result, CheckPosixLinuxACL(ctx, file, a.acl, a, pp));</span>
+<span class="lineNum">      72 </span>            : #elif defined(__MINGW32__)
+<span class="lineNum">      73 </span>            :         result = PromiseResultUpdate(result, Nova_CheckNtACL(ctx, file, a.acl, a, pp));
+<span class="lineNum">      74 </span>            : #else
+<span class="lineNum">      75 </span>            :         Log(LOG_LEVEL_INFO, &quot;ACLs are not yet supported on this system.&quot;);
+<span class="lineNum">      76 </span>            : #endif
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            :     case ACL_TYPE_POSIX:
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : #if defined(__linux__)
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         result = PromiseResultUpdate(result, CheckPosixLinuxACL(ctx, file, a.acl, a, pp));</span>
+<span class="lineNum">      83 </span>            : #else
+<span class="lineNum">      84 </span>            :         Log(LOG_LEVEL_INFO, &quot;Posix ACLs are not supported on this system&quot;);
+<span class="lineNum">      85 </span>            : #endif
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            :     case ACL_TYPE_NTFS_:
+<span class="lineNum">      89 </span>            : #ifdef __MINGW32__
+<span class="lineNum">      90 </span>            :         result = PromiseResultUpdate(result, Nova_CheckNtACL(ctx, file, a.acl, a, pp));
+<span class="lineNum">      91 </span>            : #else
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;NTFS ACLs are not supported on this system&quot;);</span>
+<span class="lineNum">      93 </span>            : #endif
+<span class="lineNum">      94 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            :     default:
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Unknown ACL type - software error&quot;);</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">      99 </span>            :     }
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     return result;</span>
+<a name="102"><span class="lineNum">     102 </span>            : }</a>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 : static int CheckACLSyntax(const char *file, Acl acl, const Promise *pp)</span>
+<span class="lineNum">     105 </span>            : {
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     int valid = true;</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     int deny_support = false;</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     int mask_support = false;</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :     char *valid_ops = NULL;</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     char *valid_nperms = NULL;</span>
+<span class="lineNum">     111 </span>            :     Rlist *rp;
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            : // set unset fields to defautls
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     SetACLDefaults(file, &amp;acl);</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            : // find valid values for op
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     switch (acl.acl_method)</span>
+<span class="lineNum">     119 </span>            :     {
+<span class="lineNum">     120 </span>            :     case ACL_METHOD_OVERWRITE:
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         valid_ops = CF_VALID_OPS_METHOD_OVERWRITE;</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :     case ACL_METHOD_APPEND:
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         valid_ops = CF_VALID_OPS_METHOD_APPEND;</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            :     default:
+<span class="lineNum">     129 </span>            :         // never executed: should be set to a default value by now
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     131 </span>            :     }
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     switch (acl.acl_type)</span>
+<span class="lineNum">     134 </span>            :     {
+<span class="lineNum">     135 </span>            :     case ACL_TYPE_GENERIC:        // generic ACL type: cannot include native or deny-type permissions
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         valid_nperms = &quot;&quot;;</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :         deny_support = false;</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :         mask_support = false;</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            :     case ACL_TYPE_POSIX:
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         valid_nperms = CF_VALID_NPERMS_POSIX;</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         deny_support = false;   // posix does not support deny-type permissions</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         mask_support = true;    // mask-ACE is allowed in POSIX</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :     case ACL_TYPE_NTFS_:
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         valid_nperms = CF_VALID_NPERMS_NTFS;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         deny_support = true;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         mask_support = false;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            :     default:
+<span class="lineNum">     154 </span>            :         // never executed: should be set to a default value by now
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     156 </span>            :     }
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            : // check that acl_default is set to a valid value
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     if (!CheckAclDefault(file, &amp;acl, pp))</span>
+<span class="lineNum">     161 </span>            :     {
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     163 </span>            :     }
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :     for (rp = acl.acl_entries; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     166 </span>            :     {
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         valid = CheckACESyntax(RlistScalarValue(rp), valid_ops, valid_nperms, deny_support, mask_support, pp);</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         if (!valid)             // wrong syntax in this ace</span>
+<span class="lineNum">     170 </span>            :         {
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;ACL: The ACE '%s' contains errors&quot;, RlistScalarValue(rp));</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :             PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     174 </span>            :         }
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     for (rp = acl.acl_default_entries; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     178 </span>            :     {
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         valid = CheckACESyntax(RlistScalarValue(rp), valid_ops, valid_nperms, deny_support, mask_support, pp);</span>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         if (!valid)             // wrong syntax in this ace</span>
+<span class="lineNum">     182 </span>            :         {
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;ACL: The ACE '%s' contains errors&quot;, RlistScalarValue(rp));</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :             PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     186 </span>            :         }
+<span class="lineNum">     187 </span>            :     }
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     return valid;</span>
+<span class="lineNum">     190 </span>            : }
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            : /**
+<span class="lineNum">     193 </span>            :  * Set unset fields with documented defaults, to these defaults.
+<a name="194"><span class="lineNum">     194 </span>            :  **/</a>
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 : static void SetACLDefaults(const char *path, Acl *acl)</span>
+<span class="lineNum">     197 </span>            : {
+<span class="lineNum">     198 </span>            : // default: acl_method =&gt; append
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     if (acl-&gt;acl_method == ACL_METHOD_NONE)</span>
+<span class="lineNum">     201 </span>            :     {
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         acl-&gt;acl_method = ACL_METHOD_APPEND;</span>
+<span class="lineNum">     203 </span>            :     }
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            : // default: acl_type =&gt; generic
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     if (acl-&gt;acl_type == ACL_TYPE_NONE)</span>
+<span class="lineNum">     208 </span>            :     {
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :         acl-&gt;acl_type = ACL_TYPE_GENERIC;</span>
+<span class="lineNum">     210 </span>            :     }
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            : // default on directories: acl_default =&gt; nochange
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     if ((acl-&gt;acl_default == ACL_DEFAULT_NONE) &amp;&amp; (IsDir(path)))</span>
+<span class="lineNum">     215 </span>            :     {
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :         acl-&gt;acl_default = ACL_DEFAULT_NO_CHANGE;</span>
+<span class="lineNum">     217 </span>            :     }
+<a name="218"><span class="lineNum">     218 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 : static int CheckAclDefault(const char *path, Acl *acl, const Promise *pp)</span>
+<span class="lineNum">     221 </span>            : /*
+<span class="lineNum">     222 </span>            :   Checks that acl_default is set to a valid value for this acl type.
+<span class="lineNum">     223 </span>            :   Returns true if so, or false otherwise.
+<span class="lineNum">     224 </span>            : */
+<span class="lineNum">     225 </span>            : {
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     int valid = false;</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     switch (acl-&gt;acl_default)</span>
+<span class="lineNum">     229 </span>            :     {
+<span class="lineNum">     230 </span>            :     case ACL_DEFAULT_NONE:      // unset is always valid
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         valid = true;</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span>            :     case ACL_DEFAULT_SPECIFY:        // NOTE: we assume all acls support specify
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            :         // fallthrough
+<span class="lineNum">     238 </span>            :     case ACL_DEFAULT_ACCESS:
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            :         // fallthrough
+<span class="lineNum">     241 </span>            :     default:
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         if (IsDir(path))</span>
+<span class="lineNum">     244 </span>            :         {
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             valid = true;</span>
+<span class="lineNum">     246 </span>            :         }
+<span class="lineNum">     247 </span>            :         else
+<span class="lineNum">     248 </span>            :         {
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;acl_default can only be set on directories.&quot;);</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :             PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :             valid = false;</span>
+<span class="lineNum">     252 </span>            :         }
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     255 </span>            :     }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     return valid;</span>
+<a name="258"><span class="lineNum">     258 </span>            : }</a>
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 : static int CheckACESyntax(char *ace, char *valid_ops, char *valid_nperms, int deny_support, int mask_support,</span>
+<span class="lineNum">     261 </span>            :                           const Promise *pp)
+<span class="lineNum">     262 </span>            : {
+<span class="lineNum">     263 </span>            :     char *str;
+<span class="lineNum">     264 </span>            :     int chkid;
+<span class="lineNum">     265 </span>            :     int valid_mode;
+<span class="lineNum">     266 </span>            :     int valid_permt;
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     str = ace;</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     chkid = false;</span>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            : // first element must be &quot;user&quot;, &quot;group&quot; or &quot;all&quot;
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     if (strncmp(str, &quot;user:&quot;, 5) == 0)</span>
+<span class="lineNum">     274 </span>            :     {
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         str += 5;</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :         chkid = true;</span>
+<span class="lineNum">     277 </span>            :     }
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     else if (strncmp(str, &quot;group:&quot;, 6) == 0)</span>
+<span class="lineNum">     279 </span>            :     {
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         str += 6;</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         chkid = true;</span>
+<span class="lineNum">     282 </span>            :     }
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     else if (strncmp(str, &quot;all:&quot;, 4) == 0)</span>
+<span class="lineNum">     284 </span>            :     {
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :         str += 4;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         chkid = false;</span>
+<span class="lineNum">     287 </span>            :     }
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     else if (strncmp(str, &quot;mask:&quot;, 5) == 0)</span>
+<span class="lineNum">     289 </span>            :     {
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :         if (mask_support)</span>
+<span class="lineNum">     292 </span>            :         {
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :             str += 5;</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             chkid = false;</span>
+<span class="lineNum">     295 </span>            :         }
+<span class="lineNum">     296 </span>            :         else
+<span class="lineNum">     297 </span>            :         {
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;This ACL type does not support mask ACE.&quot;);</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :             PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     301 </span>            :         }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            :     }
+<span class="lineNum">     304 </span>            :     else
+<span class="lineNum">     305 </span>            :     {
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;ACL: ACE '%s' does not start with user:/group:/all&quot;, ace);</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     309 </span>            :     }
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     if (chkid)                  // look for following &quot;id:&quot;</span>
+<span class="lineNum">     312 </span>            :     {
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         if (*str == ':')</span>
+<span class="lineNum">     314 </span>            :         {
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;ACL: ACE '%s': id cannot be empty or contain ':'&quot;, ace);</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     317 </span>            :         }
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            :         // skip id-string (no check: allow any id-string)
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span>            :         while (true)
+<span class="lineNum">     322 </span>            :         {
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :             str++;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             if (*str == ':')</span>
+<span class="lineNum">     325 </span>            :             {
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :                 str++;</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     328 </span>            :             }
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :             else if (*str == '\0')</span>
+<span class="lineNum">     330 </span>            :             {
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;ACL: Nothing following id string in ACE '%s'&quot;, ace);</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :                 return false;</span>
+<span class="lineNum">     333 </span>            :             }
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     335 </span>            :     }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : // check the mode-string (also skips to next field)
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :     valid_mode = CheckModeSyntax(&amp;str, valid_ops, valid_nperms, pp);</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     if (!valid_mode)</span>
+<span class="lineNum">     341 </span>            :     {
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;ACL: Malformed mode-string in ACE '%s'&quot;, ace);</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     345 </span>            :     }
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     if (*str == '\0')           // mode was the last field</span>
+<span class="lineNum">     348 </span>            :     {
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     350 </span>            :     }
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     str++;</span>
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            : // last field; must be a perm_type field
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :     valid_permt = CheckPermTypeSyntax(str, deny_support, pp);</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     if (!valid_permt)</span>
+<span class="lineNum">     358 </span>            :     {
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;ACL: Malformed perm_type syntax in ACE '%s'&quot;, ace);</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     361 </span>            :     }
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="364"><span class="lineNum">     364 </span>            : }</a>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 : static int CheckModeSyntax(char **mode_p, char *valid_ops, char *valid_nperms, const Promise *pp)</span>
+<span class="lineNum">     367 </span>            : /*
+<span class="lineNum">     368 </span>            :   Checks the syntax of a ':' or NULL terminated mode string.
+<span class="lineNum">     369 </span>            :   Moves the string pointer to the character following the mode
+<span class="lineNum">     370 </span>            :   (i.e. ':' or '\0')
+<span class="lineNum">     371 </span>            : */
+<span class="lineNum">     372 </span>            : {
+<span class="lineNum">     373 </span>            :     char *mode;
+<span class="lineNum">     374 </span>            :     int valid;
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     valid = false;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     mode = *mode_p;</span>
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span>            : // mode is allowed to be empty
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     if ((*mode == '\0') || (*mode == ':'))</span>
+<span class="lineNum">     382 </span>            :     {
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     384 </span>            :     }
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            :     while (true)
+<span class="lineNum">     387 </span>            :     {
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         mode = ScanPastChars(valid_ops, mode);</span>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         mode = ScanPastChars(CF_VALID_GPERMS, mode);</span>
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         if (*mode == CF_NATIVE_PERMS_SEP_START)</span>
+<span class="lineNum">     393 </span>            :         {
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :             mode++;</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :             mode = ScanPastChars(valid_nperms, mode);</span>
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :             if (*mode == CF_NATIVE_PERMS_SEP_END)</span>
+<span class="lineNum">     399 </span>            :             {
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :                 mode++;</span>
+<span class="lineNum">     401 </span>            :             }
+<span class="lineNum">     402 </span>            :             else
+<span class="lineNum">     403 </span>            :             {
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;ACL: Invalid native permission '%c', or missing native end separator&quot;, *mode);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :                 PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :                 valid = false;</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     408 </span>            :             }
+<span class="lineNum">     409 </span>            :         }
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         if ((*mode == '\0') || (*mode == ':'))      // end of mode-string</span>
+<span class="lineNum">     412 </span>            :         {
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :             valid = true;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     415 </span>            :         }
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         else if (*mode == ',')  // one more iteration</span>
+<span class="lineNum">     417 </span>            :         {
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :             mode++;</span>
+<span class="lineNum">     419 </span>            :         }
+<span class="lineNum">     420 </span>            :         else
+<span class="lineNum">     421 </span>            :         {
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;ACL: Mode string contains invalid characters&quot;);</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :             PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :             valid = false;</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     426 </span>            :         }
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :     *mode_p = mode;             // move pointer to past mode-field</span>
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     return valid;</span>
+<a name="432"><span class="lineNum">     432 </span>            : }</a>
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 : static int CheckPermTypeSyntax(char *permt, int deny_support, const Promise *pp)</span>
+<span class="lineNum">     435 </span>            : /*
+<span class="lineNum">     436 </span>            :   Checks if the given string corresponds to the perm_type syntax.
+<span class="lineNum">     437 </span>            :   Only &quot;allow&quot; or &quot;deny&quot;, followed by NULL-termination are valid.
+<span class="lineNum">     438 </span>            :   In addition, &quot;deny&quot; is only valid for ACL types supporting it.
+<span class="lineNum">     439 </span>            :  */
+<span class="lineNum">     440 </span>            : {
+<span class="lineNum">     441 </span>            :     int valid;
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     valid = false;</span>
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     if (strcmp(permt, &quot;allow&quot;) == 0)</span>
+<span class="lineNum">     446 </span>            :     {
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         valid = true;</span>
+<span class="lineNum">     448 </span>            :     }
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     else if (strcmp(permt, &quot;deny&quot;) == 0)</span>
+<span class="lineNum">     450 </span>            :     {
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         if (deny_support)</span>
+<span class="lineNum">     452 </span>            :         {
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :             valid = true;</span>
+<span class="lineNum">     454 </span>            :         }
+<span class="lineNum">     455 </span>            :         else
+<span class="lineNum">     456 </span>            :         {
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Deny permission not supported by this ACL type&quot;);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :             PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     459 </span>            :         }
+<span class="lineNum">     460 </span>            :     }
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     return valid;</span>
+<span class="lineNum">     463 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

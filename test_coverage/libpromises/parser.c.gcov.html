@@ -1,0 +1,262 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/parser.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - parser.c<span style="font-size: 80%;"> (source / <a href="parser.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">62</td>
+            <td class="headerCovTableEntry">87</td>
+            <td class="headerCovTableEntryLo">71.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryLo">60.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;parser.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;parser_state.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;file_lib.h&gt;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &lt;errno.h&gt;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : int yyparse(void);
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : ParserState P = { 0 }; /* GLOBAL_X */
+<span class="lineNum">      36 </span>            : 
+<a name="37"><span class="lineNum">      37 </span>            : extern FILE *yyin;</a>
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span><span class="lineCov">          4 : static void ParserStateReset(ParserState *p, bool discard)</span>
+<span class="lineNum">      40 </span>            : {
+<span class="lineNum">      41 </span><span class="lineCov">          4 :     p-&gt;agent_type = AGENT_TYPE_COMMON;</span>
+<span class="lineNum">      42 </span><span class="lineCov">          4 :     p-&gt;warnings = PARSER_WARNING_ALL;</span>
+<span class="lineNum">      43 </span><span class="lineCov">          4 :     p-&gt;policy = NULL;</span>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineCov">          4 :     int i = CF_MAX_NESTING;</span>
+<span class="lineNum">      46 </span><span class="lineCov">         48 :     while (i-- &gt; 0) /* Clear stacks from top down */</span>
+<span class="lineNum">      47 </span>            :     {
+<span class="lineNum">      48 </span><span class="lineCov">         40 :         if (discard)</span>
+<span class="lineNum">      49 </span>            :         {
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :             free(p-&gt;currentfnid[i]);</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :             RlistDestroy(p-&gt;giveargs[i]);</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :             FnCallDestroy(p-&gt;currentfncall[i]);</span>
+<span class="lineNum">      53 </span>            :         }
+<span class="lineNum">      54 </span>            :         else
+<span class="lineNum">      55 </span>            :         {
+<span class="lineNum">      56 </span><span class="lineCov">         40 :             assert(!p-&gt;currentfnid[i]);</span>
+<span class="lineNum">      57 </span><span class="lineCov">         40 :             assert(!p-&gt;giveargs[i]);</span>
+<span class="lineNum">      58 </span><span class="lineCov">         40 :             assert(!p-&gt;currentfncall[i]);</span>
+<span class="lineNum">      59 </span>            :         }
+<span class="lineNum">      60 </span><span class="lineCov">         40 :         p-&gt;currentfnid[i] = NULL;</span>
+<span class="lineNum">      61 </span><span class="lineCov">         40 :         p-&gt;giveargs[i] = NULL;</span>
+<span class="lineNum">      62 </span><span class="lineCov">         40 :         p-&gt;currentfncall[i] = NULL;</span>
+<span class="lineNum">      63 </span>            :     }
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineCov">          4 :     free(p-&gt;current_line);</span>
+<span class="lineNum">      66 </span><span class="lineCov">          4 :     p-&gt;current_line = NULL;</span>
+<span class="lineNum">      67 </span><span class="lineCov">          4 :     p-&gt;line_no = 1;</span>
+<span class="lineNum">      68 </span><span class="lineCov">          4 :     p-&gt;line_pos = 1;</span>
+<span class="lineNum">      69 </span><span class="lineCov">          4 :     p-&gt;error_count = 0;</span>
+<span class="lineNum">      70 </span><span class="lineCov">          4 :     p-&gt;warning_count = 0;</span>
+<span class="lineNum">      71 </span><span class="lineCov">          4 :     p-&gt;list_nesting = 0;</span>
+<span class="lineNum">      72 </span><span class="lineCov">          4 :     p-&gt;arg_nesting = 0;</span>
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineCov">          4 :     free(p-&gt;current_namespace);</span>
+<span class="lineNum">      75 </span><span class="lineCov">          4 :     p-&gt;current_namespace = xstrdup(&quot;default&quot;);</span>
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineCov">          4 :     p-&gt;currentid[0] = '\0';</span>
+<span class="lineNum">      78 </span><span class="lineCov">          4 :     if (p-&gt;currentstring)</span>
+<span class="lineNum">      79 </span>            :     {
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :         free(p-&gt;currentstring);</span>
+<span class="lineNum">      81 </span>            :     }
+<span class="lineNum">      82 </span><span class="lineCov">          4 :     p-&gt;currentstring = NULL;</span>
+<span class="lineNum">      83 </span><span class="lineCov">          4 :     p-&gt;currenttype[0] = '\0';</span>
+<span class="lineNum">      84 </span><span class="lineCov">          4 :     if (p-&gt;currentclasses)</span>
+<span class="lineNum">      85 </span>            :     {
+<span class="lineNum">      86 </span><span class="lineCov">          2 :         free(p-&gt;currentclasses);</span>
+<span class="lineNum">      87 </span>            :     }
+<span class="lineNum">      88 </span><span class="lineCov">          4 :     p-&gt;currentclasses = NULL;</span>
+<span class="lineNum">      89 </span><span class="lineCov">          4 :     p-&gt;currentRlist = NULL;</span>
+<span class="lineNum">      90 </span><span class="lineCov">          4 :     p-&gt;currentpromise = NULL;</span>
+<span class="lineNum">      91 </span><span class="lineCov">          4 :     p-&gt;currentbody = NULL;</span>
+<span class="lineNum">      92 </span><span class="lineCov">          4 :     if (p-&gt;promiser)</span>
+<span class="lineNum">      93 </span>            :     {
+<span class="lineNum">      94 </span><span class="lineCov">          2 :         free(p-&gt;promiser);</span>
+<span class="lineNum">      95 </span>            :     }
+<span class="lineNum">      96 </span><span class="lineCov">          4 :     p-&gt;promiser = NULL;</span>
+<span class="lineNum">      97 </span><span class="lineCov">          4 :     p-&gt;blockid[0] = '\0';</span>
+<span class="lineNum">      98 </span><span class="lineCov">          4 :     p-&gt;blocktype[0] = '\0';</span>
+<span class="lineNum">      99 </span><span class="lineCov">          4 :     p-&gt;rval = RvalNew(NULL, RVAL_TYPE_NOPROMISEE);</span>
+<a name="100"><span class="lineNum">     100 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineCov">          2 : static void ParserStateClean(ParserState *p)</span>
+<span class="lineNum">     103 </span>            : {
+<span class="lineNum">     104 </span><span class="lineCov">          2 :     free(p-&gt;current_namespace);</span>
+<span class="lineNum">     105 </span><span class="lineCov">          2 :     p-&gt;current_namespace = NULL;</span>
+<a name="106"><span class="lineNum">     106 </span><span class="lineCov">          2 : }</span></a>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineCov">          2 : Policy *ParserParseFile(AgentType agent_type, const char *path, unsigned int warnings, unsigned int warnings_error)</span>
+<span class="lineNum">     109 </span>            : {
+<span class="lineNum">     110 </span><span class="lineCov">          2 :     ParserStateReset(&amp;P, false);</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">          2 :     P.agent_type = agent_type;</span>
+<span class="lineNum">     113 </span><span class="lineCov">          2 :     P.policy = PolicyNew();</span>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineCov">          2 :     P.warnings = warnings;</span>
+<span class="lineNum">     116 </span><span class="lineCov">          2 :     P.warnings_error = warnings_error;</span>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineCov">          2 :     strlcpy(P.filename, path, CF_MAXVARSIZE);</span>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineCov">          2 :     yyin = safe_fopen(path, &quot;rt&quot;);</span>
+<span class="lineNum">     121 </span><span class="lineCov">          2 :     if (yyin == NULL)</span>
+<span class="lineNum">     122 </span>            :     {
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;While opening file '%s' for parsing. (fopen: %s)&quot;, path, GetErrorStr());</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     125 </span>            :     }
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineCov">          6 :     while (!feof(yyin))</span>
+<span class="lineNum">     128 </span>            :     {
+<span class="lineNum">     129 </span><span class="lineCov">          2 :         yyparse();</span>
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineCov">          2 :         if (ferror(yyin))</span>
+<span class="lineNum">     132 </span>            :         {
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :             perror(&quot;cfengine&quot;);</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :             exit(EXIT_FAILURE);</span>
+<span class="lineNum">     135 </span>            :         }
+<span class="lineNum">     136 </span>            :     }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span><span class="lineCov">          2 :     fclose(yyin);</span>
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineCov">          2 :     if (P.error_count &gt; 0)</span>
+<span class="lineNum">     141 </span>            :     {
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         PolicyDestroy(P.policy);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         ParserStateReset(&amp;P, true);</span>
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         ParserStateClean(&amp;P);</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     146 </span>            :     }
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineCov">          2 :     Policy *policy = P.policy;</span>
+<span class="lineNum">     149 </span><span class="lineCov">          2 :     ParserStateReset(&amp;P, false);</span>
+<span class="lineNum">     150 </span><span class="lineCov">          2 :     ParserStateClean(&amp;P);</span>
+<span class="lineNum">     151 </span><span class="lineCov">          2 :     return policy;</span>
+<a name="152"><span class="lineNum">     152 </span>            : }</a>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 : int ParserWarningFromString(const char *warning_str)</span>
+<span class="lineNum">     155 </span>            : {
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     if (strcmp(&quot;deprecated&quot;, warning_str) == 0)</span>
+<span class="lineNum">     157 </span>            :     {
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         return PARSER_WARNING_DEPRECATED;</span>
+<span class="lineNum">     159 </span>            :     }
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     else if (strcmp(&quot;removed&quot;, warning_str) == 0)</span>
+<span class="lineNum">     161 </span>            :     {
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         return PARSER_WARNING_REMOVED;</span>
+<span class="lineNum">     163 </span>            :     }
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     else if (strcmp(&quot;all&quot;, warning_str) == 0)</span>
+<span class="lineNum">     165 </span>            :     {
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         return PARSER_WARNING_ALL;</span>
+<span class="lineNum">     167 </span>            :     }
+<span class="lineNum">     168 </span>            :     else
+<span class="lineNum">     169 </span>            :     {
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     171 </span>            :     }
+<a name="172"><span class="lineNum">     172 </span>            : }</a>
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 : const char *ParserWarningToString(unsigned int warning)</span>
+<span class="lineNum">     175 </span>            : {
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :     switch (warning)</span>
+<span class="lineNum">     177 </span>            :     {
+<span class="lineNum">     178 </span>            :     case PARSER_WARNING_DEPRECATED:
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         return &quot;deprecated&quot;;</span>
+<span class="lineNum">     180 </span>            :     case PARSER_WARNING_REMOVED:
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         return &quot;removed&quot;;</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :     default:
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;Invalid parser warning: %u&quot;, warning);</span>
+<span class="lineNum">     185 </span>            :     }
+<span class="lineNum">     186 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

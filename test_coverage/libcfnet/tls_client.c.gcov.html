@@ -1,0 +1,410 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libcfnet/tls_client.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libcfnet</a> - tls_client.c<span style="font-size: 80%;"> (source / <a href="tls_client.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntry">115</td>
+            <td class="headerCovTableEntryLo">9.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryLo">40.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;cfnet.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;openssl/err.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;openssl/crypto.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;openssl/ssl.h&gt;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &lt;logging.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &lt;tls_client.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;tls_generic.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;net.h&gt;                     /* SendTransaction, ReceiveTransaction */
+<span class="lineNum">      38 </span>            : /* TODO move crypto.h to libutils */
+<span class="lineNum">      39 </span>            : #include &lt;crypto.h&gt;                                       /* LoadSecretKeys */
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : extern RSA *PRIVKEY, *PUBKEY;
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : /**
+<span class="lineNum">      46 </span>            :  * Global SSL context for initiated connections over the TLS protocol. For the
+<span class="lineNum">      47 </span>            :  * agent, they are written only once, *after* the common control bundles have
+<span class="lineNum">      48 </span>            :  * been evaluated. I.e. GenericAgentPostLoadInit() is called
+<span class="lineNum">      49 </span>            :  * after LoadPolicy().
+<span class="lineNum">      50 </span>            :  *
+<span class="lineNum">      51 </span>            :  * 1. Common bundles evaluation: LoadPolicy()-&gt;PolicyResolve()
+<span class="lineNum">      52 </span>            :  * 2. Create TLS contexts:       GenericAgentPostLoadInit()-&gt;cfnet_init()
+<span class="lineNum">      53 </span>            :  */
+<span class="lineNum">      54 </span>            : static SSL_CTX *SSLCLIENTCONTEXT = NULL;
+<span class="lineNum">      55 </span>            : static X509 *SSLCLIENTCERT = NULL;
+<a name="56"><span class="lineNum">      56 </span>            : </a>
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 : bool TLSClientIsInitialized()</span>
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     return (SSLCLIENTCONTEXT != NULL);</span>
+<span class="lineNum">      61 </span>            : }
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : /**
+<span class="lineNum">      64 </span>            :  * @warning Make sure you've called CryptoInitialize() first!
+<span class="lineNum">      65 </span>            :  *
+<span class="lineNum">      66 </span>            :  * @TODO if this function is called a second time, it just returns true, and
+<span class="lineNum">      67 </span>            :  * does not do nothing more. What if the settings (e.g. tls_min_version) have
+<span class="lineNum">      68 </span>            :  * changed? This can happen when cf-serverd reloads policy. Fixing this goes
+<span class="lineNum">      69 </span>            :  * much deeper though, as it would require cf-serverd to call
+<a name="70"><span class="lineNum">      70 </span>            :  * GenericAgentDiscoverContext() when reloading policy.</a>
+<span class="lineNum">      71 </span>            :  */
+<span class="lineNum">      72 </span><span class="lineCov">          2 : bool TLSClientInitialize(const char *tls_min_version,</span>
+<span class="lineNum">      73 </span>            :                          const char *ciphers)
+<span class="lineNum">      74 </span>            : {
+<span class="lineNum">      75 </span>            :     int ret;
+<span class="lineNum">      76 </span>            :     static bool is_initialised = false;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">          2 :     if (is_initialised)</span>
+<span class="lineNum">      79 </span>            :     {
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">      81 </span>            :     }
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineCov">          2 :     if (PRIVKEY == NULL || PUBKEY == NULL)</span>
+<span class="lineNum">      84 </span>            :     {
+<span class="lineNum">      85 </span>            :         /* VERBOSE in case it's a custom, local-only installation. */
+<span class="lineNum">      86 </span><span class="lineCov">          2 :         Log(LOG_LEVEL_VERBOSE, &quot;No public/private key pair is loaded,&quot;</span>
+<span class="lineNum">      87 </span>            :             &quot; please create one using cf-key&quot;);
+<span class="lineNum">      88 </span><span class="lineCov">          2 :         return false;</span>
+<span class="lineNum">      89 </span>            :     }
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     if (!TLSGenericInitialize())</span>
+<span class="lineNum">      91 </span>            :     {
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">      93 </span>            :     }
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     SSLCLIENTCONTEXT = SSL_CTX_new(SSLv23_client_method());</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     if (SSLCLIENTCONTEXT == NULL)</span>
+<span class="lineNum">      97 </span>            :     {
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;SSL_CTX_new: %s&quot;,</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         goto err1;</span>
+<span class="lineNum">     101 </span>            :     }
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     TLSSetDefaultOptions(SSLCLIENTCONTEXT, tls_min_version);</span>
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :     if (ciphers != NULL)</span>
+<span class="lineNum">     106 </span>            :     {
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     108 </span>            :             &quot;Setting cipher list for outgoing TLS connections to: %s&quot;,
+<span class="lineNum">     109 </span>            :             ciphers);
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :         ret = SSL_CTX_set_cipher_list(SSLCLIENTCONTEXT, ciphers);</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :         if (ret != 1)</span>
+<span class="lineNum">     113 </span>            :         {
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     115 </span>            :                 &quot;No valid ciphers in cipher list: %s&quot;,
+<span class="lineNum">     116 </span>            :                 ciphers);
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :             goto err2;</span>
+<span class="lineNum">     118 </span>            :         }
+<span class="lineNum">     119 </span>            :     }
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :     /* Create cert into memory and load it into SSL context. */
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :     SSLCLIENTCERT = TLSGenerateCertFromPrivKey(PRIVKEY);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     if (SSLCLIENTCERT == NULL)</span>
+<span class="lineNum">     124 </span>            :     {
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     126 </span>            :             &quot;Failed to generate in-memory-certificate from private key&quot;);
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         goto err2;</span>
+<span class="lineNum">     128 </span>            :     }
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     SSL_CTX_use_certificate(SSLCLIENTCONTEXT, SSLCLIENTCERT);</span>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :     ret = SSL_CTX_use_RSAPrivateKey(SSLCLIENTCONTEXT, PRIVKEY);</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     if (ret != 1)</span>
+<span class="lineNum">     134 </span>            :     {
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Failed to use RSA private key: %s&quot;,</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :         goto err3;</span>
+<span class="lineNum">     138 </span>            :     }
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            :     /* Verify cert consistency. */
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     ret = SSL_CTX_check_private_key(SSLCLIENTCONTEXT);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     if (ret != 1)</span>
+<span class="lineNum">     143 </span>            :     {
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Inconsistent key and TLS cert: %s&quot;,</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         goto err3;</span>
+<span class="lineNum">     147 </span>            :     }
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     is_initialised = true;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            :   err3:
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     X509_free(SSLCLIENTCERT);</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     SSLCLIENTCERT = NULL;</span>
+<span class="lineNum">     155 </span>            :   err2:
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     SSL_CTX_free(SSLCLIENTCONTEXT);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     SSLCLIENTCONTEXT = NULL;</span>
+<span class="lineNum">     158 </span>            :   err1:
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     return false;</span>
+<a name="160"><span class="lineNum">     160 </span>            : }</a>
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineCov">          2 : void TLSDeInitialize()</span>
+<span class="lineNum">     163 </span>            : {
+<span class="lineNum">     164 </span><span class="lineCov">          2 :     if (PUBKEY)</span>
+<span class="lineNum">     165 </span>            :     {
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         RSA_free(PUBKEY);</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :         PUBKEY = NULL;</span>
+<span class="lineNum">     168 </span>            :     }
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineCov">          2 :     if (PRIVKEY)</span>
+<span class="lineNum">     171 </span>            :     {
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :         RSA_free(PRIVKEY);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         PRIVKEY = NULL;</span>
+<span class="lineNum">     174 </span>            :     }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineCov">          2 :     if (SSLCLIENTCERT != NULL)</span>
+<span class="lineNum">     177 </span>            :     {
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         X509_free(SSLCLIENTCERT);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         SSLCLIENTCERT = NULL;</span>
+<span class="lineNum">     180 </span>            :     }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineCov">          2 :     if (SSLCLIENTCONTEXT != NULL)</span>
+<span class="lineNum">     183 </span>            :     {
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :         SSL_CTX_free(SSLCLIENTCONTEXT);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         SSLCLIENTCONTEXT = NULL;</span>
+<span class="lineNum">     186 </span>            :     }
+<span class="lineNum">     187 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : /**
+<span class="lineNum">     191 </span>            :  * 1. Receive &quot;CFE_v%d&quot; server hello
+<span class="lineNum">     192 </span>            :  * 2. Send two lines: one &quot;CFE_v%d&quot; with the protocol version we wish to have,
+<span class="lineNum">     193 </span>            :  *    and another with id, e.g. &quot;IDENTITY USERNAME=blah&quot;.
+<span class="lineNum">     194 </span>            :  * 3. Receive &quot;OK WELCOME&quot;
+<span class="lineNum">     195 </span>            :  *
+<span class="lineNum">     196 </span>            :  * @return &gt; 0: success. #conn_info-&gt;type has been updated with the negotiated
+<span class="lineNum">     197 </span>            :  *              protocol version.
+<span class="lineNum">     198 </span>            :  *           0: server denial
+<a name="199"><span class="lineNum">     199 </span>            :  *          -1: error</a>
+<span class="lineNum">     200 </span>            :  */
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 : int TLSClientIdentificationDialog(ConnectionInfo *conn_info,</span>
+<span class="lineNum">     202 </span>            :                                   const char *username)
+<span class="lineNum">     203 </span>            : {
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :     char line[1024] = &quot;&quot;;</span>
+<span class="lineNum">     205 </span>            :     int ret;
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :     /* Receive CFE_v%d ... That's the first thing the server sends. */
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     ret = TLSRecvLines(conn_info-&gt;ssl, line, sizeof(line));</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            :     ProtocolVersion wanted_version;
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     if (conn_info-&gt;protocol == CF_PROTOCOL_UNDEFINED)</span>
+<span class="lineNum">     212 </span>            :     {
+<span class="lineNum">     213 </span>            :         /* TODO parse CFE_v%d received and use that version if it's lower. */
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :         wanted_version = CF_PROTOCOL_LATEST;</span>
+<span class="lineNum">     215 </span>            :     }
+<span class="lineNum">     216 </span>            :     else
+<span class="lineNum">     217 </span>            :     {
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         wanted_version = conn_info-&gt;protocol;</span>
+<span class="lineNum">     219 </span>            :     }
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            :     /* Send &quot;CFE_v%d cf-agent version&quot;. */
+<span class="lineNum">     222 </span>            :     char version_string[128];
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     int len = snprintf(version_string, sizeof(version_string),</span>
+<span class="lineNum">     224 </span>            :                        &quot;CFE_v%d %s %s\n&quot;,
+<span class="lineNum">     225 </span>            :                        wanted_version, &quot;cf-agent&quot;, VERSION); /* TODO argv[0] */
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :     ret = TLSSend(conn_info-&gt;ssl, version_string, len);</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     if (ret != len)</span>
+<span class="lineNum">     229 </span>            :     {
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Connection was hung up during identification!&quot;);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     232 </span>            :     }
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     strcpy(line, &quot;IDENTITY&quot;);</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     size_t line_len = strlen(line);</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     if (username != NULL)</span>
+<span class="lineNum">     238 </span>            :     {
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         ret = snprintf(&amp;line[line_len], sizeof(line) - line_len,</span>
+<span class="lineNum">     240 </span>            :                        &quot; USERNAME=%s&quot;, username);
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         if (ret &gt;= sizeof(line) - line_len)</span>
+<span class="lineNum">     242 </span>            :         {
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Sending IDENTITY truncated: %s&quot;, line);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     245 </span>            :         }
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         line_len += ret;</span>
+<span class="lineNum">     247 </span>            :     }
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            :     /* Overwrite the terminating '\0', we don't need it anyway. */
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     line[line_len] = '\n';</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     line_len++;</span>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     ret = TLSSend(conn_info-&gt;ssl, line, line_len);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     if (ret == -1)</span>
+<span class="lineNum">     255 </span>            :     {
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     257 </span>            :             &quot;Connection was hung up during identification! (2)&quot;);
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     259 </span>            :     }
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :     /* Server might hang up here, after we sent identification! We
+<span class="lineNum">     262 </span>            :      * must get the &quot;OK WELCOME&quot; message for everything to be OK. */
+<span class="lineNum">     263 </span>            :     static const char OK[] = &quot;OK WELCOME&quot;;
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     size_t OK_len = sizeof(OK) - 1;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :     ret = TLSRecvLines(conn_info-&gt;ssl, line, sizeof(line));</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     if (ret == -1)</span>
+<span class="lineNum">     267 </span>            :     {
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     269 </span>            :             &quot;Connection was hung up during identification! (3)&quot;);
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     271 </span>            :     }
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :     if (ret &lt; OK_len || strncmp(line, OK, OK_len) != 0)</span>
+<span class="lineNum">     274 </span>            :     {
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     276 </span>            :             &quot;Peer did not accept our identity! Responded: %s&quot;,
+<span class="lineNum">     277 </span>            :             line);
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     279 </span>            :     }
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            :     /* Before it contained the protocol version we requested from the server,
+<span class="lineNum">     282 </span>            :      * now we put in the value that was negotiated. */
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     conn_info-&gt;protocol = wanted_version;</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     return 1;</span>
+<span class="lineNum">     286 </span>            : }
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            : /**
+<span class="lineNum">     289 </span>            :  * We directly initiate a TLS handshake with the server. If the server is old
+<span class="lineNum">     290 </span>            :  * version (does not speak TLS) the connection will be denied.
+<span class="lineNum">     291 </span>            :  * @note the socket file descriptor in #conn_info must be connected and *not*
+<span class="lineNum">     292 </span>            :  *       non-blocking
+<a name="293"><span class="lineNum">     293 </span>            :  * @return -1 in case of error</a>
+<span class="lineNum">     294 </span>            :  */
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 : int TLSTry(ConnectionInfo *conn_info)</span>
+<span class="lineNum">     296 </span>            : {
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :     if (PRIVKEY == NULL || PUBKEY == NULL)</span>
+<span class="lineNum">     298 </span>            :     {
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;No public/private key pair is loaded,&quot;</span>
+<span class="lineNum">     300 </span>            :             &quot; please create one using cf-key&quot;);
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     302 </span>            :     }
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :     assert(SSLCLIENTCONTEXT != NULL);</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :     conn_info-&gt;ssl = SSL_new(SSLCLIENTCONTEXT);</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     if (conn_info-&gt;ssl == NULL)</span>
+<span class="lineNum">     307 </span>            :     {
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;SSL_new: %s&quot;,</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :             TLSErrorString(ERR_get_error()));</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     311 </span>            :     }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :     /* Pass conn_info inside the ssl struct for TLSVerifyCallback(). */
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     SSL_set_ex_data(conn_info-&gt;ssl, CONNECTIONINFO_SSL_IDX, conn_info);</span>
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :     /* Initiate the TLS handshake over the already open TCP socket. */
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     SSL_set_fd(conn_info-&gt;ssl, conn_info-&gt;sd);</span>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :     int ret = SSL_connect(conn_info-&gt;ssl);</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     if (ret &lt;= 0)</span>
+<span class="lineNum">     321 </span>            :     {
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         TLSLogError(conn_info-&gt;ssl, LOG_LEVEL_ERR,</span>
+<span class="lineNum">     323 </span>            :                     &quot;Failed to establish TLS connection&quot;, ret);
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     325 </span>            :     }
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE, &quot;TLS version negotiated: %8s; Cipher: %s,%s&quot;,</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         SSL_get_version(conn_info-&gt;ssl),</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         SSL_get_cipher_name(conn_info-&gt;ssl),</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :         SSL_get_cipher_version(conn_info-&gt;ssl));</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE, &quot;TLS session established, checking trust...&quot;);</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     334 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

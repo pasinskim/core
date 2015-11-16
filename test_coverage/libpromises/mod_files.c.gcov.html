@@ -1,0 +1,493 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/mod_files.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - mod_files.c<span style="font-size: 80%;"> (source / <a href="mod_files.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;mod_files.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;policy.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;syntax.h&gt;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : static const ConstraintSyntax location_constraints[] =
+<span class="lineNum">      31 </span>            : {
+<span class="lineNum">      32 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">      33 </span>            :     ConstraintSyntaxNewOption(&quot;before_after&quot;, &quot;before,after&quot;, &quot;Menu option, point cursor before of after matched line. Default value: after&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      34 </span>            :     ConstraintSyntaxNewOption(&quot;first_last&quot;, &quot;first,last&quot;, &quot;Menu option, choose first or last occurrence of match in file. Default value: last&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      35 </span>            :     ConstraintSyntaxNewString(&quot;select_line_matching&quot;, CF_ANYSTRING, &quot;Regular expression for matching file line location&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      36 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">      37 </span>            : };
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : static const BodySyntax location_body = BodySyntaxNew(&quot;location&quot;, location_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : static const ConstraintSyntax edit_field_constraints[] =
+<span class="lineNum">      42 </span>            : {
+<span class="lineNum">      43 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">      44 </span>            :     ConstraintSyntaxNewBool(&quot;allow_blank_fields&quot;, &quot;true/false allow blank fields in a line (do not purge). Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      45 </span>            :     ConstraintSyntaxNewBool(&quot;extend_fields&quot;, &quot;true/false add new fields at end of line if necessary to complete edit. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      46 </span>            :     ConstraintSyntaxNewOption(&quot;field_operation&quot;, &quot;prepend,append,alphanum,delete,set&quot;, &quot;Menu option policy for editing subfields. Default value: none&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      47 </span>            :     ConstraintSyntaxNewString(&quot;field_separator&quot;, CF_ANYSTRING, &quot;The regular expression used to separate fields in a line. Default value: none&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      48 </span>            :     ConstraintSyntaxNewString(&quot;field_value&quot;, CF_ANYSTRING, &quot;Set field value to a fixed value&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      49 </span>            :     ConstraintSyntaxNewInt(&quot;select_field&quot;, &quot;0,99999999&quot;, &quot;Integer index of the field required 0..n (default starts from 1)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      50 </span>            :     ConstraintSyntaxNewBool(&quot;start_fields_from_zero&quot;, &quot;If set, the default field numbering starts from 0&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      51 </span>            :     ConstraintSyntaxNewString(&quot;value_separator&quot;, CF_CHARRANGE, &quot;Character separator for subfields inside the selected field. Default value: none&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      52 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">      53 </span>            : };
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : static const BodySyntax edit_field_body = BodySyntaxNew(&quot;edit_field&quot;, edit_field_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : static const ConstraintSyntax replace_with_constraints[] =
+<span class="lineNum">      58 </span>            : {
+<span class="lineNum">      59 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">      60 </span>            :     ConstraintSyntaxNewOption(&quot;occurrences&quot;, &quot;all,first&quot;, &quot;Menu option to replace all occurrences or just first (NB the latter is non-convergent). Default value: all&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      61 </span>            :     ConstraintSyntaxNewString(&quot;replace_value&quot;, CF_ANYSTRING, &quot;Value used to replace regular expression matches in search&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      62 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">      63 </span>            : };
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : static const BodySyntax replace_with_body = BodySyntaxNew(&quot;replace_with&quot;, replace_with_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : static const ConstraintSyntax select_region_constraints[] =
+<span class="lineNum">      68 </span>            : {
+<span class="lineNum">      69 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">      70 </span>            :     ConstraintSyntaxNewBool(&quot;include_start_delimiter&quot;, &quot;Whether to include the section delimiter. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      71 </span>            :     ConstraintSyntaxNewBool(&quot;include_end_delimiter&quot;, &quot;Whether to include the section delimiter. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      72 </span>            :     ConstraintSyntaxNewString(&quot;select_start&quot;, CF_ANYSTRING, &quot;Regular expression matching start of edit region&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      73 </span>            :     ConstraintSyntaxNewString(&quot;select_end&quot;, CF_ANYSTRING, &quot;Regular expression matches end of edit region from start&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      74 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">      75 </span>            : };
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : static const BodySyntax select_region_body = BodySyntaxNew(&quot;select_region&quot;, select_region_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : static const ConstraintSyntax delete_select_constraints[] =
+<span class="lineNum">      80 </span>            : {
+<span class="lineNum">      81 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">      82 </span>            :     ConstraintSyntaxNewStringList(&quot;delete_if_startwith_from_list&quot;, CF_ANYSTRING, &quot;Delete line if it starts with a string in the list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      83 </span>            :     ConstraintSyntaxNewStringList(&quot;delete_if_not_startwith_from_list&quot;, CF_ANYSTRING, &quot;Delete line if it DOES NOT start with a string in the list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      84 </span>            :     ConstraintSyntaxNewStringList(&quot;delete_if_match_from_list&quot;, CF_ANYSTRING, &quot;Delete line if it fully matches a regex in the list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      85 </span>            :     ConstraintSyntaxNewStringList(&quot;delete_if_not_match_from_list&quot;, CF_ANYSTRING,&quot;Delete line if it DOES NOT fully match a regex in the list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      86 </span>            :     ConstraintSyntaxNewStringList(&quot;delete_if_contains_from_list&quot;, CF_ANYSTRING, &quot;Delete line if a regex in the list match a line fragment&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      87 </span>            :     ConstraintSyntaxNewStringList(&quot;delete_if_not_contains_from_list&quot;, CF_ANYSTRING,&quot;Delete line if a regex in the list DOES NOT match a line fragment&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      88 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">      89 </span>            : };
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            : static const BodySyntax delete_select_body = BodySyntaxNew(&quot;delete_select&quot;, delete_select_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : static const ConstraintSyntax insert_select_constraints[] =
+<span class="lineNum">      94 </span>            : {
+<span class="lineNum">      95 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">      96 </span>            :     ConstraintSyntaxNewStringList(&quot;insert_if_startwith_from_list&quot;, CF_ANYSTRING, &quot;Insert line if it starts with a string in the list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      97 </span>            :     ConstraintSyntaxNewStringList(&quot;insert_if_not_startwith_from_list&quot;, CF_ANYSTRING,&quot;Insert line if it DOES NOT start with a string in the list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      98 </span>            :     ConstraintSyntaxNewStringList(&quot;insert_if_match_from_list&quot;, CF_ANYSTRING, &quot;Insert line if it fully matches a regex in the list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">      99 </span>            :     ConstraintSyntaxNewStringList(&quot;insert_if_not_match_from_list&quot;, CF_ANYSTRING,&quot;Insert line if it DOES NOT fully match a regex in the list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     100 </span>            :     ConstraintSyntaxNewStringList(&quot;insert_if_contains_from_list&quot;, CF_ANYSTRING,&quot;Insert line if a regex in the list match a line fragment&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     101 </span>            :     ConstraintSyntaxNewStringList(&quot;insert_if_not_contains_from_list&quot;, CF_ANYSTRING, &quot;Insert line if a regex in the list DOES NOT match a line fragment&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     102 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     103 </span>            : };
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : static const BodySyntax insert_select_body = BodySyntaxNew(&quot;insert_select&quot;, insert_select_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : static const ConstraintSyntax CF_INSERTLINES_BODIES[] =
+<span class="lineNum">     108 </span>            : {
+<span class="lineNum">     109 </span>            :     ConstraintSyntaxNewBool(&quot;expand_scalars&quot;, &quot;Expand any unexpanded variables. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     110 </span>            :     ConstraintSyntaxNewOption(&quot;insert_type&quot;, &quot;literal,string,file,file_preserve_block,preserve_block,preserve_all_lines&quot;, &quot;Type of object the promiser string refers to. Default value: literal&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     111 </span>            :     ConstraintSyntaxNewBody(&quot;insert_select&quot;, &amp;insert_select_body, &quot;Insert only if lines pass filter criteria&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     112 </span>            :     ConstraintSyntaxNewBody(&quot;location&quot;, &amp;location_body, &quot;Specify where in a file an insertion will be made&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     113 </span>            :     ConstraintSyntaxNewOptionList(&quot;whitespace_policy&quot;, &quot;ignore_leading,ignore_trailing,ignore_embedded,exact_match&quot;, &quot;Criteria for matching and recognizing existing lines&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     114 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     115 </span>            : };
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            : static const ConstraintSyntax CF_DELETELINES_BODIES[] =
+<span class="lineNum">     118 </span>            : {
+<span class="lineNum">     119 </span>            :     ConstraintSyntaxNewBody(&quot;delete_select&quot;, &amp;delete_select_body, &quot;Delete only if lines pass filter criteria&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     120 </span>            :     ConstraintSyntaxNewBool(&quot;not_matching&quot;, &quot;true/false negate match criterion. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     121 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     122 </span>            : };
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            : static const ConstraintSyntax CF_COLUMN_BODIES[] =
+<span class="lineNum">     125 </span>            : {
+<span class="lineNum">     126 </span>            :     ConstraintSyntaxNewBody(&quot;edit_field&quot;, &amp;edit_field_body, &quot;Edit line-based file as matrix of fields&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     127 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     128 </span>            : };
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : static const ConstraintSyntax CF_REPLACE_BODIES[] =
+<span class="lineNum">     131 </span>            : {
+<span class="lineNum">     132 </span>            :     ConstraintSyntaxNewBody(&quot;replace_with&quot;, &amp;replace_with_body, &quot;Search-replace pattern&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     133 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     134 </span>            : };
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            : const ConstraintSyntax CF_COMMON_EDITBODIES[] =
+<span class="lineNum">     137 </span>            : {
+<span class="lineNum">     138 </span>            :     ConstraintSyntaxNewBody(&quot;select_region&quot;, &amp;select_region_body, &quot;Limit edits to a demarked region of the file&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     139 </span>            :     ConstraintSyntaxNewNull()
+<a name="140"><span class="lineNum">     140 </span>            : };</a>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 : static bool AclCheck(const Body *body, Seq *errors)</span>
+<span class="lineNum">     143 </span>            : {
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     bool success = true;</span>
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     if (BodyHasConstraint(body, &quot;acl_directory_inherit&quot;)</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         &amp;&amp; BodyHasConstraint(body, &quot;acl_default&quot;))</span>
+<span class="lineNum">     148 </span>            :     {
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         SeqAppend(errors, PolicyErrorNew(POLICY_ELEMENT_TYPE_BODY, body, &quot;An acl body cannot have both acl_directory_inherit and acl_default. Please use acl_default only&quot;));</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         success = false;</span>
+<span class="lineNum">     151 </span>            :     }
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :     if (BodyHasConstraint(body, &quot;specify_inherit_aces&quot;)</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         &amp;&amp; BodyHasConstraint(body, &quot;specify_default_aces&quot;))</span>
+<span class="lineNum">     154 </span>            :     {
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :         SeqAppend(errors, PolicyErrorNew(POLICY_ELEMENT_TYPE_BODY, body, &quot;An acl body cannot have both specify_inherit_aces and specify_default_aces. Please use specify_default_aces only&quot;));</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         success = false;</span>
+<span class="lineNum">     157 </span>            :     }
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :     return success;</span>
+<span class="lineNum">     160 </span>            : }
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            : static const ConstraintSyntax acl_constraints[] =
+<span class="lineNum">     163 </span>            : {
+<span class="lineNum">     164 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     165 </span>            :     ConstraintSyntaxNewStringList(&quot;aces&quot;, &quot;((user|group):[^:]+:[-=+,rwx()dtTabBpcoD]*(:(allow|deny))?)|((all|mask):[-=+,rwx()]*(:(allow|deny))?)&quot;, &quot;Native settings for access control entry&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     166 </span>            :     ConstraintSyntaxNewOption(&quot;acl_directory_inherit&quot;, &quot;nochange,parent,specify,clear&quot;, &quot;Access control list type for the affected file system&quot;, SYNTAX_STATUS_DEPRECATED),
+<span class="lineNum">     167 </span>            :     ConstraintSyntaxNewOption(&quot;acl_default&quot;, &quot;nochange,access,specify,clear&quot;, &quot;How to apply default (inheritable) access control list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     168 </span>            :     ConstraintSyntaxNewOption(&quot;acl_method&quot;, &quot;append,overwrite&quot;, &quot;Editing method for access control list&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     169 </span>            :     ConstraintSyntaxNewOption(&quot;acl_type&quot;, &quot;generic,posix,ntfs&quot;, &quot;Access control list type for the affected file system&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     170 </span>            :     ConstraintSyntaxNewStringList(&quot;specify_inherit_aces&quot;, &quot;((user|group):[^:]+:[-=+,rwx()dtTabBpcoD]*(:(allow|deny))?)|((all|mask):[-=+,rwx()]*(:(allow|deny))?)&quot;, &quot;Native settings for access control entry&quot;, SYNTAX_STATUS_DEPRECATED),
+<span class="lineNum">     171 </span>            :     ConstraintSyntaxNewStringList(&quot;specify_default_aces&quot;, &quot;((user|group):[^:]+:[-=+,rwx()dtTabBpcoD]*(:(allow|deny))?)|((all|mask):[-=+,rwx()]*(:(allow|deny))?)&quot;, &quot;Native settings for access control entry&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     172 </span>            :     ConstraintSyntaxNewOption(&quot;acl_inherit&quot;, CF_BOOL &quot;,nochange&quot;, &quot;Whether the object inherits its ACL from the parent (Windows only)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     173 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     174 </span>            : };
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : static const BodySyntax acl_body = BodySyntaxNew(&quot;acl&quot;, acl_constraints, &amp;AclCheck, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            : static const ConstraintSyntax changes_constraints[] =
+<span class="lineNum">     179 </span>            : {
+<span class="lineNum">     180 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     181 </span>            :     ConstraintSyntaxNewOption(&quot;hash&quot;, &quot;md5,sha1,sha224,sha256,sha384,sha512,best&quot;, &quot;Hash files for change detection&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     182 </span>            :     ConstraintSyntaxNewOption(&quot;report_changes&quot;, &quot;all,stats,content,none&quot;, &quot;Specify criteria for change warnings&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     183 </span>            :     ConstraintSyntaxNewBool(&quot;update_hashes&quot;, &quot;Update hash values immediately after change warning&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     184 </span>            :     ConstraintSyntaxNewBool(&quot;report_diffs&quot;,&quot;Generate reports summarizing the major differences between individual text files&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     185 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     186 </span>            : };
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            : static const BodySyntax changes_body = BodySyntaxNew(&quot;changes&quot;, changes_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : static const ConstraintSyntax depth_search_constraints[] =
+<span class="lineNum">     191 </span>            : {
+<span class="lineNum">     192 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     193 </span>            :     ConstraintSyntaxNewInt(&quot;depth&quot;, CF_VALRANGE, &quot;Maximum depth level for search&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     194 </span>            :     ConstraintSyntaxNewStringList(&quot;exclude_dirs&quot;, &quot;.*&quot;, &quot;List of regexes of directory names NOT to include in depth search&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     195 </span>            :     ConstraintSyntaxNewBool(&quot;include_basedir&quot;, &quot;true/false include the start/root dir of the search results&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     196 </span>            :     ConstraintSyntaxNewStringList(&quot;include_dirs&quot;, &quot;.*&quot;, &quot;List of regexes of directory names to include in depth search&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     197 </span>            :     ConstraintSyntaxNewBool(&quot;rmdeadlinks&quot;, &quot;true/false remove links that point to nowhere. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     198 </span>            :     ConstraintSyntaxNewBool(&quot;traverse_links&quot;, &quot;true/false traverse symbolic links to directories. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     199 </span>            :     ConstraintSyntaxNewBool(&quot;xdev&quot;, &quot;true/false exclude directories that are on different devices. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     200 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     201 </span>            : };
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            : static const BodySyntax depth_search_body = BodySyntaxNew(&quot;depth_search&quot;, depth_search_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            : static const ConstraintSyntax edit_defaults_constraints[] =
+<span class="lineNum">     206 </span>            : {
+<span class="lineNum">     207 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     208 </span>            :     ConstraintSyntaxNewOption(&quot;edit_backup&quot;, &quot;true,false,timestamp,rotate&quot;, &quot;Menu option for backup policy on edit changes. Default value: true&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     209 </span>            :     ConstraintSyntaxNewBool(&quot;empty_file_before_editing&quot;, &quot;Baseline memory model of file to zero/empty before commencing promised edits. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     210 </span>            :     ConstraintSyntaxNewBool(&quot;inherit&quot;, &quot;If true this causes the sub-bundle to inherit the private classes of its parent&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     211 </span>            :     ConstraintSyntaxNewInt(&quot;max_file_size&quot;, CF_VALRANGE, &quot;Do not edit files bigger than this number of bytes&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     212 </span>            :     ConstraintSyntaxNewBool(&quot;recognize_join&quot;, &quot;Join together lines that end with a backslash, up to 4kB limit. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     213 </span>            :     ConstraintSyntaxNewInt(&quot;rotate&quot;, &quot;0,99&quot;, &quot;How many backups to store if 'rotate' edit_backup strategy is selected. Default value: 1&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     214 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     215 </span>            : };
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            : static const BodySyntax edit_defaults_body = BodySyntaxNew(&quot;edit_defaults&quot;, edit_defaults_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            : static const ConstraintSyntax delete_constraints[] =
+<span class="lineNum">     220 </span>            : {
+<span class="lineNum">     221 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     222 </span>            :     ConstraintSyntaxNewOption(&quot;dirlinks&quot;, &quot;delete,tidy,keep&quot;, &quot;Menu option policy for dealing with symbolic links to directories during deletion&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     223 </span>            :     ConstraintSyntaxNewBool(&quot;rmdirs&quot;, &quot;true/false whether to delete empty directories during recursive deletion&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     224 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     225 </span>            : };
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            : static const BodySyntax delete_body = BodySyntaxNew(&quot;delete&quot;, delete_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            : static const ConstraintSyntax rename_constraints[] =
+<span class="lineNum">     230 </span>            : {
+<span class="lineNum">     231 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     232 </span>            :     ConstraintSyntaxNewBool(&quot;disable&quot;, &quot;true/false automatically rename and remove permissions. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     233 </span>            :     ConstraintSyntaxNewString(&quot;disable_mode&quot;, CF_MODERANGE, &quot;The permissions to set when a file is disabled&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     234 </span>            :     ConstraintSyntaxNewString(&quot;disable_suffix&quot;, &quot;&quot;, &quot;The suffix to add to files when disabling (.cfdisabled)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     235 </span>            :     ConstraintSyntaxNewString(&quot;newname&quot;, &quot;&quot;, &quot;The desired name for the current file&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     236 </span>            :     ConstraintSyntaxNewInt(&quot;rotate&quot;, &quot;0,99&quot;, &quot;Maximum number of file rotations to keep&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     237 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     238 </span>            : };
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            : static const BodySyntax rename_body = BodySyntaxNew(&quot;rename&quot;, rename_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            : static const ConstraintSyntax perms_constraints[] =
+<span class="lineNum">     243 </span>            : {
+<span class="lineNum">     244 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     245 </span>            :     ConstraintSyntaxNewStringList(&quot;bsdflags&quot;, CF_BSDFLAGRANGE, &quot;List of menu options for bsd file system flags to set&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     246 </span>            :     ConstraintSyntaxNewStringList(&quot;groups&quot;, CF_USERRANGE, &quot;List of acceptable groups of group ids, first is change target&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     247 </span>            :     ConstraintSyntaxNewString(&quot;mode&quot;, CF_MODERANGE, &quot;File permissions (like posix chmod)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     248 </span>            :     ConstraintSyntaxNewStringList(&quot;owners&quot;, CF_USERRANGE, &quot;List of acceptable owners or user ids, first is change target&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     249 </span>            :     ConstraintSyntaxNewBool(&quot;rxdirs&quot;, &quot;true/false add execute flag for directories if read flag is set&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     250 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     251 </span>            : };
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            : static const BodySyntax perms_body = BodySyntaxNew(&quot;perms&quot;, perms_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span>            : static const ConstraintSyntax file_select_constraints[] =
+<span class="lineNum">     256 </span>            : {
+<span class="lineNum">     257 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     258 </span>            :     ConstraintSyntaxNewStringList(&quot;leaf_name&quot;, &quot;&quot;, &quot;List of regexes that match an acceptable name&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     259 </span>            :     ConstraintSyntaxNewStringList(&quot;path_name&quot;, CF_ABSPATHRANGE, &quot;List of pathnames to match acceptable target&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     260 </span>            :     ConstraintSyntaxNewStringList(&quot;search_mode&quot;, CF_MODERANGE, &quot;A list of mode masks for acceptable file permissions&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     261 </span>            :     ConstraintSyntaxNewIntRange(&quot;search_size&quot;, &quot;0,inf&quot;, &quot;Integer range of file sizes&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     262 </span>            :     ConstraintSyntaxNewStringList(&quot;search_owners&quot;, &quot;&quot;, &quot;List of acceptable user names or ids for the file, or regexes to match&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     263 </span>            :     ConstraintSyntaxNewStringList(&quot;search_groups&quot;, &quot;&quot;, &quot;List of acceptable group names or ids for the file, or regexes to match&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     264 </span>            :     ConstraintSyntaxNewStringList(&quot;search_bsdflags&quot;, CF_BSDFLAGRANGE, &quot;String of flags for bsd file system flags expected set&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     265 </span>            :     ConstraintSyntaxNewIntRange(&quot;ctime&quot;, CF_TIMERANGE, &quot;Range of change times (ctime) for acceptable files&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     266 </span>            :     ConstraintSyntaxNewIntRange(&quot;mtime&quot;, CF_TIMERANGE, &quot;Range of modification times (mtime) for acceptable files&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     267 </span>            :     ConstraintSyntaxNewIntRange(&quot;atime&quot;, CF_TIMERANGE, &quot;Range of access times (atime) for acceptable files&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     268 </span>            :     ConstraintSyntaxNewString(&quot;exec_regex&quot;, CF_ANYSTRING, &quot;Matches file if this regular expression matches any full line returned by the command&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     269 </span>            :     ConstraintSyntaxNewString(&quot;exec_program&quot;, CF_ABSPATHRANGE, &quot;Execute this command on each file and match if the exit status is zero&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     270 </span>            :     ConstraintSyntaxNewOptionList(&quot;file_types&quot;, &quot;plain,reg,symlink,dir,socket,fifo,door,char,block&quot;, &quot;List of acceptable file types from menu choices&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     271 </span>            :     ConstraintSyntaxNewStringList(&quot;issymlinkto&quot;, &quot;&quot;, &quot;List of regular expressions to match file objects&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     272 </span>            :     ConstraintSyntaxNewString(&quot;file_result&quot;, &quot;[!*(leaf_name|path_name|file_types|mode|size|owner|group|atime|ctime|mtime|issymlinkto|exec_regex|exec_program|bsdflags)[|&amp;.]*]*&quot;,
+<span class="lineNum">     273 </span>            :                         &quot;Logical expression combining classes defined by file search criteria&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     274 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     275 </span>            : };
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : static const BodySyntax file_select_body = BodySyntaxNew(&quot;file_select&quot;, file_select_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            : /* Copy and link are really the same body and should have
+<span class="lineNum">     280 </span>            :    non-overlapping patterns so that they are XOR but it's
+<span class="lineNum">     281 </span>            :    okay that some names overlap (like source) as there is
+<span class="lineNum">     282 </span>            :    no ambiguity in XOR */
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span>            : static const ConstraintSyntax link_from_constraints[] =
+<span class="lineNum">     285 </span>            : {
+<span class="lineNum">     286 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     287 </span>            :     ConstraintSyntaxNewStringList(&quot;copy_patterns&quot;, &quot;&quot;, &quot;A set of patterns that should be copied and synchronized instead of linked&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     288 </span>            :     ConstraintSyntaxNewBool(&quot;link_children&quot;, &quot;true/false whether to link all directory's children to source originals. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     289 </span>            :     ConstraintSyntaxNewOption(&quot;link_type&quot;, CF_LINKRANGE, &quot;The type of link used to alias the file. Default value: symlink&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     290 </span>            :     ConstraintSyntaxNewString(&quot;source&quot;, CF_PATHRANGE, &quot;The source file to which the link should point&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     291 </span>            :     ConstraintSyntaxNewOption(&quot;when_linking_children&quot;, &quot;override_file,if_no_such_file&quot;, &quot;Policy for overriding existing files when linking directories of children&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     292 </span>            :     ConstraintSyntaxNewOption(&quot;when_no_source&quot;, &quot;force,delete,nop&quot;, &quot;Behaviour when the source file to link to does not exist. Default value: nop&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     293 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     294 </span>            : };
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span>            : static const BodySyntax link_from_body = BodySyntaxNew(&quot;link_from&quot;, link_from_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            : static const ConstraintSyntax copy_from_constraints[] =
+<span class="lineNum">     299 </span>            : {
+<span class="lineNum">     300 </span>            :     /* We use CF_PATHRANGE due to collision with LINKTO_BODY and a bug lurking in
+<span class="lineNum">     301 </span>            :      * a verification stage -- this attribute gets picked instead of another
+<span class="lineNum">     302 </span>            :      * 'source'
+<span class="lineNum">     303 </span>            :      */
+<span class="lineNum">     304 </span>            :     CONSTRAINT_SYNTAX_GLOBAL,
+<span class="lineNum">     305 </span>            :     ConstraintSyntaxNewString(&quot;source&quot;, CF_PATHRANGE, &quot;Reference source file from which to copy&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     306 </span>            :     ConstraintSyntaxNewStringList(&quot;servers&quot;, &quot;[A-Za-z0-9_.:\\-\\[\\]]+&quot;, &quot;List of servers in order of preference from which to copy&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     307 </span>            :     ConstraintSyntaxNewBool(&quot;collapse_destination_dir&quot;, &quot;Copy files from subdirectories to the root destination directory. Default: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     308 </span>            :     ConstraintSyntaxNewOption(&quot;compare&quot;, &quot;atime,mtime,ctime,digest,hash,exists,binary&quot;, &quot;Menu option policy for comparing source and image file attributes. Default: mtime or ctime differs&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     309 </span>            :     ConstraintSyntaxNewOption(&quot;copy_backup&quot;, &quot;true,false,timestamp&quot;, &quot;Menu option policy for file backup/version control. Default value: true&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     310 </span>            :     ConstraintSyntaxNewBool(&quot;encrypt&quot;, &quot;true/false use encrypted data stream to connect to remote host. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     311 </span>            :     ConstraintSyntaxNewBool(&quot;check_root&quot;, &quot;true/false check permissions on the root directory when depth_search&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     312 </span>            :     ConstraintSyntaxNewStringList(&quot;copylink_patterns&quot;, &quot;&quot;, &quot;List of patterns matching files that should be copied instead of linked&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     313 </span>            :     ConstraintSyntaxNewIntRange(&quot;copy_size&quot;, &quot;0,inf&quot;, &quot;Integer range of file sizes that may be copied&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     314 </span>            :     ConstraintSyntaxNewOption(&quot;findertype&quot;, &quot;MacOSX&quot;, &quot;Menu option for default finder type on MacOSX&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     315 </span>            :     ConstraintSyntaxNewStringList(&quot;linkcopy_patterns&quot;, &quot;&quot;, &quot;List of patterns matching files that should be replaced with symbolic links&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     316 </span>            :     ConstraintSyntaxNewOption(&quot;link_type&quot;, CF_LINKRANGE, &quot;Menu option for type of links to use when copying. Default value: symlink&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     317 </span>            :     ConstraintSyntaxNewBool(&quot;force_update&quot;, &quot;true/false force copy update always. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     318 </span>            :     ConstraintSyntaxNewBool(&quot;force_ipv4&quot;, &quot;true/false force use of ipv4 on ipv6 enabled network. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     319 </span>            :     ConstraintSyntaxNewString(&quot;portnumber&quot;, &quot;&quot;, &quot;Port number or service name to connect to on server host&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     320 </span>            :     ConstraintSyntaxNewBool(&quot;preserve&quot;, &quot;true/false whether to preserve file permissions on copied file. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     321 </span>            :     ConstraintSyntaxNewBool(&quot;purge&quot;, &quot;true/false purge files on client that do not match files on server when a depth_search is used. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     322 </span>            :     ConstraintSyntaxNewBool(&quot;stealth&quot;, &quot;true/false whether to preserve time stamps on copied file. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     323 </span>            :     ConstraintSyntaxNewInt(&quot;timeout&quot;, &quot;1,3600&quot;, &quot;Connection timeout, seconds&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     324 </span>            :     ConstraintSyntaxNewBool(&quot;trustkey&quot;, &quot;true/false trust public keys from remote server if previously unknown. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     325 </span>            :     ConstraintSyntaxNewBool(&quot;type_check&quot;, &quot;true/false compare file types before copying and require match&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     326 </span>            :     ConstraintSyntaxNewBool(&quot;verify&quot;, &quot;true/false verify transferred file by hashing after copy (resource penalty). Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     327 </span>            :     ConstraintSyntaxNewOption(&quot;protocol_version&quot;, &quot;0,undefined,1,classic,2,latest&quot;, &quot;CFEngine protocol version to use when connecting to the server. Default: undefined&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     328 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     329 </span>            : };
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            : static const BodySyntax copy_from_body = BodySyntaxNew(&quot;copy_from&quot;, copy_from_constraints, NULL, SYNTAX_STATUS_NORMAL);
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            : static const ConstraintSyntax CF_FILES_BODIES[] =
+<span class="lineNum">     334 </span>            : {
+<span class="lineNum">     335 </span>            :     ConstraintSyntaxNewBody(&quot;acl&quot;, &amp;acl_body, &quot;Criteria for access control lists on file&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     336 </span>            :     ConstraintSyntaxNewBody(&quot;changes&quot;, &amp;changes_body, &quot;Criteria for change management&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     337 </span>            :     ConstraintSyntaxNewBody(&quot;copy_from&quot;, &amp;copy_from_body, &quot;Criteria for copying file from a source&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     338 </span>            :     ConstraintSyntaxNewBool(&quot;create&quot;, &quot;true/false whether to create non-existing file. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     339 </span>            :     ConstraintSyntaxNewBody(&quot;delete&quot;, &amp;delete_body, &quot;Criteria for deleting files&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     340 </span>            :     ConstraintSyntaxNewBody(&quot;depth_search&quot;, &amp;depth_search_body, &quot;Criteria for file depth searches&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     341 </span>            :     ConstraintSyntaxNewBody(&quot;edit_defaults&quot;, &amp;edit_defaults_body, &quot;Default promise details for file edits&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     342 </span>            :     ConstraintSyntaxNewBundle(&quot;edit_line&quot;, &quot;Line editing model for file&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     343 </span>            :     ConstraintSyntaxNewString(&quot;edit_template&quot;, CF_ABSPATHRANGE, &quot;The name of a special CFEngine template file to expand&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     344 </span>            :     ConstraintSyntaxNewBundle(&quot;edit_xml&quot;, &quot;XML editing model for file&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     345 </span>            :     ConstraintSyntaxNewBody(&quot;file_select&quot;, &amp;file_select_body, &quot;Choose which files select in a search&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     346 </span>            :     ConstraintSyntaxNewBody(&quot;link_from&quot;, &amp;link_from_body, &quot;Criteria for linking file from a source&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     347 </span>            :     ConstraintSyntaxNewBool(&quot;move_obstructions&quot;, &quot;true/false whether to move obstructions to file-object creation. Default value: false&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     348 </span>            :     ConstraintSyntaxNewOption(&quot;pathtype&quot;, &quot;literal,regex,guess&quot;, &quot;Menu option for interpreting promiser file object&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     349 </span>            :     ConstraintSyntaxNewBody(&quot;perms&quot;, &amp;perms_body, &quot;Criteria for setting permissions on a file&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     350 </span>            :     ConstraintSyntaxNewBody(&quot;rename&quot;, &amp;rename_body, &quot;Criteria for renaming files&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     351 </span>            :     ConstraintSyntaxNewString(&quot;repository&quot;, CF_ABSPATHRANGE, &quot;Name of a repository for versioning&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     352 </span>            :     ConstraintSyntaxNewBool(&quot;touch&quot;, &quot;true/false whether to touch time stamps on file&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     353 </span>            :     ConstraintSyntaxNewString(&quot;transformer&quot;, CF_ABSPATHRANGE, &quot;Command (with full path) used to transform current file (no shell wrapper used)&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     354 </span>            :     ConstraintSyntaxNewOption(&quot;template_method&quot;, &quot;cfengine,mustache&quot;, &quot;&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     355 </span>            :     ConstraintSyntaxNewContainer(&quot;template_data&quot;, &quot;&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     358 </span>            : };
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span>            : // edit_xml body syntax
+<span class="lineNum">     361 </span>            : const ConstraintSyntax CF_COMMON_XMLBODIES[] =
+<span class="lineNum">     362 </span>            : {
+<span class="lineNum">     363 </span>            :     ConstraintSyntaxNewString(&quot;build_xpath&quot;, &quot;&quot;, &quot;Build an XPath within the XML file&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     364 </span>            :     ConstraintSyntaxNewString(&quot;select_xpath&quot;, &quot;&quot;, &quot;Select the XPath node in the XML file to edit&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     365 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     366 </span>            : };
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            : static const ConstraintSyntax CF_INSERTTAGS_BODIES[] =
+<span class="lineNum">     369 </span>            : {
+<span class="lineNum">     370 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     371 </span>            : };
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            : static const ConstraintSyntax CF_DELETETAGS_BODIES[] =
+<span class="lineNum">     374 </span>            : {
+<span class="lineNum">     375 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     376 </span>            : };
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span>            : static const ConstraintSyntax CF_INSERTATTRIBUTES_BODIES[] =
+<span class="lineNum">     379 </span>            : {
+<span class="lineNum">     380 </span>            :     ConstraintSyntaxNewString(&quot;attribute_value&quot;, &quot;&quot;, &quot;Value of the attribute to be inserted into the XPath node of the XML file&quot;, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     381 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     382 </span>            : };
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : static const ConstraintSyntax CF_DELETEATTRIBUTES_BODIES[] =
+<span class="lineNum">     385 </span>            : {
+<span class="lineNum">     386 </span>            :     ConstraintSyntaxNewNull()
+<span class="lineNum">     387 </span>            : };
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span>            : // Master Syntax for Files 
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            : const PromiseTypeSyntax CF_FILES_PROMISE_TYPES[] =
+<span class="lineNum">     393 </span>            : {
+<span class="lineNum">     394 </span>            :     /* Body lists belonging to &quot;files:&quot; type in Agent */
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span>            :     PromiseTypeSyntaxNew(&quot;agent&quot;, &quot;files&quot;, CF_FILES_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span>            :     /* Body lists belonging to th edit_line sub-bundle of files: */
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :     PromiseTypeSyntaxNew(&quot;edit_line&quot;, &quot;*&quot;, CF_COMMON_EDITBODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     401 </span>            :     PromiseTypeSyntaxNew(&quot;edit_line&quot;, &quot;delete_lines&quot;, CF_DELETELINES_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     402 </span>            :     PromiseTypeSyntaxNew(&quot;edit_line&quot;, &quot;insert_lines&quot;, CF_INSERTLINES_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     403 </span>            :     PromiseTypeSyntaxNew(&quot;edit_line&quot;, &quot;field_edits&quot;, CF_COLUMN_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     404 </span>            :     PromiseTypeSyntaxNew(&quot;edit_line&quot;, &quot;replace_patterns&quot;, CF_REPLACE_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            :     PromiseTypeSyntaxNew(&quot;edit_xml&quot;, &quot;*&quot;, CF_COMMON_XMLBODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     407 </span>            :     PromiseTypeSyntaxNew(&quot;edit_xml&quot;, &quot;build_xpath&quot;, CF_INSERTTAGS_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     408 </span>            :     PromiseTypeSyntaxNew(&quot;edit_xml&quot;, &quot;delete_tree&quot;, CF_DELETETAGS_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     409 </span>            :     PromiseTypeSyntaxNew(&quot;edit_xml&quot;, &quot;insert_tree&quot;, CF_INSERTTAGS_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     410 </span>            :     PromiseTypeSyntaxNew(&quot;edit_xml&quot;, &quot;delete_attribute&quot;, CF_DELETEATTRIBUTES_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     411 </span>            :     PromiseTypeSyntaxNew(&quot;edit_xml&quot;, &quot;set_attribute&quot;, CF_INSERTATTRIBUTES_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     412 </span>            :     PromiseTypeSyntaxNew(&quot;edit_xml&quot;, &quot;delete_text&quot;, CF_DELETETAGS_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     413 </span>            :     PromiseTypeSyntaxNew(&quot;edit_xml&quot;, &quot;set_text&quot;, CF_INSERTTAGS_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     414 </span>            :     PromiseTypeSyntaxNew(&quot;edit_xml&quot;, &quot;insert_text&quot;, CF_INSERTTAGS_BODIES, NULL, SYNTAX_STATUS_NORMAL),
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span>            :     PromiseTypeSyntaxNewNull()
+<span class="lineNum">     417 </span>            : };
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

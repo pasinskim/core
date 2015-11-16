@@ -1,0 +1,407 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libcfnet/stat_cache.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libcfnet</a> - stat_cache.c<span style="font-size: 80%;"> (source / <a href="stat_cache.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">133</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;platform.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;stat_cache.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &lt;cfnet.h&gt;                            /* AgentConnection */
+<span class="lineNum">      30 </span>            : #include &lt;net.h&gt;                              /* {Send,Receive}Transaction */
+<span class="lineNum">      31 </span>            : #include &lt;client_protocol.h&gt;                  /* BadProtoReply,OKProtoReply */
+<span class="lineNum">      32 </span>            : #include &lt;alloc.h&gt;                            /* xmemdup */
+<span class="lineNum">      33 </span>            : #include &lt;logging.h&gt;                          /* Log */
+<a name="34"><span class="lineNum">      34 </span>            : #include &lt;crypto.h&gt;                           /* EncryptString */</a>
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 : static void NewStatCache(Stat *data, AgentConnection *conn)</span>
+<span class="lineNum">      37 </span>            : {
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 :     Stat *sp = xmemdup(data, sizeof(Stat));</span>
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :     sp-&gt;next = conn-&gt;cache;</span>
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :     conn-&gt;cache = sp;</span>
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : /**
+<span class="lineNum">      44 </span>            :  * @brief Find remote stat information for #file in cache and
+<span class="lineNum">      45 </span>            :  *        return it in #statbuf.
+<a name="46"><span class="lineNum">      46 </span>            :  * @return 0 if found, 1 if not found, -1 in case of error.</a>
+<span class="lineNum">      47 </span>            :  */
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 : static int StatFromCache(AgentConnection *conn, const char *file,</span>
+<span class="lineNum">      49 </span>            :                          struct stat *statbuf, const char *stattype)
+<span class="lineNum">      50 </span>            : {
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     for (Stat *sp = conn-&gt;cache; sp != NULL; sp = sp-&gt;next)</span>
+<span class="lineNum">      52 </span>            :     {
+<span class="lineNum">      53 </span>            :         /* TODO differentiate ports etc in this stat cache! */
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         if (strcmp(conn-&gt;this_server, sp-&gt;cf_server) == 0 &amp;&amp;</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :             strcmp(file, sp-&gt;cf_filename) == 0)</span>
+<span class="lineNum">      57 </span>            :         {
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :             if (sp-&gt;cf_failed)  /* cached failure from cfopendir */</span>
+<span class="lineNum">      59 </span>            :             {
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :                 errno = EPERM;</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">      62 </span>            :             }
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :             if ((strcmp(stattype, &quot;link&quot;) == 0) &amp;&amp; (sp-&gt;cf_lmode != 0))</span>
+<span class="lineNum">      65 </span>            :             {
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :                 statbuf-&gt;st_mode = sp-&gt;cf_lmode;</span>
+<span class="lineNum">      67 </span>            :             }
+<span class="lineNum">      68 </span>            :             else
+<span class="lineNum">      69 </span>            :             {
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :                 statbuf-&gt;st_mode = sp-&gt;cf_mode;</span>
+<span class="lineNum">      71 </span>            :             }
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_uid = sp-&gt;cf_uid;</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_gid = sp-&gt;cf_gid;</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_size = sp-&gt;cf_size;</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_atime = sp-&gt;cf_atime;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_mtime = sp-&gt;cf_mtime;</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_ctime = sp-&gt;cf_ctime;</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_ino = sp-&gt;cf_ino;</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_dev = sp-&gt;cf_dev;</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_nlink = sp-&gt;cf_nlink;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :             return 0;</span>
+<span class="lineNum">      84 </span>            :         }
+<span class="lineNum">      85 </span>            :     }
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     return 1;                                                  /* not found */</span>
+<span class="lineNum">      88 </span>            : }
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            : /**
+<span class="lineNum">      91 </span>            :  * @param #stattype should be either &quot;link&quot; or &quot;file&quot;. If a link, this reads
+<span class="lineNum">      92 </span>            :  *                  readlink and sends it back in the same packet. It then
+<span class="lineNum">      93 </span>            :  *                  caches the value for each copy command.
+<a name="94"><span class="lineNum">      94 </span>            :  *</a>
+<span class="lineNum">      95 </span>            :  */
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 : int cf_remote_stat(AgentConnection *conn, bool encrypt, const char *file,</span>
+<span class="lineNum">      97 </span>            :                    struct stat *statbuf, const char *stattype)
+<span class="lineNum">      98 </span>            : {
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     assert(strcmp(stattype, &quot;file&quot;) == 0 ||</span>
+<span class="lineNum">     100 </span>            :            strcmp(stattype, &quot;link&quot;) == 0);
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :     /* We encrypt only for CLASSIC protocol. The TLS protocol is always over
+<span class="lineNum">     103 </span>            :      * encrypted layer, so it does not support encrypted (S*) commands. */
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     encrypt = encrypt &amp;&amp; conn-&gt;conn_info-&gt;protocol == CF_PROTOCOL_CLASSIC;</span>
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     if (strlen(file) &gt; CF_BUFSIZE - 30)</span>
+<span class="lineNum">     107 </span>            :     {
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Filename too long&quot;);</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     110 </span>            :     }
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :     int ret = StatFromCache(conn, file, statbuf, stattype);</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     if (ret == 0 || ret == -1)                            /* found or error */</span>
+<span class="lineNum">     114 </span>            :     {
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     116 </span>            :     }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            :     /* Not found in cache */
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            :     char recvbuffer[CF_BUFSIZE];
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :     memset(recvbuffer, 0, CF_BUFSIZE);</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :     time_t tloc = time(NULL);</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     if (tloc == (time_t) -1)</span>
+<span class="lineNum">     125 </span>            :     {
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Couldn't read system clock (time: %s)&quot;,</span>
+<span class="lineNum">     127 </span>            :             GetErrorStr());
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         tloc = 0;</span>
+<span class="lineNum">     129 </span>            :     }
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            :     char sendbuffer[CF_BUFSIZE];
+<span class="lineNum">     132 </span>            :     int tosend;
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     sendbuffer[0] = '\0';</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     if (encrypt)</span>
+<span class="lineNum">     136 </span>            :     {
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :         if (conn-&gt;session_key == NULL)</span>
+<span class="lineNum">     138 </span>            :         {
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     140 </span>            :                 &quot;Cannot do encrypted copy without keys (use cf-key)&quot;);
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     142 </span>            :         }
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            :         char in[CF_BUFSIZE], out[CF_BUFSIZE];
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         snprintf(in, CF_BUFSIZE - 1, &quot;SYNCH %jd STAT %s&quot;,</span>
+<span class="lineNum">     147 </span>            :                  (intmax_t) tloc, file);
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         int cipherlen = EncryptString(conn-&gt;encryption_type, in, out,</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :                                       conn-&gt;session_key, strlen(in) + 1);</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         snprintf(sendbuffer, CF_BUFSIZE - 1, &quot;SSYNCH %d&quot;, cipherlen);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         memcpy(sendbuffer + CF_PROTO_OFFSET, out, cipherlen);</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         tosend = cipherlen + CF_PROTO_OFFSET;</span>
+<span class="lineNum">     153 </span>            :     }
+<span class="lineNum">     154 </span>            :     else
+<span class="lineNum">     155 </span>            :     {
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         snprintf(sendbuffer, CF_BUFSIZE, &quot;SYNCH %jd STAT %s&quot;,</span>
+<span class="lineNum">     157 </span>            :                  (intmax_t) tloc, file);
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :         tosend = strlen(sendbuffer);</span>
+<span class="lineNum">     159 </span>            :     }
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     if (SendTransaction(conn-&gt;conn_info, sendbuffer, tosend, CF_DONE) == -1)</span>
+<span class="lineNum">     162 </span>            :     {
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     164 </span>            :             &quot;Transmission failed/refused talking to %.255s:%.255s. (stat: %s)&quot;,
+<span class="lineNum">     165 </span>            :             conn-&gt;this_server, file, GetErrorStr());
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     167 </span>            :     }
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :     if (ReceiveTransaction(conn-&gt;conn_info, recvbuffer, NULL) == -1)</span>
+<span class="lineNum">     170 </span>            :     {
+<span class="lineNum">     171 </span>            :         /* TODO mark connection in the cache as closed. */
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     173 </span>            :     }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     if (strstr(recvbuffer, &quot;unsynchronized&quot;))</span>
+<span class="lineNum">     176 </span>            :     {
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     178 </span>            :             &quot;Clocks differ too much to do copy by date (security), server reported: %s&quot;,
+<span class="lineNum">     179 </span>            :             recvbuffer + strlen(&quot;BAD: &quot;));
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     181 </span>            :     }
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     if (BadProtoReply(recvbuffer))</span>
+<span class="lineNum">     184 </span>            :     {
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Server returned error: %s&quot;,</span>
+<span class="lineNum">     186 </span>            :             recvbuffer + strlen(&quot;BAD: &quot;));
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :         errno = EPERM;</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     189 </span>            :     }
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     if (OKProtoReply(recvbuffer))</span>
+<span class="lineNum">     192 </span>            :     {
+<span class="lineNum">     193 </span>            :         Stat cfst;
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :         // use intmax_t here to provide enough space for large values coming over the protocol
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         intmax_t d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12 = 0, d13 = 0;</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         ret = sscanf(recvbuffer, &quot;OK: &quot;</span>
+<span class="lineNum">     198 </span>            :                &quot;%1&quot; PRIdMAX     // 01 cfst.cf_type
+<span class="lineNum">     199 </span>            :                &quot; %5&quot; PRIdMAX    // 02 cfst.cf_mode
+<span class="lineNum">     200 </span>            :                &quot; %14&quot; PRIdMAX   // 03 cfst.cf_lmode
+<span class="lineNum">     201 </span>            :                &quot; %14&quot; PRIdMAX   // 04 cfst.cf_uid
+<span class="lineNum">     202 </span>            :                &quot; %14&quot; PRIdMAX   // 05 cfst.cf_gid
+<span class="lineNum">     203 </span>            :                &quot; %18&quot; PRIdMAX   // 06 cfst.cf_size
+<span class="lineNum">     204 </span>            :                &quot; %14&quot; PRIdMAX   // 07 cfst.cf_atime
+<span class="lineNum">     205 </span>            :                &quot; %14&quot; PRIdMAX   // 08 cfst.cf_mtime
+<span class="lineNum">     206 </span>            :                &quot; %14&quot; PRIdMAX   // 09 cfst.cf_ctime
+<span class="lineNum">     207 </span>            :                &quot; %1&quot; PRIdMAX    // 10 cfst.cf_makeholes
+<span class="lineNum">     208 </span>            :                &quot; %14&quot; PRIdMAX   // 11 cfst.cf_ino
+<span class="lineNum">     209 </span>            :                &quot; %14&quot; PRIdMAX   // 12 cfst.cf_nlink
+<span class="lineNum">     210 </span>            :                &quot; %18&quot; PRIdMAX,  // 13 cfst.cf_dev
+<span class="lineNum">     211 </span>            :                &amp;d1, &amp;d2, &amp;d3, &amp;d4, &amp;d5, &amp;d6, &amp;d7, &amp;d8, &amp;d9, &amp;d10, &amp;d11, &amp;d12, &amp;d13);
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :         if (ret &lt; 13)</span>
+<span class="lineNum">     214 </span>            :         {
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Cannot read SYNCH reply from '%s', only %d/13 items parsed&quot;, conn-&gt;remoteip, ret );</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     217 </span>            :         }
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         cfst.cf_type = (FileType) d1;</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         cfst.cf_mode = (mode_t) d2;</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :         cfst.cf_lmode = (mode_t) d3;</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         cfst.cf_uid = (uid_t) d4;</span>
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         cfst.cf_gid = (gid_t) d5;</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         cfst.cf_size = (off_t) d6;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         cfst.cf_atime = (time_t) d7;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         cfst.cf_mtime = (time_t) d8;</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         cfst.cf_ctime = (time_t) d9;</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :         cfst.cf_makeholes = (char) d10;</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :         cfst.cf_ino = d11;</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         cfst.cf_nlink = d12;</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         cfst.cf_dev = (dev_t)d13;</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :         /* Use %?d here to avoid memory overflow attacks */
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         memset(recvbuffer, 0, CF_BUFSIZE);</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         if (ReceiveTransaction(conn-&gt;conn_info, recvbuffer, NULL) == -1)</span>
+<span class="lineNum">     238 </span>            :         {
+<span class="lineNum">     239 </span>            :             /* TODO mark connection in the cache as closed. */
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :             return -1;</span>
+<span class="lineNum">     241 </span>            :         }
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         if (strlen(recvbuffer) &gt; 3)</span>
+<span class="lineNum">     244 </span>            :         {
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :             cfst.cf_readlink = xstrdup(recvbuffer + 3);</span>
+<span class="lineNum">     246 </span>            :         }
+<span class="lineNum">     247 </span>            :         else
+<span class="lineNum">     248 </span>            :         {
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :             cfst.cf_readlink = NULL;</span>
+<span class="lineNum">     250 </span>            :         }
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         switch (cfst.cf_type)</span>
+<span class="lineNum">     253 </span>            :         {
+<span class="lineNum">     254 </span>            :         case FILE_TYPE_REGULAR:
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             cfst.cf_mode |= (mode_t) S_IFREG;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     257 </span>            :         case FILE_TYPE_DIR:
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :             cfst.cf_mode |= (mode_t) S_IFDIR;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     260 </span>            :         case FILE_TYPE_CHAR_:
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :             cfst.cf_mode |= (mode_t) S_IFCHR;</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     263 </span>            :         case FILE_TYPE_FIFO:
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             cfst.cf_mode |= (mode_t) S_IFIFO;</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     266 </span>            :         case FILE_TYPE_SOCK:
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :             cfst.cf_mode |= (mode_t) S_IFSOCK;</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     269 </span>            :         case FILE_TYPE_BLOCK:
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :             cfst.cf_mode |= (mode_t) S_IFBLK;</span>
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     272 </span>            :         case FILE_TYPE_LINK:
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :             cfst.cf_mode |= (mode_t) S_IFLNK;</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     275 </span>            :         }
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :         cfst.cf_filename = xstrdup(file);</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         cfst.cf_server = xstrdup(conn-&gt;this_server);</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :         cfst.cf_failed = false;</span>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         if (cfst.cf_lmode != 0)</span>
+<span class="lineNum">     282 </span>            :         {
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :             cfst.cf_lmode |= (mode_t) S_IFLNK;</span>
+<span class="lineNum">     284 </span>            :         }
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         NewStatCache(&amp;cfst, conn);</span>
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         if ((cfst.cf_lmode != 0) &amp;&amp; (strcmp(stattype, &quot;link&quot;) == 0))</span>
+<span class="lineNum">     289 </span>            :         {
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_mode = cfst.cf_lmode;</span>
+<span class="lineNum">     291 </span>            :         }
+<span class="lineNum">     292 </span>            :         else
+<span class="lineNum">     293 </span>            :         {
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :             statbuf-&gt;st_mode = cfst.cf_mode;</span>
+<span class="lineNum">     295 </span>            :         }
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         statbuf-&gt;st_uid = cfst.cf_uid;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         statbuf-&gt;st_gid = cfst.cf_gid;</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         statbuf-&gt;st_size = cfst.cf_size;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         statbuf-&gt;st_mtime = cfst.cf_mtime;</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         statbuf-&gt;st_ctime = cfst.cf_ctime;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :         statbuf-&gt;st_atime = cfst.cf_atime;</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         statbuf-&gt;st_ino = cfst.cf_ino;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         statbuf-&gt;st_dev = cfst.cf_dev;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         statbuf-&gt;st_nlink = cfst.cf_nlink;</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     308 </span>            :     }
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_ERR, &quot;Transmission refused or failed statting '%s', got '%s'&quot;, file, recvbuffer);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     errno = EPERM;</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     313 </span>            : }
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            : /*********************************************************************/
+<a name="316"><span class="lineNum">     316 </span>            : </a>
+<span class="lineNum">     317 </span>            : /* TODO only a server_name is not enough for stat'ing of files... */
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 : const Stat *StatCacheLookup(const AgentConnection *conn, const char *file_name,</span>
+<span class="lineNum">     319 </span>            :                             const char *server_name)
+<span class="lineNum">     320 </span>            : {
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :     for (const Stat *sp = conn-&gt;cache; sp != NULL; sp = sp-&gt;next)</span>
+<span class="lineNum">     322 </span>            :     {
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         if (strcmp(server_name, sp-&gt;cf_server) == 0 &amp;&amp;</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             strcmp(file_name, sp-&gt;cf_filename) == 0)</span>
+<span class="lineNum">     325 </span>            :         {
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             return sp;</span>
+<span class="lineNum">     327 </span>            :         }
+<span class="lineNum">     328 </span>            :     }
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<span class="lineNum">     331 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

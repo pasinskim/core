@@ -1,0 +1,303 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libenv/time_classes.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libenv</a> - time_classes.c<span style="font-size: 80%;"> (source / <a href="time_classes.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">86</td>
+            <td class="headerCovTableEntry">88</td>
+            <td class="headerCovTableEntryHi">97.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;time_classes.h&gt;
+<a name="26"><span class="lineNum">      26 </span>            : #include &lt;eval_context.h&gt;</a>
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span><span class="lineCov">          2 : static void RemoveTimeClass(EvalContext *ctx, time_t time)</span>
+<span class="lineNum">      29 </span>            : {
+<span class="lineNum">      30 </span>            :     // The first element is the local timezone
+<span class="lineNum">      31 </span><span class="lineCov">          2 :     const char* tz_prefix[2] = { &quot;&quot;, &quot;GMT_&quot; };</span>
+<span class="lineNum">      32 </span><span class="lineCov">          2 :     const char* tz_function[2] = { &quot;localtime_r&quot;, &quot;gmtime_r&quot; };</span>
+<span class="lineNum">      33 </span>            :     struct tm tz_parsed_time[2];
+<span class="lineNum">      34 </span><span class="lineCov">          4 :     const struct tm* tz_tm[2] = {</span>
+<span class="lineNum">      35 </span><span class="lineCov">          2 :         localtime_r(&amp;time, &amp;(tz_parsed_time[0])),</span>
+<span class="lineNum">      36 </span><span class="lineCov">          2 :         gmtime_r(&amp;time, &amp;(tz_parsed_time[1]))</span>
+<span class="lineNum">      37 </span>            :     };
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span><span class="lineCov">          6 :     for (int tz = 0; tz &lt; 2; tz++)</span>
+<span class="lineNum">      40 </span>            :     {
+<span class="lineNum">      41 </span>            :         int i, j;
+<span class="lineNum">      42 </span>            :         char buf[CF_BUFSIZE];
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineCov">          4 :         if (tz_tm[tz] == NULL)</span>
+<span class="lineNum">      45 </span>            :         {
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Unable to parse passed time. (%s: %s)&quot;, tz_function[tz], GetErrorStr());</span>
+<span class="lineNum">      47 </span><span class="lineCov">          2 :             return;</span>
+<span class="lineNum">      48 </span>            :         }
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : /* Lifecycle */
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineCov">         16 :         for( i = 0; i &lt; 3; i++ )</span>
+<span class="lineNum">      53 </span>            :         {
+<span class="lineNum">      54 </span><span class="lineCov">         12 :             snprintf(buf, CF_BUFSIZE, &quot;%sLcycle_%d&quot;, tz_prefix[tz], i);</span>
+<span class="lineNum">      55 </span><span class="lineCov">         12 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">      56 </span>            :         }
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : /* Year */
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sYr%04d&quot;, tz_prefix[tz], tz_parsed_time[tz].tm_year - 1 + 1900);</span>
+<span class="lineNum">      61 </span><span class="lineCov">          4 :         EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">      62 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sYr%04d&quot;, tz_prefix[tz], tz_parsed_time[tz].tm_year + 1900);</span>
+<span class="lineNum">      63 </span><span class="lineCov">          4 :         EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : /* Month */
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineCov">         52 :         for( i = 0; i &lt; 12; i++ )</span>
+<span class="lineNum">      68 </span>            :         {
+<span class="lineNum">      69 </span><span class="lineCov">         48 :             snprintf(buf, CF_BUFSIZE, &quot;%s%s&quot;, tz_prefix[tz], MONTH_TEXT[i]);</span>
+<span class="lineNum">      70 </span><span class="lineCov">         48 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">      71 </span>            :         }
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : /* Day of week */
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineCov">         32 :         for( i = 0; i &lt; 7; i++ )</span>
+<span class="lineNum">      76 </span>            :         {
+<span class="lineNum">      77 </span><span class="lineCov">         28 :             snprintf(buf, CF_BUFSIZE, &quot;%s%s&quot;, tz_prefix[tz], DAY_TEXT[i]);</span>
+<span class="lineNum">      78 </span><span class="lineCov">         28 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">      79 </span>            :         }
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : /* Day */
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineCov">        128 :         for( i = 1; i &lt; 32; i++ )</span>
+<span class="lineNum">      84 </span>            :         {
+<span class="lineNum">      85 </span><span class="lineCov">        124 :             snprintf(buf, CF_BUFSIZE, &quot;%sDay%d&quot;, tz_prefix[tz], i);</span>
+<span class="lineNum">      86 </span><span class="lineCov">        124 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">      87 </span>            :         }
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            : /* Shift */
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">         20 :         for( i = 0; i &lt; 4; i++ )</span>
+<span class="lineNum">      92 </span>            :         {
+<span class="lineNum">      93 </span><span class="lineCov">         16 :             snprintf(buf, CF_BUFSIZE, &quot;%s%s&quot;, tz_prefix[tz], SHIFT_TEXT[i]);</span>
+<span class="lineNum">      94 </span><span class="lineCov">         16 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">      95 </span>            :         }
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : /* Hour */
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineCov">        100 :         for( i = 0; i &lt; 24; i++ )</span>
+<span class="lineNum">     100 </span>            :         {
+<span class="lineNum">     101 </span><span class="lineCov">         96 :             snprintf(buf, CF_BUFSIZE, &quot;%sHr%02d&quot;, tz_prefix[tz], i);</span>
+<span class="lineNum">     102 </span><span class="lineCov">         96 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">     103 </span><span class="lineCov">         96 :             snprintf(buf, CF_BUFSIZE, &quot;%sHr%d&quot;, tz_prefix[tz], i);</span>
+<span class="lineNum">     104 </span><span class="lineCov">         96 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">     105 </span>            :         }
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : /* Quarter */
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineCov">         20 :         for( i = 1; i &lt;= 4; i++ )</span>
+<span class="lineNum">     110 </span>            :         {
+<span class="lineNum">     111 </span><span class="lineCov">         16 :             snprintf(buf, CF_BUFSIZE, &quot;%sQ%d&quot;, tz_prefix[tz], i);</span>
+<span class="lineNum">     112 </span><span class="lineCov">         16 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">     113 </span><span class="lineCov">        400 :             for( j = 0; j &lt; 24; j++ )</span>
+<span class="lineNum">     114 </span>            :             {
+<span class="lineNum">     115 </span><span class="lineCov">        384 :                 snprintf(buf, CF_BUFSIZE, &quot;%sHr%02d_Q%d&quot;, tz_prefix[tz], j, i);</span>
+<span class="lineNum">     116 </span><span class="lineCov">        384 :                 EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">     117 </span>            :             }
+<span class="lineNum">     118 </span>            :         }
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : /* Minute */
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineCov">        244 :         for( i = 0; i &lt; 60; i++ )</span>
+<span class="lineNum">     123 </span>            :         {
+<span class="lineNum">     124 </span><span class="lineCov">        240 :             snprintf(buf, CF_BUFSIZE, &quot;%sMin%02d&quot;, tz_prefix[tz], i);</span>
+<span class="lineNum">     125 </span><span class="lineCov">        240 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">     126 </span>            :         }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineCov">         52 :         for( i = 0; i &lt; 60; i += 5 )</span>
+<span class="lineNum">     129 </span>            :         {
+<span class="lineNum">     130 </span><span class="lineCov">         48 :             snprintf(buf, CF_BUFSIZE, &quot;%sMin%02d_%02d&quot;, tz_prefix[tz], i, (i + 5) % 60);</span>
+<span class="lineNum">     131 </span><span class="lineCov">         48 :             EvalContextClassRemove(ctx, NULL, buf);</span>
+<span class="lineNum">     132 </span>            :         }
+<span class="lineNum">     133 </span>            :     }
+<a name="134"><span class="lineNum">     134 </span>            : }</a>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineCov">          2 : static void AddTimeClass(EvalContext *ctx, time_t time)</span>
+<span class="lineNum">     137 </span>            : {
+<span class="lineNum">     138 </span>            :     // The first element is the local timezone
+<span class="lineNum">     139 </span><span class="lineCov">          2 :     const char* tz_prefix[2] = { &quot;&quot;, &quot;GMT_&quot; };</span>
+<span class="lineNum">     140 </span><span class="lineCov">          2 :     const char* tz_function[2] = { &quot;localtime_r&quot;, &quot;gmtime_r&quot; };</span>
+<span class="lineNum">     141 </span>            :     struct tm tz_parsed_time[2];
+<span class="lineNum">     142 </span><span class="lineCov">          4 :     const struct tm* tz_tm[2] = {</span>
+<span class="lineNum">     143 </span><span class="lineCov">          2 :         localtime_r(&amp;time, &amp;(tz_parsed_time[0])),</span>
+<span class="lineNum">     144 </span><span class="lineCov">          2 :         gmtime_r(&amp;time, &amp;(tz_parsed_time[1]))</span>
+<span class="lineNum">     145 </span>            :     };
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineCov">          6 :     for (int tz = 0; tz &lt; 2; tz++)</span>
+<span class="lineNum">     148 </span>            :     {
+<span class="lineNum">     149 </span>            :         char buf[CF_BUFSIZE];
+<span class="lineNum">     150 </span>            :         int day_text_index, quarter, interval_start, interval_end;
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineCov">          4 :         if (tz_tm[tz] == NULL)</span>
+<span class="lineNum">     153 </span>            :         {
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Unable to parse passed time. (%s: %s)&quot;, tz_function[tz], GetErrorStr());</span>
+<span class="lineNum">     155 </span><span class="lineCov">          2 :             return;</span>
+<span class="lineNum">     156 </span>            :         }
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            : /* Lifecycle */
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sLcycle_%d&quot;, tz_prefix[tz], ((tz_parsed_time[tz].tm_year + 1900) % 3));</span>
+<span class="lineNum">     161 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : /* Year */
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sYr%04d&quot;, tz_prefix[tz], tz_parsed_time[tz].tm_year + 1900);</span>
+<span class="lineNum">     166 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            : /* Month */
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%s%s&quot;, tz_prefix[tz], MONTH_TEXT[tz_parsed_time[tz].tm_mon]);</span>
+<span class="lineNum">     171 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            : /* Day of week */
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : /* Monday  is 1 in tm_wday, 0 in DAY_TEXT
+<span class="lineNum">     176 </span>            :    Tuesday is 2 in tm_wday, 1 in DAY_TEXT
+<span class="lineNum">     177 </span>            :    ...
+<span class="lineNum">     178 </span>            :    Sunday  is 0 in tm_wday, 6 in DAY_TEXT */
+<span class="lineNum">     179 </span><span class="lineCov">          4 :         day_text_index = (tz_parsed_time[tz].tm_wday + 6) % 7;</span>
+<span class="lineNum">     180 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%s%s&quot;, tz_prefix[tz], DAY_TEXT[day_text_index]);</span>
+<span class="lineNum">     181 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            : /* Day */
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sDay%d&quot;, tz_prefix[tz], tz_parsed_time[tz].tm_mday);</span>
+<span class="lineNum">     186 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            : /* Shift */
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%s%s&quot;, tz_prefix[tz], SHIFT_TEXT[tz_parsed_time[tz].tm_hour / 6]);</span>
+<span class="lineNum">     191 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : /* Hour */
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sHr%02d&quot;, tz_prefix[tz], tz_parsed_time[tz].tm_hour);</span>
+<span class="lineNum">     196 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     197 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sHr%d&quot;, tz_prefix[tz], tz_parsed_time[tz].tm_hour);</span>
+<span class="lineNum">     198 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            : /* Quarter */
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span><span class="lineCov">          4 :         quarter = tz_parsed_time[tz].tm_min / 15 + 1;</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sQ%d&quot;, tz_prefix[tz], quarter);</span>
+<span class="lineNum">     205 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     206 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sHr%02d_Q%d&quot;, tz_prefix[tz], tz_parsed_time[tz].tm_hour, quarter);</span>
+<span class="lineNum">     207 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : /* Minute */
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sMin%02d&quot;, tz_prefix[tz], tz_parsed_time[tz].tm_min);</span>
+<span class="lineNum">     212 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">          4 :         interval_start = (tz_parsed_time[tz].tm_min / 5) * 5;</span>
+<span class="lineNum">     215 </span><span class="lineCov">          4 :         interval_end = (interval_start + 5) % 60;</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineCov">          4 :         snprintf(buf, CF_BUFSIZE, &quot;%sMin%02d_%02d&quot;, tz_prefix[tz], interval_start, interval_end);</span>
+<span class="lineNum">     218 </span><span class="lineCov">          4 :         EvalContextClassPutHard(ctx, buf, &quot;time_based,source=agent&quot;);</span>
+<span class="lineNum">     219 </span>            :     }
+<a name="220"><span class="lineNum">     220 </span>            : }</a>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span><span class="lineCov">          2 : void UpdateTimeClasses(EvalContext *ctx, time_t t)</span>
+<span class="lineNum">     223 </span>            : {
+<span class="lineNum">     224 </span><span class="lineCov">          2 :     RemoveTimeClass(ctx, t);</span>
+<span class="lineNum">     225 </span><span class="lineCov">          2 :     AddTimeClass(ctx, t);</span>
+<span class="lineNum">     226 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     227 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

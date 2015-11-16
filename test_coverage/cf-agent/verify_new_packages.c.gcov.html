@@ -1,0 +1,289 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - cf-agent/verify_new_packages.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cf-agent</a> - verify_new_packages.c<span style="font-size: 80%;"> (source / <a href="verify_new_packages.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">88</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;verify_new_packages.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;package_module.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;logging.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;locks.h&gt;
+<a name="30"><span class="lineNum">      30 </span>            : #include &lt;ornaments.h&gt;</a>
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 : static bool NewPackagePromiseSanityCheck(Attributes a)</span>
+<span class="lineNum">      33 </span>            : {
+<span class="lineNum">      34 </span><span class="lineNoCov">          0 :     if (!a.new_packages.module_body || !a.new_packages.module_body-&gt;name)</span>
+<span class="lineNum">      35 </span>            :     {
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Can not find package module body in policy.&quot;);</span>
+<span class="lineNum">      37 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">      38 </span>            :     }
+<span class="lineNum">      39 </span>            :     
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :     if (a.new_packages.module_body-&gt;updates_ifelapsed == CF_NOINT ||</span>
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :         a.new_packages.module_body-&gt;installed_ifelapsed == CF_NOINT)</span>
+<span class="lineNum">      42 </span>            :     {
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">      44 </span>            :                 &quot;Invalid or missing arguments in package_module body '%s':  &quot;
+<span class="lineNum">      45 </span>            :                 &quot;query_installed_ifelapsed = %d query_updates_ifelapsed = %d&quot;,
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :                 a.new_packages.module_body-&gt;name, </span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :                 a.new_packages.module_body-&gt;installed_ifelapsed,</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :                 a.new_packages.module_body-&gt;updates_ifelapsed);</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">      50 </span>            :         return false;
+<span class="lineNum">      51 </span>            :     }
+<span class="lineNum">      52 </span>            :     
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     if (a.new_packages.package_policy == NEW_PACKAGE_ACTION_NONE)</span>
+<span class="lineNum">      54 </span>            :     {
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Unsupported package policy in package promise.&quot;);</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">      57 </span>            :     }
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="59"><span class="lineNum">      59 </span>            : }</a>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 : PromiseResult HandleNewPackagePromiseType(EvalContext *ctx, const Promise *pp,</span>
+<span class="lineNum">      62 </span>            :                                           Attributes a, char **promise_log_msg,
+<span class="lineNum">      63 </span>            :                                           LogLevel *log_lvl)
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;New package promise handler&quot;);</span>
+<span class="lineNum">      66 </span>            :     
+<span class="lineNum">      67 </span>            :     
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :     if (!NewPackagePromiseSanityCheck(a))</span>
+<span class="lineNum">      69 </span>            :     {
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :         *promise_log_msg =</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :                 SafeStringDuplicate(&quot;New package promise failed sanity check.&quot;);</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         *log_lvl = LOG_LEVEL_ERR;</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">      74 </span>            :     }
+<span class="lineNum">      75 </span>            :     
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :     PromiseBanner(ctx, pp);</span>
+<span class="lineNum">      77 </span>            :     
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     PackagePromiseGlobalLock global_lock = AcquireGlobalPackagePromiseLock(ctx);</span>
+<span class="lineNum">      79 </span>            :     
+<span class="lineNum">      80 </span>            :     CfLock package_promise_lock;
+<span class="lineNum">      81 </span>            :     char promise_lock[CF_BUFSIZE];
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     snprintf(promise_lock, sizeof(promise_lock), &quot;new-package-%s-%s&quot;,</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :              pp-&gt;promiser, a.new_packages.module_body-&gt;name);</span>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     if (global_lock.g_lock.lock == NULL)</span>
+<span class="lineNum">      86 </span>            :     {
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :         *promise_log_msg =</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :                 SafeStringDuplicate(&quot;Can not acquire global lock for package &quot;</span>
+<span class="lineNum">      89 </span>            :                                     &quot;promise. Skipping promise evaluation&quot;);
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         *log_lvl = LOG_LEVEL_INFO;</span>
+<span class="lineNum">      91 </span>            :         
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_SKIPPED;</span>
+<span class="lineNum">      93 </span>            :     }
+<span class="lineNum">      94 </span>            :     
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     package_promise_lock =</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :             AcquireLock(ctx, promise_lock, VUQNAME, CFSTARTTIME,</span>
+<span class="lineNum">      97 </span>            :             a.transaction, pp, false);
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     if (package_promise_lock.lock == NULL)</span>
+<span class="lineNum">      99 </span>            :     {
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG, &quot;Skipping promise execution due to locking.&quot;);</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :         YieldGlobalPackagePromiseLock(global_lock);</span>
+<span class="lineNum">     102 </span>            :         
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :         *promise_log_msg =</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :                 StringFormat(&quot;Can not acquire lock for '%s' package promise. &quot;</span>
+<span class="lineNum">     105 </span>            :                              &quot;Skipping promise evaluation&quot;,  pp-&gt;promiser);
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         *log_lvl = LOG_LEVEL_VERBOSE;</span>
+<span class="lineNum">     107 </span>            :         
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_SKIPPED;</span>
+<span class="lineNum">     109 </span>            :     }
+<span class="lineNum">     110 </span>            :     
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     PackageModuleWrapper *package_module =</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :             NewPackageModuleWrapper(a.new_packages.module_body);</span>
+<span class="lineNum">     113 </span>            :     
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :     if (!package_module)</span>
+<span class="lineNum">     115 </span>            :     {
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :         *promise_log_msg =</span>
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :                 StringFormat(&quot;Some error occurred while contacting package &quot;</span>
+<span class="lineNum">     118 </span>            :                              &quot;module - promise: %s&quot;, pp-&gt;promiser);
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         *log_lvl = LOG_LEVEL_ERR;</span>
+<span class="lineNum">     120 </span>            :         
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         YieldCurrentLock(package_promise_lock);</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         YieldGlobalPackagePromiseLock(global_lock);</span>
+<span class="lineNum">     123 </span>            :     
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     125 </span>            :     }
+<span class="lineNum">     126 </span>            :     
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     PromiseResult result = PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">     128 </span>            :     
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     switch (a.new_packages.package_policy)</span>
+<span class="lineNum">     130 </span>            :     {
+<span class="lineNum">     131 </span>            :         case NEW_PACKAGE_ACTION_ABSENT:
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :             result = HandleAbsentPromiseAction(ctx, pp-&gt;promiser, </span>
+<span class="lineNum">     133 </span>            :                                                &amp;a.new_packages,
+<span class="lineNum">     134 </span>            :                                                package_module,
+<span class="lineNum">     135 </span>            :                                                a.transaction.action);
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :             switch (result)</span>
+<span class="lineNum">     138 </span>            :             {
+<span class="lineNum">     139 </span>            :                 case PROMISE_RESULT_FAIL:
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :                     *log_lvl = LOG_LEVEL_ERR;</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :                     *promise_log_msg =</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :                         StringFormat(&quot;Error removing package '%s'&quot;,</span>
+<span class="lineNum">     143 </span>            :                                      pp-&gt;promiser);
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     145 </span>            :                 case PROMISE_RESULT_CHANGE:
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :                     *log_lvl = LOG_LEVEL_INFO;</span>
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                     *promise_log_msg =</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :                         StringFormat(&quot;Successfully removed package '%s'&quot;,</span>
+<span class="lineNum">     149 </span>            :                                      pp-&gt;promiser);
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     151 </span>            :                 case PROMISE_RESULT_NOOP:
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :                     *log_lvl = LOG_LEVEL_VERBOSE;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :                     *promise_log_msg =</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                         StringFormat(&quot;Package '%s' was not installed&quot;,</span>
+<span class="lineNum">     155 </span>            :                                      pp-&gt;promiser);
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     157 </span>            :                 default:
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :                     ProgrammingError(</span>
+<span class="lineNum">     159 </span>            :                             &quot;Absent promise action evaluation returned &quot;
+<span class="lineNum">     160 </span>            :                              &quot;unsupported result: %d&quot;,
+<span class="lineNum">     161 </span>            :                             result);
+<span class="lineNum">     162 </span>            :                     break;
+<span class="lineNum">     163 </span>            :             }
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     165 </span>            :         case NEW_PACKAGE_ACTION_PRESENT:
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :             result = HandlePresentPromiseAction(ctx, pp-&gt;promiser, </span>
+<span class="lineNum">     167 </span>            :                                                 &amp;a.new_packages,
+<span class="lineNum">     168 </span>            :                                                 package_module,
+<span class="lineNum">     169 </span>            :                                                 a.transaction.action);
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :             switch (result)</span>
+<span class="lineNum">     172 </span>            :             {
+<span class="lineNum">     173 </span>            :                 case PROMISE_RESULT_FAIL:
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :                     *log_lvl = LOG_LEVEL_ERR;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                     *promise_log_msg =</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :                         StringFormat(&quot;Error installing package '%s'&quot;,</span>
+<span class="lineNum">     177 </span>            :                                      pp-&gt;promiser);
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     179 </span>            :                 case PROMISE_RESULT_CHANGE:
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :                     *log_lvl = LOG_LEVEL_INFO;</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :                     *promise_log_msg =</span>
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :                         StringFormat(&quot;Successfully installed package '%s'&quot;,</span>
+<span class="lineNum">     183 </span>            :                                      pp-&gt;promiser);
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     185 </span>            :                 case PROMISE_RESULT_NOOP:
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :                     *log_lvl = LOG_LEVEL_VERBOSE;</span>
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 :                     *promise_log_msg =</span>
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :                         StringFormat(&quot;Package '%s' already installed&quot;,</span>
+<span class="lineNum">     189 </span>            :                                      pp-&gt;promiser);
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     191 </span>            :                 default:
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :                     ProgrammingError(</span>
+<span class="lineNum">     193 </span>            :                             &quot;Present promise action evaluation returned &quot;
+<span class="lineNum">     194 </span>            :                              &quot;unsupported result: %d&quot;,
+<span class="lineNum">     195 </span>            :                             result);
+<span class="lineNum">     196 </span>            :                     break;
+<span class="lineNum">     197 </span>            :             }
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     200 </span>            :         case NEW_PACKAGE_ACTION_NONE:
+<span class="lineNum">     201 </span>            :         default:
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :             ProgrammingError(&quot;Unsupported package action: %d&quot;,</span>
+<span class="lineNum">     203 </span>            :                              a.new_packages.package_policy);
+<span class="lineNum">     204 </span>            :             break;
+<span class="lineNum">     205 </span>            :     }
+<span class="lineNum">     206 </span>            :     
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     DeletePackageModuleWrapper(package_module);</span>
+<span class="lineNum">     208 </span>            :     
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     YieldCurrentLock(package_promise_lock);</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     YieldGlobalPackagePromiseLock(global_lock);</span>
+<span class="lineNum">     211 </span>            :     
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :     return result;</span>
+<span class="lineNum">     213 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

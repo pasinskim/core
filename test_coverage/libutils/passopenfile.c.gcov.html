@@ -1,0 +1,600 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libutils/passopenfile.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libutils</a> - passopenfile.c<span style="font-size: 80%;"> (source / <a href="passopenfile.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">61</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : #include &lt;passopenfile.h&gt; /* Starts with &lt;platform.h&gt; */
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;logging.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;alloc.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : /* Local tuning parameter: should anything else know about it ? */
+<span class="lineNum">      30 </span>            : #define MAX_MESSAGE_SIZE  1024 /* strlen()+1 limit on text transmitted */
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #ifdef __MINGW32__
+<span class="lineNum">      33 </span>            : #include &lt;printsize.h&gt;
+<span class="lineNum">      34 </span>            : static const char PID_FMT[] = &quot;PID: %lu\n&quot;;
+<span class="lineNum">      35 </span>            : #define PID_MSG_SIZE (PRINTSIZE(unsigned long) + 8)
+<span class="lineNum">      36 </span>            : static const char ACK_MSG[] = &quot;ACK\n&quot;;
+<span class="lineNum">      37 </span>            : typedef uint32_t MSG_LEN_T;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /* TODO: replace explicit waiting with use of blocking UDS. */
+<span class="lineNum">      40 </span>            : /* Package a call to select(), to avoid duplicating boilerplate code. */
+<span class="lineNum">      41 </span>            : static bool wait_for(const int uds, bool write, bool *ready)
+<span class="lineNum">      42 </span>            : {
+<span class="lineNum">      43 </span>            :     struct timeval tv;
+<span class="lineNum">      44 </span>            :     fd_set fds;
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            :     FD_ZERO(&amp;fds);
+<span class="lineNum">      47 </span>            :     FD_SET(uds, &amp;fds);
+<span class="lineNum">      48 </span>            :     tv.tv_sec = 1; /* Wait for up to a second */
+<span class="lineNum">      49 </span>            :     tv.tv_usec = 0;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            :     int ret;
+<span class="lineNum">      52 </span>            :     if (write)
+<span class="lineNum">      53 </span>            :     {
+<span class="lineNum">      54 </span>            :         ret = select(uds + 1, NULL, &amp;fds, NULL, &amp;tv);
+<span class="lineNum">      55 </span>            :     }
+<span class="lineNum">      56 </span>            :     else
+<span class="lineNum">      57 </span>            :     {
+<span class="lineNum">      58 </span>            :         ret = select(uds + 1, &amp;fds, NULL, NULL, &amp;tv);
+<span class="lineNum">      59 </span>            :     }
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :     if (ret &lt; 0)
+<span class="lineNum">      62 </span>            :     {
+<span class="lineNum">      63 </span>            :         return false;
+<span class="lineNum">      64 </span>            :     }
+<span class="lineNum">      65 </span>            :     *ready = FD_ISSET(uds, &amp;fds);
+<span class="lineNum">      66 </span>            :     return true;
+<span class="lineNum">      67 </span>            : }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : bool PassOpenFile_Put(int uds, int descriptor, const char *text)
+<span class="lineNum">      70 </span>            : {
+<span class="lineNum">      71 </span>            :     /* From the WSADuplicateSocket() doc [0]: &quot;A process can call
+<span class="lineNum">      72 </span>            :      * closesocket on a duplicated socket and the descriptor will
+<span class="lineNum">      73 </span>            :      * become deallocated. The underlying socket, however, will remain
+<span class="lineNum">      74 </span>            :      * open until closesocket is called by the last remaining
+<span class="lineNum">      75 </span>            :      * descriptor.&quot;  So our caller can cf_closesocket(descriptor), as
+<span class="lineNum">      76 </span>            :      * long as they do it after the recipient calls WSASocket(); we
+<span class="lineNum">      77 </span>            :      * include an ACK at the end of this protocol to ensure that.
+<span class="lineNum">      78 </span>            :      *
+<span class="lineNum">      79 </span>            :      * [0] https://msdn.microsoft.com/en-us/library/windows/desktop/ms741565(v=vs.85).aspx
+<span class="lineNum">      80 </span>            :      */
+<span class="lineNum">      81 </span>            :     WSAPROTOCOL_INFO blob;
+<span class="lineNum">      82 </span>            :     /* Receive pid from peer */
+<span class="lineNum">      83 </span>            :     char buffer[PID_MSG_SIZE + 1];
+<span class="lineNum">      84 </span>            :     ssize_t got = recv(uds, buffer, PID_MSG_SIZE, 0);
+<span class="lineNum">      85 </span>            :     if (got &lt; 0)
+<span class="lineNum">      86 </span>            :     {
+<span class="lineNum">      87 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">      88 </span>            :             &quot;Failed to read PID to which to pass descriptor&quot;);
+<span class="lineNum">      89 </span>            :         return false;
+<span class="lineNum">      90 </span>            :     }
+<span class="lineNum">      91 </span>            :     buffer[got] = '\0';
+<span class="lineNum">      92 </span>            :     unsigned long pid;
+<span class="lineNum">      93 </span>            :     if (sscanf(buffer, PID_FMT, &amp;pid) != 1)
+<span class="lineNum">      94 </span>            :     {
+<span class="lineNum">      95 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">      96 </span>            :             &quot;Failed to parse peer PID from: %s&quot;, buffer);
+<span class="lineNum">      97 </span>            :         return false;
+<span class="lineNum">      98 </span>            :     }
+<span class="lineNum">      99 </span>            :     else if (0 != WSADuplicateSocket(descriptor, pid, &amp;blob))
+<span class="lineNum">     100 </span>            :     {
+<span class="lineNum">     101 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     102 </span>            :             &quot;Failed to generate socket transmission data blob&quot;);
+<span class="lineNum">     103 </span>            :         return false;
+<span class="lineNum">     104 </span>            :     }
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            :     bool ready;
+<span class="lineNum">     107 </span>            :     if (!wait_for(uds, true, &amp;ready))
+<span class="lineNum">     108 </span>            :     {
+<span class="lineNum">     109 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     110 </span>            :             &quot;Can't pass socket to peer (select: %s)&quot;,
+<span class="lineNum">     111 </span>            :             GetErrorStr());
+<span class="lineNum">     112 </span>            :         return false;
+<span class="lineNum">     113 </span>            :     }
+<span class="lineNum">     114 </span>            :     else if (!ready)
+<span class="lineNum">     115 </span>            :     {
+<span class="lineNum">     116 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     117 </span>            :             &quot;Can't pass socket (peer not ready)&quot;);
+<span class="lineNum">     118 </span>            :         return false;
+<span class="lineNum">     119 </span>            :     }
+<span class="lineNum">     120 </span>            :     else
+<span class="lineNum">     121 </span>            :     {
+<span class="lineNum">     122 </span>            :         /* Transmit blob and text over UDS: */
+<span class="lineNum">     123 </span>            :         ssize_t had = send(uds, (const void*)&amp;blob, sizeof(blob), 0);
+<span class="lineNum">     124 </span>            :         /* Casts needed because MinGW thinks send(,const char*,,) :-( */
+<span class="lineNum">     125 </span>            :         if (had == sizeof(blob))
+<span class="lineNum">     126 </span>            :         {
+<span class="lineNum">     127 </span>            :             MSG_LEN_T size = text ? strlen(text) + 1 : 0;
+<span class="lineNum">     128 </span>            :             had = send(uds, (const void*)&amp;size, sizeof(size), 0);
+<span class="lineNum">     129 </span>            :             if (had == sizeof(size))
+<span class="lineNum">     130 </span>            :             {
+<span class="lineNum">     131 </span>            :                 if (text)
+<span class="lineNum">     132 </span>            :                 {
+<span class="lineNum">     133 </span>            :                     had = send(uds, text, size, 0);
+<span class="lineNum">     134 </span>            :                 }
+<span class="lineNum">     135 </span>            :             }
+<span class="lineNum">     136 </span>            :             else
+<span class="lineNum">     137 </span>            :             {
+<span class="lineNum">     138 </span>            :                 had = -1;
+<span class="lineNum">     139 </span>            :             }
+<span class="lineNum">     140 </span>            :         }
+<span class="lineNum">     141 </span>            :         else
+<span class="lineNum">     142 </span>            :         {
+<span class="lineNum">     143 </span>            :             had = -1;
+<span class="lineNum">     144 </span>            :         }
+<span class="lineNum">     145 </span>            :         if (had &lt; 0)
+<span class="lineNum">     146 </span>            :         {
+<span class="lineNum">     147 </span>            :             Log(LOG_LEVEL_ERR,
+<span class="lineNum">     148 </span>            :                 &quot;Failed to send socket-blob and accompanying text to peer&quot;);
+<span class="lineNum">     149 </span>            :             return false;
+<span class="lineNum">     150 </span>            :         }
+<span class="lineNum">     151 </span>            :     }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            :     /* Wait for ACK so we don't closesocket() before recipient has opened it */
+<span class="lineNum">     154 </span>            :     if (!wait_for(uds, false, &amp;ready))
+<span class="lineNum">     155 </span>            :     {
+<span class="lineNum">     156 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     157 </span>            :             &quot;Can't get ACK from descriptor recipient (select: %s)&quot;,
+<span class="lineNum">     158 </span>            :             GetErrorStr());
+<span class="lineNum">     159 </span>            :     }
+<span class="lineNum">     160 </span>            :     else if (!ready)
+<span class="lineNum">     161 </span>            :     {
+<span class="lineNum">     162 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     163 </span>            :             &quot;Can't get ACK from descriptor recipient (peer not ready)&quot;);
+<span class="lineNum">     164 </span>            :     }
+<span class="lineNum">     165 </span>            :     else
+<span class="lineNum">     166 </span>            :     {
+<span class="lineNum">     167 </span>            :         char answer[sizeof(ACK_MSG) + 1]; /* +1 for the '\0' below */
+<span class="lineNum">     168 </span>            :         ssize_t got = recv(uds, answer, sizeof(ACK_MSG), 0);
+<span class="lineNum">     169 </span>            :         if (got &gt; 0)
+<span class="lineNum">     170 </span>            :         {
+<span class="lineNum">     171 </span>            :             answer[got] = '\0'; /* In case unexpected message isn't terminated */
+<span class="lineNum">     172 </span>            :             if (0 != strcmp(answer, ACK_MSG))
+<span class="lineNum">     173 </span>            :             {
+<span class="lineNum">     174 </span>            :                 Log(LOG_LEVEL_WARNING,
+<span class="lineNum">     175 </span>            :                     &quot;ACK message wasn't as expected: '%s' != '%s' (ignoring)&quot;,
+<span class="lineNum">     176 </span>            :                     ACK_MSG, answer);
+<span class="lineNum">     177 </span>            :             }
+<span class="lineNum">     178 </span>            :             return true;
+<span class="lineNum">     179 </span>            :         }
+<span class="lineNum">     180 </span>            :     }
+<span class="lineNum">     181 </span>            :     return false;
+<span class="lineNum">     182 </span>            : }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : int PassOpenFile_Get(int uds, char **text)
+<span class="lineNum">     185 </span>            : {
+<span class="lineNum">     186 </span>            :     SOCKET descriptor = SOCKET_ERROR;
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            :     /* Deliver pid to peer over uds */
+<span class="lineNum">     189 </span>            :     char msg[PID_MSG_SIZE];
+<span class="lineNum">     190 </span>            :     assert(sizeof(PID_FMT) - 3 + PRINTSIZE(unsigned long) &lt;= PID_MSG_SIZE);
+<span class="lineNum">     191 </span>            :     unsigned long pid = GetCurrentProcessId();
+<span class="lineNum">     192 </span>            :     int len = snprintf(msg, sizeof(msg), PID_FMT, pid);
+<span class="lineNum">     193 </span>            :     assert(len &gt; 0 &amp;&amp; len &lt; PID_MSG_SIZE);
+<span class="lineNum">     194 </span>            :     send(uds, msg, len + 1, 0);
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            :     bool ready;
+<span class="lineNum">     197 </span>            :     if (!wait_for(uds, false, &amp;ready))
+<span class="lineNum">     198 </span>            :     {
+<span class="lineNum">     199 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     200 </span>            :             &quot;Can't receive descriptor (select: %s)&quot;,
+<span class="lineNum">     201 </span>            :             GetErrorStr());
+<span class="lineNum">     202 </span>            :         return -1;
+<span class="lineNum">     203 </span>            :     }
+<span class="lineNum">     204 </span>            :     else if (!ready)
+<span class="lineNum">     205 </span>            :     {
+<span class="lineNum">     206 </span>            :         Log(LOG_LEVEL_VERBOSE, &quot;No descriptor received.&quot;);
+<span class="lineNum">     207 </span>            :         return -1;
+<span class="lineNum">     208 </span>            :     }
+<span class="lineNum">     209 </span>            :     else
+<span class="lineNum">     210 </span>            :     {
+<span class="lineNum">     211 </span>            :         WSAPROTOCOL_INFO blob;
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            :         /* Receive blob and text over UDS: */
+<span class="lineNum">     214 </span>            :         ssize_t got = recv(uds, (const void*)&amp;blob, sizeof(blob), 0);
+<span class="lineNum">     215 </span>            :         /* Casts needed because MinGW thinks recv(,const char*,,) :-( */
+<span class="lineNum">     216 </span>            :         if (got == sizeof(blob))
+<span class="lineNum">     217 </span>            :         {
+<span class="lineNum">     218 </span>            :             descriptor = WSASocket(FROM_PROTOCOL_INFO,
+<span class="lineNum">     219 </span>            :                                    FROM_PROTOCOL_INFO,
+<span class="lineNum">     220 </span>            :                                    FROM_PROTOCOL_INFO,
+<span class="lineNum">     221 </span>            :                                    /* Args after the blob are ignored. */
+<span class="lineNum">     222 </span>            :                                    &amp;blob, 0, WSA_FLAG_OVERLAPPED);
+<span class="lineNum">     223 </span>            :             if (descriptor == SOCKET_ERROR)
+<span class="lineNum">     224 </span>            :             {
+<span class="lineNum">     225 </span>            :                 return -1;
+<span class="lineNum">     226 </span>            :             }
+<span class="lineNum">     227 </span>            :             /* else we *must* either use or closesocket() this descriptor. */
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :             if (text)
+<span class="lineNum">     230 </span>            :             {
+<span class="lineNum">     231 </span>            :                 *text = NULL;
+<span class="lineNum">     232 </span>            :             }
+<span class="lineNum">     233 </span>            :             MSG_LEN_T size; /* Including space for final '\0' byte: */
+<span class="lineNum">     234 </span>            :             got = recv(uds, (const void*)&amp;size, sizeof(size), 0);
+<span class="lineNum">     235 </span>            :             if (got == sizeof(size))
+<span class="lineNum">     236 </span>            :             {
+<span class="lineNum">     237 </span>            :                 if (size)
+<span class="lineNum">     238 </span>            :                 {
+<span class="lineNum">     239 </span>            :                     char *buffer = malloc(size);
+<span class="lineNum">     240 </span>            :                     if (*text)
+<span class="lineNum">     241 </span>            :                     {
+<span class="lineNum">     242 </span>            :                         got = recv(uds, buffer, size, 0);
+<span class="lineNum">     243 </span>            :                         if (got != size)
+<span class="lineNum">     244 </span>            :                         {
+<span class="lineNum">     245 </span>            :                             Log(LOG_LEVEL_ERR,
+<span class="lineNum">     246 </span>            :                                 &quot;Failed to receive whole text accompanying descriptor&quot;);
+<span class="lineNum">     247 </span>            :                         }
+<span class="lineNum">     248 </span>            :                     }
+<span class="lineNum">     249 </span>            :                     else
+<span class="lineNum">     250 </span>            :                     {
+<span class="lineNum">     251 </span>            :                         got = 0; /* != size */
+<span class="lineNum">     252 </span>            :                         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     253 </span>            :                             &quot;Failed to allocate buffer for text accompanying descriptor&quot;);
+<span class="lineNum">     254 </span>            :                     }
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :                     if (text &amp;&amp; got == size)
+<span class="lineNum">     257 </span>            :                     {
+<span class="lineNum">     258 </span>            :                         *text = buffer;
+<span class="lineNum">     259 </span>            :                     }
+<span class="lineNum">     260 </span>            :                     else
+<span class="lineNum">     261 </span>            :                     {
+<span class="lineNum">     262 </span>            :                         free(buffer);
+<span class="lineNum">     263 </span>            :                     }
+<span class="lineNum">     264 </span>            :                 }
+<span class="lineNum">     265 </span>            :             }
+<span class="lineNum">     266 </span>            :             else
+<span class="lineNum">     267 </span>            :             {
+<span class="lineNum">     268 </span>            :                 Log(LOG_LEVEL_ERR,
+<span class="lineNum">     269 </span>            :                     &quot;Failed to read size of text accompanying descriptor&quot;);
+<span class="lineNum">     270 </span>            :                 size = 0;
+<span class="lineNum">     271 </span>            :             }
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span>            :             if (text &amp;&amp; size &amp;&amp; !*text)
+<span class="lineNum">     274 </span>            :             {
+<span class="lineNum">     275 </span>            :                 closesocket(descriptor);
+<span class="lineNum">     276 </span>            :                 return -1;
+<span class="lineNum">     277 </span>            :             }
+<span class="lineNum">     278 </span>            :         }
+<span class="lineNum">     279 </span>            :         else
+<span class="lineNum">     280 </span>            :         {
+<span class="lineNum">     281 </span>            :             Log(LOG_LEVEL_ERR,
+<span class="lineNum">     282 </span>            :                 &quot;Failed to receive whole descriptor blob&quot;);
+<span class="lineNum">     283 </span>            :             return -1;
+<span class="lineNum">     284 </span>            :         }
+<span class="lineNum">     285 </span>            :     }
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            :     /* Send ACK now that we've opened our end of the socket. */
+<span class="lineNum">     288 </span>            :     if (!wait_for(uds, true, &amp;ready))
+<span class="lineNum">     289 </span>            :     {
+<span class="lineNum">     290 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     291 </span>            :             &quot;Can't ACK received descriptor (select: %s)&quot;,
+<span class="lineNum">     292 </span>            :             GetErrorStr());
+<span class="lineNum">     293 </span>            :     }
+<span class="lineNum">     294 </span>            :     else if (!ready)
+<span class="lineNum">     295 </span>            :     {
+<span class="lineNum">     296 </span>            :         Log(LOG_LEVEL_VERBOSE,
+<span class="lineNum">     297 </span>            :             &quot;No descriptor supplier to ACK to, aborting receipt.&quot;);
+<span class="lineNum">     298 </span>            :     }
+<span class="lineNum">     299 </span>            :     else
+<span class="lineNum">     300 </span>            :     {
+<span class="lineNum">     301 </span>            :         send(uds, ACK_MSG, sizeof(ACK_MSG), 0);
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            :         return descriptor;
+<span class="lineNum">     304 </span>            :     }
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            :     closesocket(descriptor);
+<span class="lineNum">     307 </span>            :     return -1;
+<span class="lineNum">     308 </span>            : }
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            : #else /* Unix: */
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            : #ifdef HAVE_MSGHDR_MSG_CONTROL
+<span class="lineNum">     313 </span>            : /* This is the modern interface.  It should be present in most modern
+<span class="lineNum">     314 </span>            :  * Unix systems (conforming to the Single UNIX Specification).
+<span class="lineNum">     315 </span>            :  *
+<span class="lineNum">     316 </span>            :  * Transferred file descriptors &quot;behave as though they have been
+<span class="lineNum">     317 </span>            :  * created with dup(2)&quot; according to Linux's unix(7); which means the
+<span class="lineNum">     318 </span>            :  * sender can close() its end without prejudice to the recipient's use
+<span class="lineNum">     319 </span>            :  * of its copy. */
+<span class="lineNum">     320 </span>            : #define INTERFACE_STYLE &quot;SUS&quot;
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span>            : # ifndef CMSG_SPACE
+<span class="lineNum">     323 </span>            : /* Solaris 9 contains support for .msg_control but lacks these macros
+<span class="lineNum">     324 </span>            :  * (here copied from Linux's &lt;socket.h&gt; - thankfully they're platform
+<span class="lineNum">     325 </span>            :  * agnostic) that we use to manipulate its header: */
+<span class="lineNum">     326 </span>            : #define CMSG_ALIGN(len) (((len) + sizeof (size_t) - 1) \
+<span class="lineNum">     327 </span>            :                          &amp; (size_t) ~(sizeof (size_t) - 1))
+<span class="lineNum">     328 </span>            : #define CMSG_SPACE(len) (CMSG_ALIGN (len) \
+<span class="lineNum">     329 </span>            :                          + CMSG_ALIGN (sizeof (struct cmsghdr)))
+<span class="lineNum">     330 </span>            : #define CMSG_LEN(len)   (CMSG_ALIGN (sizeof (struct cmsghdr)) + (len))
+<span class="lineNum">     331 </span>            : # endif
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            : #elif defined(HAVE_MSGHDR_ACCRIGHTS)
+<span class="lineNum">     334 </span>            : /* This is the old (BSD) interface.  No Linux should use this, it's
+<span class="lineNum">     335 </span>            :  * only known to be present in older BSD-based Unixes. */
+<span class="lineNum">     336 </span>            : #define INTERFACE_STYLE &quot;BSD&quot;
+<span class="lineNum">     337 </span>            : #else
+<span class="lineNum">     338 </span>            : #error &quot;No support for connection sharing on this platform :-(&quot;
+<span class="lineNum">     339 </span>            : #endif
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span>            : #ifndef MSG_WAITALL /* Linux &gt;= 2.2 */
+<span class="lineNum">     342 </span>            : #define MSG_WAITALL 0
+<span class="lineNum">     343 </span>            : #endif
+<a name="344"><span class="lineNum">     344 </span>            : static const char NULL_MSG[] = &quot;\0NULL&quot;;</a>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 : bool PassOpenFile_Put(int uds, int descriptor, const char *text)</span>
+<span class="lineNum">     347 </span>            : {
+<span class="lineNum">     348 </span>            :     struct msghdr message;
+<span class="lineNum">     349 </span>            :     struct iovec vector;
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     size_t msglen = text ? strlen(text) + 1 : sizeof(NULL_MSG);</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     assert(MAX_MESSAGE_SIZE &gt;= msglen);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     353 </span>            :         &quot;Connected to peer, passing descriptor %d with %s %s&quot;,
+<span class="lineNum">     354 </span>            :         descriptor,
+<span class="lineNum">     355 </span>            :         text ? &quot;text:&quot; : &quot;no&quot;,
+<span class="lineNum">     356 </span>            :         text ? text : &quot;text&quot;);
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            :     /* Prepare the message
+<span class="lineNum">     359 </span>            :      *
+<span class="lineNum">     360 </span>            :      * We need to send at least one byte of content, in an iovec, so
+<span class="lineNum">     361 </span>            :      * that a message actually gets received at the other end.  This
+<span class="lineNum">     362 </span>            :      * means that we want to send *at least something* even when our
+<span class="lineNum">     363 </span>            :      * text is NULL.  Fortunately, what we send isn't constrained by
+<span class="lineNum">     364 </span>            :      * C-string '\0'-termination, so we can send a message that
+<span class="lineNum">     365 </span>            :      * follows a '\0' byte with non-'\0' content (the NULL_MSG above)
+<span class="lineNum">     366 </span>            :      * which is definitely distinct from what we send for any non-NULL
+<span class="lineNum">     367 </span>            :      * text - non-empty has non-'\0' first byte; empty has size 1;
+<span class="lineNum">     368 </span>            :      * NULL also has '\0' as first byte but has size 6.  The recipient
+<span class="lineNum">     369 </span>            :      * isn't actually told the size sent, though; so has to pre-fill
+<span class="lineNum">     370 </span>            :      * the receiving buffer with something that can't be mistaken for
+<span class="lineNum">     371 </span>            :      * our NULL_MSG, so as to safely compare.
+<span class="lineNum">     372 </span>            :      *
+<span class="lineNum">     373 </span>            :      * We are confident that the .iov_base on the sending end is only
+<span class="lineNum">     374 </span>            :      * ever read, so casting away its constness here is not a problem.
+<span class="lineNum">     375 </span>            :      *
+<span class="lineNum">     376 </span>            :      * The manual page of sendmsg(2) says .msg_name is used to specify
+<span class="lineNum">     377 </span>            :      * the target address of a datagram; its documentation of failure
+<span class="lineNum">     378 </span>            :      * modes says you can get EISCONN if:
+<span class="lineNum">     379 </span>            :      * &quot;The connection-mode socket was connected already but a
+<span class="lineNum">     380 </span>            :      *  recipient was specified.  (Now either this error is returned,
+<span class="lineNum">     381 </span>            :      *  or the recipient specification is ignored.)&quot;
+<span class="lineNum">     382 </span>            :      * So, in order to keep world peace we need to set the name to NULL.
+<span class="lineNum">     383 </span>            :      * While we're at it, we clear all fields (using memset, so we don't
+<span class="lineNum">     384 </span>            :      * trip over variation between platforms in what fields exist).
+<span class="lineNum">     385 </span>            :      */
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :     memset(&amp;message, 0, sizeof(message));</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :     memset(&amp;vector, 0, sizeof(vector));</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     vector.iov_base = (void*) (text ? text : NULL_MSG); /* const_cast */</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     vector.iov_len = msglen;</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     message.msg_iov = &amp;vector;</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :     message.msg_iovlen = 1;</span>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            : #ifdef HAVE_MSGHDR_MSG_CONTROL
+<span class="lineNum">     394 </span>            :     char control_message_data[CMSG_SPACE(sizeof(descriptor))];
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :     struct cmsghdr *control_message = NULL;</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     message.msg_control = control_message_data;</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     message.msg_controllen = sizeof(control_message_data);</span>
+<span class="lineNum">     398 </span>            :     /* Conjecture: setting .msg_controllen influences CMSG_FIRSTHDR in
+<span class="lineNum">     399 </span>            :      * ways we need; but notice that we over-write it below. */
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :     control_message = CMSG_FIRSTHDR(&amp;message);</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     control_message-&gt;cmsg_level = SOL_SOCKET;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     control_message-&gt;cmsg_type = SCM_RIGHTS;</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     control_message-&gt;cmsg_len = CMSG_LEN(sizeof(descriptor));</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     *(int*)CMSG_DATA(control_message) = descriptor;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     message.msg_controllen = control_message-&gt;cmsg_len;</span>
+<span class="lineNum">     406 </span>            : #elif HAVE_MSGHDR_ACCRIGHTS
+<span class="lineNum">     407 </span>            :     message.msg_accrights  = (char *)&amp;descriptor;
+<span class="lineNum">     408 </span>            :     message.msg_accrightslen = sizeof(descriptor);
+<span class="lineNum">     409 </span>            : #endif
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span>            :     /* Send message: */
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :     if (sendmsg(uds, &amp;message, 0) &lt; 0)</span>
+<span class="lineNum">     413 </span>            :     {
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     415 </span>            :             &quot;Can't pass descriptor to peer (sendmsg: %s)&quot;,
+<span class="lineNum">     416 </span>            :             GetErrorStr());
+<span class="lineNum">     417 </span>            :     }
+<span class="lineNum">     418 </span>            :     else
+<span class="lineNum">     419 </span>            :     {
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Descriptor %d sent&quot;, descriptor);</span>
+<span class="lineNum">     421 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     422 </span>            :     }
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :     return false;</span>
+<a name="425"><span class="lineNum">     425 </span>            : }</a>
+<span class="lineNum">     426 </span>            : 
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 : int PassOpenFile_Get(int uds, char **text)</span>
+<span class="lineNum">     428 </span>            : {
+<span class="lineNum">     429 </span>            :     struct msghdr message;
+<span class="lineNum">     430 </span>            :     struct iovec vector;
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     char buffer[MAX_MESSAGE_SIZE] = &quot;PassOpenFile: failed to transmit any message&quot;;</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     assert(strcmp(buffer + 1, NULL_MSG + 1) != 0);</span>
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     int received_descriptor = -1;</span>
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG, &quot;Receiving descriptor via &quot; INTERFACE_STYLE</span>
+<span class="lineNum">     436 </span>            :         &quot; interface (UDS descriptor %d)&quot;, uds);
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     memset(&amp;message, 0, sizeof(message));</span>
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     memset(&amp;vector, 0, sizeof(vector));</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :     memset(buffer, 0, sizeof(buffer));</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     vector.iov_base = buffer;</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     vector.iov_len = sizeof(buffer); /* This is *not* updated by recvmsg ! */</span>
+<span class="lineNum">     443 </span>            :     /* Prepare the message.  See Put()'s comment on the topic. */
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     message.msg_iov = &amp;vector;</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     message.msg_iovlen = 1;</span>
+<span class="lineNum">     446 </span>            : 
+<span class="lineNum">     447 </span>            : #ifdef HAVE_MSGHDR_MSG_CONTROL
+<span class="lineNum">     448 </span>            :     char control_message_data[CMSG_SPACE(sizeof(received_descriptor))];
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :     message.msg_control = control_message_data;</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     message.msg_controllen = sizeof(control_message_data);</span>
+<span class="lineNum">     451 </span>            : #elif HAVE_MSGHDR_ACCRIGHTS
+<span class="lineNum">     452 </span>            :     message.msg_accrights    = (char *)&amp;received_descriptor;
+<span class="lineNum">     453 </span>            :     message.msg_accrightslen = sizeof(received_descriptor);
+<span class="lineNum">     454 </span>            : #endif
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span>            :     /* Receive message: */
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :     if (recvmsg(uds, &amp;message, MSG_WAITALL) &lt; 0)</span>
+<span class="lineNum">     458 </span>            :     {
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     460 </span>            :             &quot;Can't receive descriptor (recvmsg: %s)&quot;,
+<span class="lineNum">     461 </span>            :             GetErrorStr());
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     463 </span>            :     }
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            :     /* Recover the file descriptor */
+<span class="lineNum">     466 </span>            : #ifdef HAVE_MSGHDR_MSG_CONTROL
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :     struct cmsghdr *control_message = CMSG_FIRSTHDR(&amp;message);</span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :     if (control_message == NULL)</span>
+<span class="lineNum">     469 </span>            :     {
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Received no message.&quot;);</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     472 </span>            :     }
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :     else if (control_message-&gt;cmsg_type != SCM_RIGHTS)</span>
+<span class="lineNum">     474 </span>            :     {
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     476 </span>            :             &quot;Received message does not deliver a descriptor.&quot;);
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     478 </span>            :     }
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     assert((char *)control_message + control_message-&gt;cmsg_len ==</span>
+<span class="lineNum">     480 </span>            :            /* i.e. we only have *one* descriptor here; otherwise, we
+<span class="lineNum">     481 </span>            :             * need to close() all but the first. */
+<span class="lineNum">     482 </span>            :            (char *)CMSG_DATA(control_message) + sizeof(int));
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :     received_descriptor = *(int*)CMSG_DATA(control_message);</span>
+<span class="lineNum">     484 </span>            : #elif HAVE_MSGHDR_ACCRIGHTS
+<span class="lineNum">     485 </span>            :     if (message.msg_accrightslen &lt;= 0)
+<span class="lineNum">     486 </span>            :     {
+<span class="lineNum">     487 </span>            :         Log(LOG_LEVEL_ERR, &quot;Received no data for descriptor.&quot;);
+<span class="lineNum">     488 </span>            :         return -1;
+<span class="lineNum">     489 </span>            :     }
+<span class="lineNum">     490 </span>            : #endif
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     if (received_descriptor &lt; 0)</span>
+<span class="lineNum">     493 </span>            :     {
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Received invalid descriptor.&quot;);</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     496 </span>            :     }
+<span class="lineNum">     497 </span>            :     /* Else, have a duty to close received_descriptor, one way or another. */
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span>            :     /* Recover the message and report success: */
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     if (buffer[0] || strcmp(buffer + 1, NULL_MSG + 1))</span>
+<span class="lineNum">     501 </span>            :     {
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         if (text)</span>
+<span class="lineNum">     503 </span>            :         {
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :             *text = xstrndup(buffer, sizeof(buffer));</span>
+<span class="lineNum">     505 </span>            :         }
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     507 </span>            :             &quot;Received descriptor %d with text '%s'&quot;,
+<span class="lineNum">     508 </span>            :             received_descriptor, buffer);
+<span class="lineNum">     509 </span>            :     }
+<span class="lineNum">     510 </span>            :     else
+<span class="lineNum">     511 </span>            :     {
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :         if (text)</span>
+<span class="lineNum">     513 </span>            :         {
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :             *text = NULL;</span>
+<span class="lineNum">     515 </span>            :         }
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     517 </span>            :             &quot;Received descriptor %d with no text&quot;,
+<span class="lineNum">     518 </span>            :             received_descriptor);
+<span class="lineNum">     519 </span>            :     }
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     return received_descriptor;</span>
+<span class="lineNum">     522 </span>            : }
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            : #endif /* __MINGW32__ */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

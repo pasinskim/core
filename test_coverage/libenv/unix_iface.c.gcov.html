@@ -1,0 +1,831 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libenv/unix_iface.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libenv</a> - unix_iface.c<span style="font-size: 80%;"> (source / <a href="unix_iface.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">145</td>
+            <td class="headerCovTableEntry">190</td>
+            <td class="headerCovTableEntryMed">76.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : #include &lt;unix_iface.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;files_names.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;item_lib.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;pipes.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;communication.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;string_lib.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;regex.h&gt;                                       /* StringMatchFull */
+<span class="lineNum">      34 </span>            : #include &lt;files_interfaces.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;files_names.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;known_dirs.h&gt;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #ifdef HAVE_SYS_JAIL_H
+<span class="lineNum">      39 </span>            : # include &lt;sys/jail.h&gt;
+<span class="lineNum">      40 </span>            : #endif
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : #ifdef HAVE_GETIFADDRS
+<span class="lineNum">      43 </span>            : # include &lt;ifaddrs.h&gt;
+<span class="lineNum">      44 </span>            : # ifdef HAVE_NET_IF_DL_H
+<span class="lineNum">      45 </span>            : #   include &lt;net/if_dl.h&gt;
+<span class="lineNum">      46 </span>            : # endif
+<span class="lineNum">      47 </span>            : #endif
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #ifdef HAVE_NET_IF_ARP_H
+<span class="lineNum">      50 </span>            : # include &lt;net/if_arp.h&gt;
+<span class="lineNum">      51 </span>            : #endif
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : #define CF_IFREQ 2048           /* Reportedly the largest size that does not segfault 32/64 bit */
+<span class="lineNum">      54 </span>            : #define CF_IGNORE_INTERFACES &quot;ignore_interfaces.rx&quot;
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : #ifndef __MINGW32__
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : # if defined(HAVE_STRUCT_SOCKADDR_SA_LEN) &amp;&amp; !defined(__NetBSD__)
+<span class="lineNum">      59 </span>            : #  ifdef _SIZEOF_ADDR_IFREQ
+<span class="lineNum">      60 </span>            : #   define SIZEOF_IFREQ(x) _SIZEOF_ADDR_IFREQ(x)
+<span class="lineNum">      61 </span>            : #  else
+<span class="lineNum">      62 </span>            : #   define SIZEOF_IFREQ(x) \
+<span class="lineNum">      63 </span>            :           ((x).ifr_addr.sa_len &gt; sizeof(struct sockaddr) ? \
+<span class="lineNum">      64 </span>            :            (sizeof(struct ifreq) - sizeof(struct sockaddr) + \
+<span class="lineNum">      65 </span>            :             (x).ifr_addr.sa_len) : sizeof(struct ifreq))
+<span class="lineNum">      66 </span>            : #  endif
+<span class="lineNum">      67 </span>            : # else
+<span class="lineNum">      68 </span>            : #  define SIZEOF_IFREQ(x) sizeof(struct ifreq)
+<span class="lineNum">      69 </span>            : # endif
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : #ifdef _AIX
+<span class="lineNum">      72 </span>            : #include &lt;sys/ndd_var.h&gt;
+<span class="lineNum">      73 </span>            : #include &lt;sys/kinfo.h&gt;
+<span class="lineNum">      74 </span>            : static int aix_get_mac_addr(const char *device_name, uint8_t mac[6]);
+<span class="lineNum">      75 </span>            : #endif
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : static void FindV6InterfacesInfo(EvalContext *ctx);
+<span class="lineNum">      78 </span>            : static bool IgnoreJailInterface(int ifaceidx, struct sockaddr_in *inaddr);
+<span class="lineNum">      79 </span>            : static bool IgnoreInterface(char *name);
+<span class="lineNum">      80 </span>            : static void InitIgnoreInterfaces(void);
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : static Rlist *IGNORE_INTERFACES = NULL; /* GLOBAL_E */
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : /*********************************************************************/
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : 
+<a name="88"><span class="lineNum">      88 </span>            : /******************************************************************/</a>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineCov">          8 : static bool IgnoreJailInterface(</span>
+<span class="lineNum">      91 </span>            : #if !defined(HAVE_JAIL_GET)
+<span class="lineNum">      92 </span>            :     ARG_UNUSED int ifaceidx, ARG_UNUSED struct sockaddr_in *inaddr
+<span class="lineNum">      93 </span>            : #else
+<span class="lineNum">      94 </span>            :     int ifaceidx, struct sockaddr_in *inaddr
+<span class="lineNum">      95 </span>            : #endif
+<span class="lineNum">      96 </span>            :     )
+<span class="lineNum">      97 </span>            : {
+<span class="lineNum">      98 </span>            : /* FreeBSD jails */
+<span class="lineNum">      99 </span>            : # ifdef HAVE_JAIL_GET
+<span class="lineNum">     100 </span>            :     struct iovec fbsd_jparams[4];
+<span class="lineNum">     101 </span>            :     struct in_addr fbsd_jia;
+<span class="lineNum">     102 </span>            :     int fbsd_lastjid = 0;
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :     *(const void **) &amp;fbsd_jparams[0].iov_base = &quot;lastjid&quot;;
+<span class="lineNum">     105 </span>            :     fbsd_jparams[0].iov_len = sizeof(&quot;lastjid&quot;);
+<span class="lineNum">     106 </span>            :     fbsd_jparams[1].iov_base = &amp;fbsd_lastjid;
+<span class="lineNum">     107 </span>            :     fbsd_jparams[1].iov_len = sizeof(fbsd_lastjid);
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            :     *(const void **) &amp;fbsd_jparams[2].iov_base = &quot;ip4.addr&quot;;
+<span class="lineNum">     110 </span>            :     fbsd_jparams[2].iov_len = sizeof(&quot;ip4.addr&quot;);
+<span class="lineNum">     111 </span>            :     fbsd_jparams[3].iov_len = sizeof(struct in_addr);
+<span class="lineNum">     112 </span>            :     fbsd_jparams[3].iov_base = &amp;fbsd_jia;
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :     while ((fbsd_lastjid = jail_get(fbsd_jparams, 4, 0)) &gt; 0)
+<span class="lineNum">     115 </span>            :     {
+<span class="lineNum">     116 </span>            :         if (fbsd_jia.s_addr == inaddr-&gt;sin_addr.s_addr)
+<span class="lineNum">     117 </span>            :         {
+<span class="lineNum">     118 </span>            :             Log(LOG_LEVEL_VERBOSE, &quot;Interface %d belongs to a FreeBSD jail %s&quot;, ifaceidx, inet_ntoa(fbsd_jia));
+<span class="lineNum">     119 </span>            :             return true;
+<span class="lineNum">     120 </span>            :         }
+<span class="lineNum">     121 </span>            :     }
+<span class="lineNum">     122 </span>            : # endif
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineCov">          8 :     return false;</span>
+<span class="lineNum">     125 </span>            : }
+<span class="lineNum">     126 </span>            : 
+<a name="127"><span class="lineNum">     127 </span>            : /******************************************************************/</a>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineCov">          8 : static void GetMacAddress(EvalContext *ctx, int fd, struct ifreq *ifr, struct ifreq *ifp, Rlist **interfaces,</span>
+<span class="lineNum">     130 </span>            :                           Rlist **hardware)
+<span class="lineNum">     131 </span>            : {
+<span class="lineNum">     132 </span>            :     char name[CF_MAXVARSIZE];
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineCov">          8 :     snprintf(name, sizeof(name), &quot;hardware_mac[%s]&quot;, CanonifyName(ifp-&gt;ifr_name));</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :     // mac address on a loopback interface doesn't make sense
+<span class="lineNum">     137 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_LOOPBACK)</span>
+<span class="lineNum">     138 </span>            :     {
+<span class="lineNum">     139 </span><span class="lineCov">          2 :       return;</span>
+<span class="lineNum">     140 </span>            :     }
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            : # if defined(SIOCGIFHWADDR) &amp;&amp; defined(HAVE_STRUCT_IFREQ_IFR_HWADDR)
+<span class="lineNum">     143 </span>            :     char hw_mac[CF_MAXVARSIZE];
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span><span class="lineCov">          6 :     if ((ioctl(fd, SIOCGIFHWADDR, ifr) == -1))</span>
+<span class="lineNum">     146 </span>            :     {
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Couldn't get mac address for '%s' interface. (ioctl: %s)&quot;, ifr-&gt;ifr_name, GetErrorStr());</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     149 </span>            :     }
+<span class="lineNum">     150 </span>            :       
+<span class="lineNum">     151 </span><span class="lineCov">         36 :     snprintf(hw_mac, sizeof(hw_mac), &quot;%.2x:%.2x:%.2x:%.2x:%.2x:%.2x&quot;,</span>
+<span class="lineNum">     152 </span><span class="lineCov">          6 :              (unsigned char) ifr-&gt;ifr_hwaddr.sa_data[0],</span>
+<span class="lineNum">     153 </span><span class="lineCov">          6 :              (unsigned char) ifr-&gt;ifr_hwaddr.sa_data[1],</span>
+<span class="lineNum">     154 </span><span class="lineCov">          6 :              (unsigned char) ifr-&gt;ifr_hwaddr.sa_data[2],</span>
+<span class="lineNum">     155 </span><span class="lineCov">          6 :              (unsigned char) ifr-&gt;ifr_hwaddr.sa_data[3],</span>
+<span class="lineNum">     156 </span><span class="lineCov">          6 :              (unsigned char) ifr-&gt;ifr_hwaddr.sa_data[4], </span>
+<span class="lineNum">     157 </span><span class="lineCov">          6 :              (unsigned char) ifr-&gt;ifr_hwaddr.sa_data[5]);</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineCov">          6 :     EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name, hw_mac, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);</span>
+<span class="lineNum">     160 </span><span class="lineCov">          6 :     RlistAppend(hardware, hw_mac, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     161 </span><span class="lineCov">          6 :     RlistAppend(interfaces, ifp-&gt;ifr_name, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineCov">          6 :     snprintf(name, sizeof(name), &quot;mac_%s&quot;, CanonifyName(hw_mac));</span>
+<span class="lineNum">     164 </span><span class="lineCov">          6 :     EvalContextClassPutHard(ctx, name, &quot;inventory,attribute_name=none,source=agent&quot;);</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            : # elif defined(HAVE_GETIFADDRS) &amp;&amp; !defined(__sun)
+<span class="lineNum">     167 </span>            :     char hw_mac[CF_MAXVARSIZE];
+<span class="lineNum">     168 </span>            :     char *m;
+<span class="lineNum">     169 </span>            :     struct ifaddrs *ifaddr, *ifa;
+<span class="lineNum">     170 </span>            :     struct sockaddr_dl *sdl;
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :     if (getifaddrs(&amp;ifaddr) == -1)
+<span class="lineNum">     173 </span>            :     {
+<span class="lineNum">     174 </span>            :         Log(LOG_LEVEL_ERR, &quot;!! Could not get interface %s addresses&quot;,
+<span class="lineNum">     175 </span>            :           ifp-&gt;ifr_name);
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :         EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name, &quot;mac_unknown&quot;, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);
+<span class="lineNum">     178 </span>            :         EvalContextClassPutHard(ctx, &quot;mac_unknown&quot;, &quot;source=agent&quot;);
+<span class="lineNum">     179 </span>            :         return;
+<span class="lineNum">     180 </span>            :     }
+<span class="lineNum">     181 </span>            :     for (ifa = ifaddr; ifa != NULL; ifa=ifa-&gt;ifa_next)
+<span class="lineNum">     182 </span>            :     {
+<span class="lineNum">     183 </span>            :         if ( strcmp(ifa-&gt;ifa_name, ifp-&gt;ifr_name) == 0) 
+<span class="lineNum">     184 </span>            :         {
+<span class="lineNum">     185 </span>            :             if (ifa-&gt;ifa_addr-&gt;sa_family == AF_LINK) 
+<span class="lineNum">     186 </span>            :             {
+<span class="lineNum">     187 </span>            :                 sdl = (struct sockaddr_dl *)ifa-&gt;ifa_addr;
+<span class="lineNum">     188 </span>            :                 m = (char *) LLADDR(sdl);
+<span class="lineNum">     189 </span>            :                 
+<span class="lineNum">     190 </span>            :                 snprintf(hw_mac, sizeof(hw_mac), &quot;%.2x:%.2x:%.2x:%.2x:%.2x:%.2x&quot;,
+<span class="lineNum">     191 </span>            :                     (unsigned char) m[0],
+<span class="lineNum">     192 </span>            :                     (unsigned char) m[1],
+<span class="lineNum">     193 </span>            :                     (unsigned char) m[2],
+<span class="lineNum">     194 </span>            :                     (unsigned char) m[3],
+<span class="lineNum">     195 </span>            :                     (unsigned char) m[4],
+<span class="lineNum">     196 </span>            :                     (unsigned char) m[5]);
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            :                 EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name, hw_mac, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);
+<span class="lineNum">     199 </span>            :                 RlistAppend(hardware, hw_mac, RVAL_TYPE_SCALAR);
+<span class="lineNum">     200 </span>            :                 RlistAppend(interfaces, ifa-&gt;ifa_name, RVAL_TYPE_SCALAR);
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span>            :                 snprintf(name, sizeof(name), &quot;mac_%s&quot;, CanonifyName(hw_mac));
+<span class="lineNum">     203 </span>            :                 EvalContextClassPutHard(ctx, name, &quot;source=agent&quot;);
+<span class="lineNum">     204 </span>            :             }
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :     }
+<span class="lineNum">     208 </span>            :     freeifaddrs(ifaddr);
+<span class="lineNum">     209 </span>            :     
+<span class="lineNum">     210 </span>            : # elif defined(_AIX) &amp;&amp; !defined(HAVE_GETIFADDRS)
+<span class="lineNum">     211 </span>            :     char hw_mac[CF_MAXVARSIZE];
+<span class="lineNum">     212 </span>            :     char mac[CF_MAXVARSIZE];
+<span class="lineNum">     213 </span>            :     
+<span class="lineNum">     214 </span>            :     if (aix_get_mac_addr(ifp-&gt;ifr_name, mac) == 0)
+<span class="lineNum">     215 </span>            :     {
+<span class="lineNum">     216 </span>            :         sprintf(hw_mac, &quot;%.2x:%.2x:%.2x:%.2x:%.2x:%.2x&quot;,
+<span class="lineNum">     217 </span>            :                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+<span class="lineNum">     218 </span>            :         
+<span class="lineNum">     219 </span>            :         EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name, hw_mac, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);
+<span class="lineNum">     220 </span>            :         RlistAppend(hardware, hw_mac, RVAL_TYPE_SCALAR);
+<span class="lineNum">     221 </span>            :         RlistAppend(interfaces, ifp-&gt;ifr_name, RVAL_TYPE_SCALAR);
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :         snprintf(name, CF_MAXVARSIZE, &quot;mac_%s&quot;, CanonifyName(hw_mac));
+<span class="lineNum">     224 </span>            :         EvalContextClassPutHard(ctx, name, &quot;inventory,attribute_name=none,source=agent&quot;);
+<span class="lineNum">     225 </span>            :     }
+<span class="lineNum">     226 </span>            :     else
+<span class="lineNum">     227 </span>            :     {
+<span class="lineNum">     228 </span>            :         EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name, &quot;mac_unknown&quot;, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);
+<span class="lineNum">     229 </span>            :         EvalContextClassPutHard(ctx, &quot;mac_unknown&quot;, &quot;source=agent&quot;);
+<span class="lineNum">     230 </span>            :     }
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            : # elif defined(SIOCGARP)
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            :     struct arpreq arpreq;
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :     ((struct sockaddr_in *) &amp;arpreq.arp_pa)-&gt;sin_addr.s_addr =
+<span class="lineNum">     237 </span>            :         ((struct sockaddr_in *) &amp;ifp-&gt;ifr_addr)-&gt;sin_addr.s_addr;
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            :     if (ioctl(fd, SIOCGARP, &amp;arpreq) == -1)
+<span class="lineNum">     240 </span>            :     {
+<span class="lineNum">     241 </span>            :         Log(LOG_LEVEL_ERR,
+<span class="lineNum">     242 </span>            :             &quot;Could not get interface '%s' addresses (ioctl(SIOCGARP): %s)&quot;,
+<span class="lineNum">     243 </span>            :             ifp-&gt;ifr_name, GetErrorStr());
+<span class="lineNum">     244 </span>            :         EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name,
+<span class="lineNum">     245 </span>            :                                       &quot;mac_unknown&quot;, CF_DATA_TYPE_STRING,
+<span class="lineNum">     246 </span>            :                                       &quot;source=agent&quot;);
+<span class="lineNum">     247 </span>            :         EvalContextClassPutHard(ctx, &quot;mac_unknown&quot;, &quot;source=agent&quot;);
+<span class="lineNum">     248 </span>            :         return;
+<span class="lineNum">     249 </span>            :     }
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :     char hw_mac[CF_MAXVARSIZE];
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            :     snprintf(hw_mac, sizeof(hw_mac), &quot;%.2x:%.2x:%.2x:%.2x:%.2x:%.2x&quot;,
+<span class="lineNum">     254 </span>            :              (unsigned char) arpreq.arp_ha.sa_data[0],
+<span class="lineNum">     255 </span>            :              (unsigned char) arpreq.arp_ha.sa_data[1],
+<span class="lineNum">     256 </span>            :              (unsigned char) arpreq.arp_ha.sa_data[2],
+<span class="lineNum">     257 </span>            :              (unsigned char) arpreq.arp_ha.sa_data[3],
+<span class="lineNum">     258 </span>            :              (unsigned char) arpreq.arp_ha.sa_data[4],
+<span class="lineNum">     259 </span>            :              (unsigned char) arpreq.arp_ha.sa_data[5]);
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :     EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name,
+<span class="lineNum">     262 </span>            :                                   hw_mac, CF_DATA_TYPE_STRING,
+<span class="lineNum">     263 </span>            :                                   &quot;source=agent&quot;);
+<span class="lineNum">     264 </span>            :     RlistAppend(hardware, hw_mac, RVAL_TYPE_SCALAR);
+<span class="lineNum">     265 </span>            :     RlistAppend(interfaces, ifp-&gt;ifr_name, RVAL_TYPE_SCALAR);
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            :     snprintf(name, sizeof(name), &quot;mac_%s&quot;, CanonifyName(hw_mac));
+<span class="lineNum">     268 </span>            :     EvalContextClassPutHard(ctx, name,
+<span class="lineNum">     269 </span>            :                             &quot;inventory,attribute_name=none,source=agent&quot;);
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            : # else
+<span class="lineNum">     272 </span>            :     EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name,
+<span class="lineNum">     273 </span>            :                                   &quot;mac_unknown&quot;, CF_DATA_TYPE_STRING,
+<span class="lineNum">     274 </span>            :                                   &quot;source=agent&quot;);
+<span class="lineNum">     275 </span>            :     EvalContextClassPutHard(ctx, &quot;mac_unknown&quot;, &quot;source=agent&quot;);
+<span class="lineNum">     276 </span>            : # endif
+<span class="lineNum">     277 </span>            : }
+<span class="lineNum">     278 </span>            : 
+<a name="279"><span class="lineNum">     279 </span>            : /******************************************************************/</a>
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineCov">          8 : static void GetInterfaceFlags(EvalContext *ctx, struct ifreq *ifr, Rlist **flags)</span>
+<span class="lineNum">     282 </span>            : {
+<span class="lineNum">     283 </span>            :     char name[CF_MAXVARSIZE];
+<span class="lineNum">     284 </span><span class="lineCov">          8 :     char buffer[CF_BUFSIZE] = &quot;&quot;;</span>
+<span class="lineNum">     285 </span><span class="lineCov">          8 :     char *fp = NULL;</span>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineCov">          8 :     snprintf(name, sizeof(name), &quot;interface_flags[%s]&quot;, ifr-&gt;ifr_name);</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_UP) strcat(buffer, &quot; up&quot;);</span>
+<span class="lineNum">     290 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_BROADCAST) strcat(buffer, &quot; broadcast&quot;);</span>
+<span class="lineNum">     291 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_DEBUG) strcat(buffer, &quot; debug&quot;);</span>
+<span class="lineNum">     292 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_LOOPBACK) strcat(buffer, &quot; loopback&quot;);</span>
+<span class="lineNum">     293 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_POINTOPOINT) strcat(buffer, &quot; pointopoint&quot;);</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : #ifdef IFF_NOTRAILERS
+<span class="lineNum">     296 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_NOTRAILERS) strcat(buffer, &quot; notrailers&quot;);</span>
+<span class="lineNum">     297 </span>            : #endif
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_RUNNING) strcat(buffer, &quot; running&quot;);</span>
+<span class="lineNum">     300 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_NOARP) strcat(buffer, &quot; noarp&quot;);</span>
+<span class="lineNum">     301 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_PROMISC) strcat(buffer, &quot; promisc&quot;);</span>
+<span class="lineNum">     302 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_ALLMULTI) strcat(buffer, &quot; allmulti&quot;);</span>
+<span class="lineNum">     303 </span><span class="lineCov">          8 :     if (ifr-&gt;ifr_flags &amp; IFF_MULTICAST) strcat(buffer, &quot; multicast&quot;);</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :     // If a least 1 flag is found
+<span class="lineNum">     306 </span><span class="lineCov">          8 :     if (strlen(buffer) &gt; 1)</span>
+<span class="lineNum">     307 </span>            :     {
+<span class="lineNum">     308 </span>            :       // Skip leading space
+<span class="lineNum">     309 </span><span class="lineCov">          8 :       fp = buffer + 1;</span>
+<span class="lineNum">     310 </span><span class="lineCov">          8 :       EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name, fp, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);</span>
+<span class="lineNum">     311 </span><span class="lineCov">          8 :       RlistAppend(flags, fp, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     312 </span>            :     }
+<span class="lineNum">     313 </span><span class="lineCov">          8 : }</span>
+<span class="lineNum">     314 </span>            : 
+<a name="315"><span class="lineNum">     315 </span>            : /******************************************************************/</a>
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineCov">          2 : void GetInterfacesInfo(EvalContext *ctx)</span>
+<span class="lineNum">     318 </span>            : {
+<span class="lineNum">     319 </span><span class="lineCov">          2 :     bool address_set = false;</span>
+<span class="lineNum">     320 </span>            :     int fd, len, i, j;
+<span class="lineNum">     321 </span>            :     struct ifreq ifbuf[CF_IFREQ], ifr, *ifp;
+<span class="lineNum">     322 </span>            :     struct ifconf list;
+<span class="lineNum">     323 </span>            :     struct sockaddr_in *sin;
+<span class="lineNum">     324 </span>            :     char *sp, workbuf[CF_BUFSIZE];
+<span class="lineNum">     325 </span>            :     char ip[CF_MAXVARSIZE];
+<span class="lineNum">     326 </span>            :     char name[CF_MAXVARSIZE];
+<span class="lineNum">     327 </span><span class="lineCov">          2 :     Rlist *interfaces = NULL, *hardware = NULL, *flags = NULL, *ips = NULL;</span>
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span>            :     /* This function may be called many times, while interfaces come and go */
+<span class="lineNum">     330 </span>            :     /* TODO cache results for non-daemon processes? */
+<span class="lineNum">     331 </span><span class="lineCov">          2 :     EvalContextDeleteIpAddresses(ctx);</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineCov">          2 :     memset(ifbuf, 0, sizeof(ifbuf));</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineCov">          2 :     InitIgnoreInterfaces();</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineCov">          2 :     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)</span>
+<span class="lineNum">     338 </span>            :     {
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Couldn't open socket. (socket: %s)&quot;, GetErrorStr());</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     341 </span>            :     }
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineCov">          2 :     list.ifc_len = sizeof(ifbuf);</span>
+<span class="lineNum">     344 </span><span class="lineCov">          2 :     list.ifc_req = ifbuf;</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            :     /* WARNING: *BSD use unsigned long as second argument to ioctl() while
+<span class="lineNum">     347 </span>            :      * POSIX specifies *signed* int. Using the largest possible signed type is
+<span class="lineNum">     348 </span>            :      * the best strategy.*/
+<span class="lineNum">     349 </span>            : #ifdef SIOCGIFCONF
+<span class="lineNum">     350 </span><span class="lineCov">          2 :     intmax_t request = SIOCGIFCONF;</span>
+<span class="lineNum">     351 </span>            : #else
+<span class="lineNum">     352 </span>            :     intmax_t request = OSIOCGIFCONF;
+<span class="lineNum">     353 </span>            : #endif
+<span class="lineNum">     354 </span><span class="lineCov">          2 :     int ret = ioctl(fd, request, &amp;list);</span>
+<span class="lineNum">     355 </span><span class="lineCov">          2 :     if (ret == -1)</span>
+<span class="lineNum">     356 </span>            :     {
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     358 </span>            :             &quot;Couldn't get interfaces (ioctl(SIOCGIFCONF): %s)&quot;,
+<span class="lineNum">     359 </span>            :             GetErrorStr());
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     361 </span>            :     }
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span><span class="lineCov">          2 :     if (list.ifc_len &lt; (int) sizeof(struct ifreq))</span>
+<span class="lineNum">     364 </span>            :     {
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     366 </span>            :             &quot;Interface list returned is too small (%d bytes), &quot;
+<span class="lineNum">     367 </span>            :             &quot;assuming no interfaces present&quot;, list.ifc_len);
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :         list.ifc_len = 0;</span>
+<span class="lineNum">     369 </span>            :     }
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineCov">          2 :     char last_name[sizeof(ifp-&gt;ifr_name)] = &quot;&quot;;</span>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineCov">         12 :     for (j = 0, len = 0, ifp = list.ifc_req; len &lt; list.ifc_len;</span>
+<span class="lineNum">     374 </span><span class="lineCov">          8 :          len += SIZEOF_IFREQ(*ifp), j++, ifp = (struct ifreq *) ((char *) ifp + SIZEOF_IFREQ(*ifp)))</span>
+<span class="lineNum">     375 </span>            :     {
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineCov">          8 :         if (ifp-&gt;ifr_addr.sa_family == 0)</span>
+<span class="lineNum">     378 </span>            :         {
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     380 </span>            :         }
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineCov">          8 :         if ((ifp-&gt;ifr_name == NULL) || (strlen(ifp-&gt;ifr_name) == 0))</span>
+<span class="lineNum">     383 </span>            :         {
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     385 </span>            :         }
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            :         /* Skip network interfaces listed in ignore_interfaces.rx */
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineCov">          8 :         if (IgnoreInterface(ifp-&gt;ifr_name))</span>
+<span class="lineNum">     390 </span>            :         {
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     392 </span>            :         }
+<span class="lineNum">     393 </span>            :         else
+<span class="lineNum">     394 </span>            :         {
+<span class="lineNum">     395 </span><span class="lineCov">          8 :             Log(LOG_LEVEL_VERBOSE, &quot;Interface %d: %s&quot;, j + 1, ifp-&gt;ifr_name);</span>
+<span class="lineNum">     396 </span>            :         }
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span>            :         /* If interface name appears a second time in a row then it has more
+<span class="lineNum">     399 </span>            :            than one IP addresses (linux: ip addr add $IP dev $IF).
+<span class="lineNum">     400 </span>            :            But the variable is already added so don't set it again. */
+<span class="lineNum">     401 </span><span class="lineCov">          8 :         if (strcmp(last_name, ifp-&gt;ifr_name) != 0)</span>
+<span class="lineNum">     402 </span>            :         {
+<span class="lineNum">     403 </span><span class="lineCov">          8 :             strcpy(last_name, ifp-&gt;ifr_name);</span>
+<span class="lineNum">     404 </span><span class="lineCov">          8 :             EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, &quot;interface&quot;, last_name, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);</span>
+<span class="lineNum">     405 </span>            :         }
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineCov">          8 :         snprintf(workbuf, sizeof(workbuf), &quot;net_iface_%s&quot;, CanonifyName(ifp-&gt;ifr_name));</span>
+<span class="lineNum">     408 </span><span class="lineCov">          8 :         EvalContextClassPutHard(ctx, workbuf, &quot;source=agent&quot;);</span>
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            :         /* TODO IPv6 should be handled transparently */
+<span class="lineNum">     411 </span><span class="lineCov">          8 :         if (ifp-&gt;ifr_addr.sa_family == AF_INET)</span>
+<span class="lineNum">     412 </span>            :         {
+<span class="lineNum">     413 </span><span class="lineCov">          8 :             strlcpy(ifr.ifr_name, ifp-&gt;ifr_name, sizeof(ifp-&gt;ifr_name));</span>
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span><span class="lineCov">          8 :             if (ioctl(fd, SIOCGIFFLAGS, &amp;ifr) == -1)</span>
+<span class="lineNum">     416 </span>            :             {
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;No such network device. (ioctl: %s)&quot;, GetErrorStr());</span>
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     419 </span>            :             }
+<span class="lineNum">     420 </span>            :             else
+<span class="lineNum">     421 </span>            :             {
+<span class="lineNum">     422 </span><span class="lineCov">          8 :               GetInterfaceFlags(ctx, &amp;ifr, &amp;flags);</span>
+<span class="lineNum">     423 </span>            :             }
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineCov">          8 :             if (ifr.ifr_flags &amp; IFF_UP)</span>
+<span class="lineNum">     426 </span>            :             {
+<span class="lineNum">     427 </span><span class="lineCov">          8 :                 sin = (struct sockaddr_in *) &amp;ifp-&gt;ifr_addr;</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineCov">          8 :                 if (IgnoreJailInterface(j + 1, sin))</span>
+<span class="lineNum">     430 </span>            :                 {
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_VERBOSE, &quot;Ignoring interface %d&quot;, j + 1);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     433 </span>            :                 }
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span>            :                 /* No DNS lookup, just convert IP address to string. */
+<span class="lineNum">     436 </span><span class="lineCov">          8 :                 char txtaddr[CF_MAX_IP_LEN] = &quot;&quot;;</span>
+<span class="lineNum">     437 </span>            :                 assert(sizeof(VIPADDRESS) &gt;= sizeof(txtaddr));
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineCov">          8 :                 getnameinfo((struct sockaddr *) sin, sizeof(*sin),</span>
+<span class="lineNum">     440 </span>            :                             txtaddr, sizeof(txtaddr),
+<span class="lineNum">     441 </span>            :                             NULL, 0, NI_NUMERICHOST);
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineCov">          8 :                 Log(LOG_LEVEL_DEBUG, &quot;Adding hostip '%s'&quot;, txtaddr);</span>
+<span class="lineNum">     444 </span><span class="lineCov">          8 :                 EvalContextClassPutHard(ctx, txtaddr, &quot;inventory,attribute_name=none,source=agent&quot;);</span>
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineCov">          8 :                 if (strcmp(txtaddr, &quot;0.0.0.0&quot;) == 0)</span>
+<span class="lineNum">     447 </span>            :                 {
+<span class="lineNum">     448 </span>            :                     /* TODO remove, interface address can't be 0.0.0.0 and
+<span class="lineNum">     449 </span>            :                      * even then DNS is not a safe way to set a variable... */
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_VERBOSE, &quot;Cannot discover hardware IP, using DNS value&quot;);</span>
+<span class="lineNum">     451 </span>            :                     assert(sizeof(ip) &gt;= sizeof(VIPADDRESS) + sizeof(&quot;ipv4_&quot;));
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :                     strcpy(ip, &quot;ipv4_&quot;);</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :                     strcat(ip, VIPADDRESS);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                     EvalContextAddIpAddress(ctx, VIPADDRESS);</span>
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :                     RlistAppendScalar(&amp;ips, VIPADDRESS);</span>
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                     for (sp = ip + strlen(ip) - 1; (sp &gt; ip); sp--)</span>
+<span class="lineNum">     458 </span>            :                     {
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                         if (*sp == '.')</span>
+<span class="lineNum">     460 </span>            :                         {
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :                             *sp = '\0';</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :                             EvalContextClassPutHard(ctx, ip, &quot;inventory,attribute_name=none,source=agent&quot;);</span>
+<span class="lineNum">     463 </span>            :                         }
+<span class="lineNum">     464 </span>            :                     }
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :                     strcpy(ip, VIPADDRESS);</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :                     i = 3;</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                     for (sp = ip + strlen(ip) - 1; (sp &gt; ip); sp--)</span>
+<span class="lineNum">     470 </span>            :                     {
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :                         if (*sp == '.')</span>
+<span class="lineNum">     472 </span>            :                         {
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :                             *sp = '\0';</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :                             snprintf(name, sizeof(name), &quot;ipv4_%d[%s]&quot;, i--, CanonifyName(VIPADDRESS));</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                             EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name, ip, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);</span>
+<span class="lineNum">     476 </span>            :                         }
+<span class="lineNum">     477 </span>            :                     }
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     479 </span>            :                 }
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            :                 assert(sizeof(ip) &gt;= sizeof(txtaddr) + sizeof(&quot;ipv4_&quot;));
+<span class="lineNum">     482 </span><span class="lineCov">          8 :                 strcpy(ip, &quot;ipv4_&quot;);</span>
+<span class="lineNum">     483 </span><span class="lineCov">          8 :                 strcat(ip, txtaddr);</span>
+<span class="lineNum">     484 </span><span class="lineCov">          8 :                 EvalContextClassPutHard(ctx, ip, &quot;inventory,attribute_name=none,source=agent&quot;);</span>
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            :                 /* VIPADDRESS has already been set to the DNS address of
+<span class="lineNum">     487 </span>            :                  * VFQNAME by GetNameInfo3() during initialisation. Here we
+<span class="lineNum">     488 </span>            :                  * reset VIPADDRESS to the address of the first non-loopback
+<span class="lineNum">     489 </span>            :                  * interface. */
+<span class="lineNum">     490 </span><span class="lineCov">          8 :                 if (!address_set &amp;&amp; !(ifr.ifr_flags &amp; IFF_LOOPBACK))</span>
+<span class="lineNum">     491 </span>            :                 {
+<span class="lineNum">     492 </span><span class="lineCov">          2 :                     EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, &quot;ipv4&quot;, txtaddr, CF_DATA_TYPE_STRING, &quot;inventory,source=agent,attribute_name=none&quot;);</span>
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineCov">          2 :                     strcpy(VIPADDRESS, txtaddr);</span>
+<span class="lineNum">     495 </span><span class="lineCov">          2 :                     Log(LOG_LEVEL_VERBOSE, &quot;IP address of host set to %s&quot;,</span>
+<span class="lineNum">     496 </span>            :                         VIPADDRESS);
+<span class="lineNum">     497 </span><span class="lineCov">          2 :                     address_set = true;</span>
+<span class="lineNum">     498 </span>            :                 }
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span><span class="lineCov">          8 :                 EvalContextAddIpAddress(ctx, txtaddr);</span>
+<span class="lineNum">     501 </span><span class="lineCov">          8 :                 RlistAppendScalar(&amp;ips, txtaddr);</span>
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span><span class="lineCov">        128 :                 for (sp = ip + strlen(ip) - 1; (sp &gt; ip); sp--)</span>
+<span class="lineNum">     504 </span>            :                 {
+<span class="lineNum">     505 </span><span class="lineCov">        120 :                     if (*sp == '.')</span>
+<span class="lineNum">     506 </span>            :                     {
+<span class="lineNum">     507 </span><span class="lineCov">         24 :                         *sp = '\0';</span>
+<span class="lineNum">     508 </span><span class="lineCov">         24 :                         EvalContextClassPutHard(ctx, ip, &quot;inventory,attribute_name=none,source=agent&quot;);</span>
+<span class="lineNum">     509 </span>            :                     }
+<span class="lineNum">     510 </span>            :                 }
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span>            :                 // Set the IPv4 on interface array
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineCov">          8 :                 strcpy(ip, txtaddr);</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineCov">          8 :                 snprintf(name, sizeof(name), &quot;ipv4[%s]&quot;, CanonifyName(ifp-&gt;ifr_name));</span>
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span><span class="lineCov">          8 :                 EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name, ip, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);</span>
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span><span class="lineCov">          8 :                 i = 3;</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineCov">         88 :                 for (sp = ip + strlen(ip) - 1; (sp &gt; ip); sp--)</span>
+<span class="lineNum">     523 </span>            :                 {
+<span class="lineNum">     524 </span><span class="lineCov">         80 :                     if (*sp == '.')</span>
+<span class="lineNum">     525 </span>            :                     {
+<span class="lineNum">     526 </span><span class="lineCov">         24 :                         *sp = '\0';</span>
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span><span class="lineCov">         24 :                         snprintf(name, sizeof(name), &quot;ipv4_%d[%s]&quot;, i--, CanonifyName(ifp-&gt;ifr_name));</span>
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span><span class="lineCov">         24 :                         EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, name, ip, CF_DATA_TYPE_STRING, &quot;source=agent&quot;);</span>
+<span class="lineNum">     531 </span>            :                     }
+<span class="lineNum">     532 </span>            :                 }
+<span class="lineNum">     533 </span>            :             }
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span>            :             // Set the hardware/mac address array
+<span class="lineNum">     536 </span><span class="lineCov">          8 :             GetMacAddress(ctx, fd, &amp;ifr, ifp, &amp;interfaces, &amp;hardware);</span>
+<span class="lineNum">     537 </span>            :         }
+<span class="lineNum">     538 </span>            :     }
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span><span class="lineCov">          2 :     close(fd);</span>
+<span class="lineNum">     541 </span>            : 
+<span class="lineNum">     542 </span><span class="lineCov">          2 :     if (interfaces)</span>
+<span class="lineNum">     543 </span>            :     {
+<span class="lineNum">     544 </span><span class="lineCov">          2 :         EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, &quot;interfaces&quot;, interfaces, CF_DATA_TYPE_STRING_LIST,</span>
+<span class="lineNum">     545 </span>            :                                       &quot;inventory,source=agent,attribute_name=Interfaces&quot;);
+<span class="lineNum">     546 </span>            :     }
+<span class="lineNum">     547 </span><span class="lineCov">          2 :     if (hardware)</span>
+<span class="lineNum">     548 </span>            :     {
+<span class="lineNum">     549 </span><span class="lineCov">          2 :         EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, &quot;hardware_addresses&quot;, hardware, CF_DATA_TYPE_STRING_LIST,</span>
+<span class="lineNum">     550 </span>            :                                       &quot;inventory,source=agent,attribute_name=MAC addresses&quot;);
+<span class="lineNum">     551 </span>            :     }
+<span class="lineNum">     552 </span><span class="lineCov">          2 :     if (flags)</span>
+<span class="lineNum">     553 </span>            :     {
+<span class="lineNum">     554 </span><span class="lineCov">          2 :         EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, &quot;hardware_flags&quot;, flags, CF_DATA_TYPE_STRING_LIST,</span>
+<span class="lineNum">     555 </span>            :                                       &quot;source=agent&quot;);
+<span class="lineNum">     556 </span>            :     }
+<span class="lineNum">     557 </span><span class="lineCov">          2 :     if (ips)</span>
+<span class="lineNum">     558 </span>            :     {
+<span class="lineNum">     559 </span><span class="lineCov">          2 :         EvalContextVariablePutSpecial(ctx, SPECIAL_SCOPE_SYS, &quot;ip_addresses&quot;, ips, CF_DATA_TYPE_STRING_LIST,</span>
+<span class="lineNum">     560 </span>            :                                       &quot;source=agent&quot;);
+<span class="lineNum">     561 </span>            :     }
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineCov">          2 :     RlistDestroy(interfaces);</span>
+<span class="lineNum">     564 </span><span class="lineCov">          2 :     RlistDestroy(hardware);</span>
+<span class="lineNum">     565 </span><span class="lineCov">          2 :     RlistDestroy(flags);</span>
+<span class="lineNum">     566 </span><span class="lineCov">          2 :     RlistDestroy(ips);</span>
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span><span class="lineCov">          2 :     FindV6InterfacesInfo(ctx);</span>
+<span class="lineNum">     569 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     570 </span>            : 
+<a name="571"><span class="lineNum">     571 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span><span class="lineCov">          2 : static void FindV6InterfacesInfo(EvalContext *ctx)</span>
+<span class="lineNum">     574 </span>            : {
+<span class="lineNum">     575 </span><span class="lineCov">          2 :     FILE *pp = NULL;</span>
+<span class="lineNum">     576 </span>            :     char buffer[CF_BUFSIZE];
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            : /* Whatever the manuals might say, you cannot get IPV6
+<span class="lineNum">     579 </span>            :    interface configuration from the ioctls. This seems
+<span class="lineNum">     580 </span>            :    to be implemented in a non standard way across OSes
+<span class="lineNum">     581 </span>            :    BSDi has done getifaddrs(), solaris 8 has a new ioctl, Stevens
+<span class="lineNum">     582 </span>            :    book shows the suggestion which has not been implemented...
+<span class="lineNum">     583 </span>            : */
+<span class="lineNum">     584 </span>            : 
+<span class="lineNum">     585 </span><span class="lineCov">          2 :     Log(LOG_LEVEL_VERBOSE, &quot;Trying to locate my IPv6 address&quot;);</span>
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span>            : #if defined(__CYGWIN__)
+<span class="lineNum">     588 </span>            :     /* NT cannot do this */
+<span class="lineNum">     589 </span>            :     return;
+<span class="lineNum">     590 </span>            : #elif defined(__hpux)
+<span class="lineNum">     591 </span>            :     if ((pp = cf_popen(&quot;/usr/sbin/ifconfig -a&quot;, &quot;r&quot;, true)) == NULL)
+<span class="lineNum">     592 </span>            :     {
+<span class="lineNum">     593 </span>            :         Log(LOG_LEVEL_VERBOSE, &quot;Could not find interface info&quot;);
+<span class="lineNum">     594 </span>            :         return;
+<span class="lineNum">     595 </span>            :     }
+<span class="lineNum">     596 </span>            : #elif defined(_AIX)
+<span class="lineNum">     597 </span>            :     if ((pp = cf_popen(&quot;/etc/ifconfig -a&quot;, &quot;r&quot;, true)) == NULL)
+<span class="lineNum">     598 </span>            :     {
+<span class="lineNum">     599 </span>            :         Log(LOG_LEVEL_VERBOSE, &quot;Could not find interface info&quot;);
+<span class="lineNum">     600 </span>            :         return;
+<span class="lineNum">     601 </span>            :     }
+<span class="lineNum">     602 </span>            : #else
+<span class="lineNum">     603 </span><span class="lineCov">          2 :     if (!FileCanOpen(&quot;/sbin/ifconfig&quot;, &quot;r&quot;) || ((pp = cf_popen(&quot;/sbin/ifconfig -a&quot;, &quot;r&quot;, true)) == NULL))</span>
+<span class="lineNum">     604 </span>            :     {
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Could not find interface info&quot;);</span>
+<span class="lineNum">     606 </span><span class="lineCov">          2 :         return;</span>
+<span class="lineNum">     607 </span>            :     }
+<span class="lineNum">     608 </span>            : #endif
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span>            : /* Don't know the output format of ifconfig on all these .. hope for the best*/
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span>            :     for(;;)
+<span class="lineNum">     613 </span>            :     {
+<span class="lineNum">     614 </span><span class="lineCov">        102 :         if (fgets(buffer, sizeof(buffer), pp) == NULL)</span>
+<span class="lineNum">     615 </span>            :         {
+<span class="lineNum">     616 </span><span class="lineCov">          2 :             if (ferror(pp))</span>
+<span class="lineNum">     617 </span>            :             {
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :                 UnexpectedError(&quot;Failed to read line from stream&quot;);</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     620 </span>            :             }
+<span class="lineNum">     621 </span>            :             else /* feof */
+<span class="lineNum">     622 </span>            :             {
+<span class="lineNum">     623 </span><span class="lineCov">          2 :                 break;</span>
+<span class="lineNum">     624 </span>            :             }
+<span class="lineNum">     625 </span>            :         }
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span><span class="lineCov">        100 :         if (strcasestr(buffer, &quot;inet6&quot;))</span>
+<span class="lineNum">     628 </span>            :         {
+<span class="lineNum">     629 </span><span class="lineCov">          6 :             Item *ip, *list = NULL;</span>
+<span class="lineNum">     630 </span>            :             char *sp;
+<span class="lineNum">     631 </span>            : 
+<span class="lineNum">     632 </span><span class="lineCov">          6 :             list = SplitStringAsItemList(buffer, ' ');</span>
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span><span class="lineCov">         30 :             for (ip = list; ip != NULL; ip = ip-&gt;next)</span>
+<span class="lineNum">     635 </span>            :             {
+<span class="lineNum">     636 </span><span class="lineCov">        268 :                 for (sp = ip-&gt;name; *sp != '\0'; sp++)</span>
+<span class="lineNum">     637 </span>            :                 {
+<span class="lineNum">     638 </span><span class="lineCov">        244 :                     if (*sp == '/')     /* Remove CIDR mask */</span>
+<span class="lineNum">     639 </span>            :                     {
+<span class="lineNum">     640 </span><span class="lineCov">          6 :                         *sp = '\0';</span>
+<span class="lineNum">     641 </span>            :                     }
+<span class="lineNum">     642 </span>            :                 }
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span><span class="lineCov">         24 :                 if ((IsIPV6Address(ip-&gt;name)) &amp;&amp; ((strcmp(ip-&gt;name, &quot;::1&quot;) != 0)))</span>
+<span class="lineNum">     645 </span>            :                 {
+<span class="lineNum">     646 </span><span class="lineCov">          4 :                     Log(LOG_LEVEL_VERBOSE, &quot;Found IPv6 address %s&quot;, ip-&gt;name);</span>
+<span class="lineNum">     647 </span><span class="lineCov">          4 :                     EvalContextAddIpAddress(ctx, ip-&gt;name);</span>
+<span class="lineNum">     648 </span><span class="lineCov">          4 :                     EvalContextClassPutHard(ctx, ip-&gt;name, &quot;inventory,attribute_name=none,source=agent&quot;);</span>
+<span class="lineNum">     649 </span>            :                 }
+<span class="lineNum">     650 </span>            :             }
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span><span class="lineCov">          6 :             DeleteItemList(list);</span>
+<span class="lineNum">     653 </span>            :         }
+<span class="lineNum">     654 </span><span class="lineCov">        100 :     }</span>
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span><span class="lineCov">          2 :     cf_pclose(pp);</span>
+<span class="lineNum">     657 </span>            : }
+<span class="lineNum">     658 </span>            : 
+<a name="659"><span class="lineNum">     659 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     660 </span>            : 
+<span class="lineNum">     661 </span><span class="lineCov">          2 : static void InitIgnoreInterfaces()</span>
+<span class="lineNum">     662 </span>            : {
+<span class="lineNum">     663 </span>            :     FILE *fin;
+<span class="lineNum">     664 </span>            :     char filename[CF_BUFSIZE],regex[CF_MAXVARSIZE];
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span><span class="lineCov">          2 :     snprintf(filename, sizeof(filename), &quot;%s%c%s&quot;, GetInputDir(), FILE_SEPARATOR, CF_IGNORE_INTERFACES);</span>
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span><span class="lineCov">          2 :     if ((fin = fopen(filename,&quot;r&quot;)) == NULL)</span>
+<span class="lineNum">     669 </span>            :     {
+<span class="lineNum">     670 </span><span class="lineCov">          2 :         Log(LOG_LEVEL_VERBOSE, &quot;No interface exception file %s&quot;,filename);</span>
+<span class="lineNum">     671 </span><span class="lineCov">          4 :         return;</span>
+<span class="lineNum">     672 </span>            :     }
+<span class="lineNum">     673 </span>            :     
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :     while (!feof(fin))</span>
+<span class="lineNum">     675 </span>            :     {
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :         regex[0] = '\0';</span>
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :         int scanCount = fscanf(fin,&quot;%s&quot;,regex);</span>
+<span class="lineNum">     678 </span>            : 
+<span class="lineNum">     679 </span><span class="lineNoCov">          0 :         if (scanCount != 0 &amp;&amp; *regex != '\0')</span>
+<span class="lineNum">     680 </span>            :         {
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :            RlistPrependScalarIdemp(&amp;IGNORE_INTERFACES, regex);</span>
+<span class="lineNum">     682 </span>            :         }
+<span class="lineNum">     683 </span>            :     }
+<span class="lineNum">     684 </span>            :  
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :     fclose(fin);</span>
+<span class="lineNum">     686 </span>            : }
+<span class="lineNum">     687 </span>            : 
+<a name="688"><span class="lineNum">     688 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span><span class="lineCov">          8 : static bool IgnoreInterface(char *name)</span>
+<span class="lineNum">     691 </span>            : {
+<span class="lineNum">     692 </span>            :     Rlist *rp;
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span><span class="lineCov">          8 :     for (rp = IGNORE_INTERFACES; rp != NULL; rp=rp-&gt;next)</span>
+<span class="lineNum">     695 </span>            :     {
+<span class="lineNum">     696 </span>            :         /* FIXME: review this strcmp. Moved out from StringMatch */
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :         if (!strcmp(RlistScalarValue(rp), name)</span>
+<span class="lineNum">     698 </span><span class="lineNoCov">          0 :             || StringMatchFull(RlistScalarValue(rp), name))</span>
+<span class="lineNum">     699 </span>            :         {
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Ignoring interface '%s' because it matches '%s'&quot;,name,CF_IGNORE_INTERFACES);</span>
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     702 </span>            :         }    
+<span class="lineNum">     703 </span>            :     }
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span><span class="lineCov">          8 :     return false;</span>
+<span class="lineNum">     706 </span>            : }
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span>            : #ifdef _AIX
+<span class="lineNum">     709 </span>            : static int aix_get_mac_addr(const char *device_name, uint8_t mac[6])
+<span class="lineNum">     710 </span>            : {
+<span class="lineNum">     711 </span>            :     size_t ksize;
+<span class="lineNum">     712 </span>            :     struct kinfo_ndd *ndd;
+<span class="lineNum">     713 </span>            :     int count, i;
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span>            :     ksize = getkerninfo(KINFO_NDD, 0, 0, 0);
+<span class="lineNum">     716 </span>            :     if (ksize == 0) 
+<span class="lineNum">     717 </span>            :     {
+<span class="lineNum">     718 </span>            :         errno = ENOSYS;
+<span class="lineNum">     719 </span>            :         return -1;
+<span class="lineNum">     720 </span>            :     }
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span>            :     ndd = (struct kinfo_ndd *)xmalloc(ksize);
+<span class="lineNum">     723 </span>            :     if (ndd == NULL) 
+<span class="lineNum">     724 </span>            :     {
+<span class="lineNum">     725 </span>            :         errno = ENOMEM;
+<span class="lineNum">     726 </span>            :         return -1;
+<span class="lineNum">     727 </span>            :     }
+<span class="lineNum">     728 </span>            : 
+<span class="lineNum">     729 </span>            :     if (getkerninfo(KINFO_NDD, ndd, &amp;ksize, 0) == -1) 
+<span class="lineNum">     730 </span>            :     {
+<span class="lineNum">     731 </span>            :         errno = ENOSYS;
+<span class="lineNum">     732 </span>            :         return -1;
+<span class="lineNum">     733 </span>            :     }
+<span class="lineNum">     734 </span>            : 
+<span class="lineNum">     735 </span>            :     count= ksize/sizeof(struct kinfo_ndd);
+<span class="lineNum">     736 </span>            :     for (i=0;i&lt;count;i++) 
+<span class="lineNum">     737 </span>            :     {
+<span class="lineNum">     738 </span>            :         if ((ndd[i].ndd_type == NDD_ETHER || 
+<span class="lineNum">     739 </span>            :             ndd[i].ndd_type == NDD_ISO88023) &amp;&amp;
+<span class="lineNum">     740 </span>            :             ndd[i].ndd_addrlen == 6 &amp;&amp;
+<span class="lineNum">     741 </span>            :             (strcmp(ndd[i].ndd_alias, device_name) == 0 ||
+<span class="lineNum">     742 </span>            :             strcmp(ndd[i].ndd_name, device_name == 0))) 
+<span class="lineNum">     743 </span>            :         {
+<span class="lineNum">     744 </span>            :             memcpy(mac, ndd[i].ndd_addr, 6);
+<span class="lineNum">     745 </span>            :             free(ndd);
+<span class="lineNum">     746 </span>            :             return 0;
+<span class="lineNum">     747 </span>            :         }
+<span class="lineNum">     748 </span>            :     }
+<span class="lineNum">     749 </span>            :     free(ndd);
+<span class="lineNum">     750 </span>            :     errno = ENOENT;
+<span class="lineNum">     751 </span>            :     return -1;
+<span class="lineNum">     752 </span>            : }
+<span class="lineNum">     753 </span>            : #endif /* _AIX */
+<span class="lineNum">     754 </span>            : 
+<span class="lineNum">     755 </span>            : #endif /* !__MINGW32__ */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

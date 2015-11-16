@@ -1,0 +1,1831 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/attributes.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - attributes.c<span style="font-size: 80%;"> (source / <a href="attributes.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">72</td>
+            <td class="headerCovTableEntry">826</td>
+            <td class="headerCovTableEntryLo">8.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">54</td>
+            <td class="headerCovTableEntryLo">9.3 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;attributes.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;promises.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;policy.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;conversion.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;logging.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;chflags.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;audit.h&gt;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #define CF_DEFINECLASSES &quot;classes&quot;
+<span class="lineNum">      35 </span>            : #define CF_TRANSACTION   &quot;action&quot;
+<span class="lineNum">      36 </span>            : 
+<a name="37"><span class="lineNum">      37 </span>            : static FilePerms GetPermissionConstraints(const EvalContext *ctx, const Promise *pp);</a>
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 : void ClearFilesAttributes(Attributes *whom)</span>
+<span class="lineNum">      40 </span>            : {
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :     UidListDestroy(whom-&gt;perms.owners);</span>
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :     GidListDestroy(whom-&gt;perms.groups);</span>
+<a name="43"><span class="lineNum">      43 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 : Attributes GetFilesAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">      46 </span>            : {
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : // default for file copy
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     attr.havedepthsearch = PromiseGetConstraintAsBoolean(ctx, &quot;depth_search&quot;, pp);</span>
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     attr.haveselect = PromiseGetConstraintAsBoolean(ctx, &quot;file_select&quot;, pp);</span>
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     attr.haverename = PromiseGetConstraintAsBoolean(ctx, &quot;rename&quot;, pp);</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     attr.havedelete = PromiseGetConstraintAsBoolean(ctx, &quot;delete&quot;, pp);</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     attr.haveperms = PromiseGetConstraintAsBoolean(ctx, &quot;perms&quot;, pp);</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :     attr.havechange = PromiseGetConstraintAsBoolean(ctx, &quot;changes&quot;, pp);</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :     attr.havecopy = PromiseGetConstraintAsBoolean(ctx, &quot;copy_from&quot;, pp);</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     attr.havelink = PromiseGetConstraintAsBoolean(ctx, &quot;link_from&quot;, pp);</span>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :     attr.edit_template = PromiseGetConstraintAsRval(pp, &quot;edit_template&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     attr.template_method = PromiseGetConstraintAsRval(pp, &quot;template_method&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :     attr.template_data = PromiseGetConstraintAsRval(pp, &quot;template_data&quot;, RVAL_TYPE_CONTAINER);</span>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     attr.haveeditline = PromiseBundleOrBodyConstraintExists(ctx, &quot;edit_line&quot;, pp);</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     attr.haveeditxml = PromiseBundleOrBodyConstraintExists(ctx, &quot;edit_xml&quot;, pp);</span>
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     attr.haveedit = (attr.haveeditline) || (attr.haveeditxml) || (attr.edit_template);</span>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : /* Files, specialist */
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :     attr.repository = PromiseGetConstraintAsRval(pp, &quot;repository&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :     attr.create = PromiseGetConstraintAsBoolean(ctx, &quot;create&quot;, pp);</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :     attr.touch = PromiseGetConstraintAsBoolean(ctx, &quot;touch&quot;, pp);</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     attr.transformer = PromiseGetConstraintAsRval(pp, &quot;transformer&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     attr.move_obstructions = PromiseGetConstraintAsBoolean(ctx, &quot;move_obstructions&quot;, pp);</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :     attr.pathtype = PromiseGetConstraintAsRval(pp, &quot;pathtype&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :     attr.acl = GetAclConstraints(ctx, pp);</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     attr.perms = GetPermissionConstraints(ctx, pp);</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     attr.select = GetSelectConstraints(ctx, pp);</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     attr.delete = GetDeleteConstraints(ctx, pp);</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     attr.rename = GetRenameConstraints(ctx, pp);</span>
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :     attr.change = GetChangeMgtConstraints(ctx, pp);</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     attr.copy = GetCopyConstraints(ctx, pp);</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :     attr.link = GetLinkConstraints(ctx, pp);</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :     attr.edits = GetEditDefaults(ctx, pp);</span>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :     if (attr.edit_template)</span>
+<span class="lineNum">      88 </span>            :     {
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         attr.edits.empty_before_use = true;</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         attr.edits.inherit = true;</span>
+<span class="lineNum">      91 </span>            :     }
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : /* Files, multiple use */
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     attr.recursion = GetRecursionConstraints(ctx, pp);</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : /* Common (&quot;included&quot;) */
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     105 </span>            : }
+<span class="lineNum">     106 </span>            : 
+<a name="107"><span class="lineNum">     107 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineCov">   14929920 : Attributes GetReportsAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     110 </span>            : {
+<span class="lineNum">     111 </span><span class="lineCov">   14929920 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span><span class="lineCov">   14929920 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     114 </span><span class="lineCov">   14929920 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineCov">   14929920 :     attr.report = GetReportConstraints(ctx, pp);</span>
+<span class="lineNum">     117 </span><span class="lineCov">   14929920 :     return attr;</span>
+<span class="lineNum">     118 </span>            : }
+<span class="lineNum">     119 </span>            : 
+<a name="120"><span class="lineNum">     120 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 : Attributes GetEnvironmentsAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     123 </span>            : {
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     attr.env = GetEnvironmentsConstraints(ctx, pp);</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     131 </span>            : }
+<span class="lineNum">     132 </span>            : 
+<a name="133"><span class="lineNum">     133 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 : Attributes GetServicesAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :     attr.service = GetServicesConstraints(ctx, pp);</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     attr.havebundle = PromiseBundleOrBodyConstraintExists(ctx, &quot;service_bundle&quot;, pp);</span>
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     145 </span>            : }
+<span class="lineNum">     146 </span>            : 
+<a name="147"><span class="lineNum">     147 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 : Attributes GetPackageAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     150 </span>            : {
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     152 </span>            :     
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :     attr.packages = GetPackageConstraints(ctx, pp);</span>
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :     attr.new_packages = GetNewPackageConstraints(ctx, pp);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     158 </span>            : }
+<span class="lineNum">     159 </span>            : 
+<a name="160"><span class="lineNum">     160 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 : Attributes GetUserAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     163 </span>            : {
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :     attr.havebundle = PromiseBundleOrBodyConstraintExists(ctx, &quot;home_bundle&quot;, pp);</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     attr.inherit = PromiseGetConstraintAsBoolean(ctx, &quot;home_bundle_inherit&quot;, pp);</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :     attr.users = GetUserConstraints(ctx, pp);</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     174 </span>            : }
+<span class="lineNum">     175 </span>            : 
+<a name="176"><span class="lineNum">     176 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 : Attributes GetDatabaseAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     179 </span>            : {
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     attr.database = GetDatabaseConstraints(ctx, pp);</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     186 </span>            : }
+<span class="lineNum">     187 </span>            : 
+<a name="188"><span class="lineNum">     188 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 : Attributes GetClassContextAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     191 </span>            : {
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :     Attributes a = { {0} };</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :     a.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :     a.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :     a.context = GetContextConstraints(ctx, pp);</span>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     return a;</span>
+<span class="lineNum">     199 </span>            : }
+<span class="lineNum">     200 </span>            : 
+<a name="201"><span class="lineNum">     201 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 : Attributes GetExecAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     204 </span>            : {
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     attr.contain = GetExecContainConstraints(ctx, pp);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     attr.havecontain = PromiseGetConstraintAsBoolean(ctx, &quot;contain&quot;, pp);</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :     attr.args = PromiseGetConstraintAsRval(pp, &quot;args&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :     attr.module = PromiseGetConstraintAsBoolean(ctx, &quot;module&quot;, pp);</span>
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            : /* Common (&quot;included&quot;) */
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     222 </span>            : }
+<span class="lineNum">     223 </span>            : 
+<a name="224"><span class="lineNum">     224 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 : Attributes GetProcessAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     227 </span>            : {
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     attr.signals = PromiseGetConstraintAsList(ctx, &quot;signals&quot;, pp);</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     attr.process_stop = PromiseGetConstraintAsRval(pp, &quot;process_stop&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     attr.haveprocess_count = PromiseGetConstraintAsBoolean(ctx, &quot;process_count&quot;, pp);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     attr.haveselect = PromiseGetConstraintAsBoolean(ctx, &quot;process_select&quot;, pp);</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     attr.restart_class = PromiseGetConstraintAsRval(pp, &quot;restart_class&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :     attr.process_count = GetMatchesConstraints(ctx, pp);</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     attr.process_select = GetProcessFilterConstraints(ctx, pp);</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            : /* Common (&quot;included&quot;) */
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     248 </span>            : }
+<span class="lineNum">     249 </span>            : 
+<a name="250"><span class="lineNum">     250 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 : Attributes GetStorageAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     253 </span>            : {
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :     attr.mount = GetMountConstraints(ctx, pp);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :     attr.volume = GetVolumeConstraints(ctx, pp);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     attr.havevolume = PromiseGetConstraintAsBoolean(ctx, &quot;volume&quot;, pp);</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     attr.havemount = PromiseGetConstraintAsBoolean(ctx, &quot;mount&quot;, pp);</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : /* Common (&quot;included&quot;) */
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     if (attr.edits.maxfilesize &lt;= 0)</span>
+<span class="lineNum">     264 </span>            :     {
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :         attr.edits.maxfilesize = EDITFILESIZE;</span>
+<span class="lineNum">     266 </span>            :     }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     275 </span>            : }
+<span class="lineNum">     276 </span>            : 
+<a name="277"><span class="lineNum">     277 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 : Attributes GetMethodAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     280 </span>            : {
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     attr.havebundle = PromiseBundleOrBodyConstraintExists(ctx, &quot;usebundle&quot;, pp);</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     attr.inherit = PromiseGetConstraintAsBoolean(ctx, &quot;inherit&quot;, pp);</span>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            : /* Common (&quot;included&quot;) */
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     return attr;</span>
+<a name="296"><span class="lineNum">     296 </span>            : }</a>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 : Attributes GetMeasurementAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     299 </span>            : {
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :     attr.measure = GetMeasurementConstraint(ctx, pp);</span>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            : /* Common (&quot;included&quot;) */
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">     313 </span>            : }
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            : /*******************************************************************/
+<span class="lineNum">     316 </span>            : /* Level                                                           */
+<a name="317"><span class="lineNum">     317 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 : Services GetServicesConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     320 </span>            : {
+<span class="lineNum">     321 </span>            :     Services s;
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :     s.service_type = PromiseGetConstraintAsRval(pp, &quot;service_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :     s.service_policy = ServicePolicyFromString(PromiseGetConstraintAsRval(pp, &quot;service_policy&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     s.service_autostart_policy = PromiseGetConstraintAsRval(pp, &quot;service_autostart_policy&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     s.service_args = PromiseGetConstraintAsRval(pp, &quot;service_args&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :     s.service_depend = PromiseGetConstraintAsList(ctx, &quot;service_dependencies&quot;, pp);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :     s.service_depend_chain = PromiseGetConstraintAsRval(pp, &quot;service_dependence_chain&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     return s;</span>
+<span class="lineNum">     331 </span>            : }
+<span class="lineNum">     332 </span>            : 
+<a name="333"><span class="lineNum">     333 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 : Environments GetEnvironmentsConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     336 </span>            : {
+<span class="lineNum">     337 </span>            :     Environments e;
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     e.cpus = PromiseGetConstraintAsInt(ctx, &quot;env_cpus&quot;, pp);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :     e.memory = PromiseGetConstraintAsInt(ctx, &quot;env_memory&quot;, pp);</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :     e.disk = PromiseGetConstraintAsInt(ctx, &quot;env_disk&quot;, pp);</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :     e.baseline = PromiseGetConstraintAsRval(pp, &quot;env_baseline&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :     e.spec = PromiseGetConstraintAsRval(pp, &quot;env_spec&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :     e.host = PromiseGetConstraintAsRval(pp, &quot;environment_host&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     e.addresses = PromiseGetConstraintAsList(ctx, &quot;env_addresses&quot;, pp);</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     e.name = PromiseGetConstraintAsRval(pp, &quot;env_name&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     e.type = PromiseGetConstraintAsRval(pp, &quot;environment_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     e.state = EnvironmentStateFromString(PromiseGetConstraintAsRval(pp, &quot;environment_state&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :     return e;</span>
+<span class="lineNum">     352 </span>            : }
+<span class="lineNum">     353 </span>            : 
+<a name="354"><span class="lineNum">     354 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 : ExecContain GetExecContainConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     357 </span>            : {
+<span class="lineNum">     358 </span>            :     ExecContain e;
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :     e.shelltype = ShellTypeFromString(PromiseGetConstraintAsRval(pp, &quot;useshell&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :     e.umask = PromiseGetConstraintAsOctal(ctx, &quot;umask&quot;, pp);</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :     e.owner = PromiseGetConstraintAsUid(ctx, &quot;exec_owner&quot;, pp);</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     e.group = PromiseGetConstraintAsGid(ctx, &quot;exec_group&quot;, pp);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     e.preview = PromiseGetConstraintAsBoolean(ctx, &quot;preview&quot;, pp);</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     e.nooutput = PromiseGetConstraintAsBoolean(ctx, &quot;no_output&quot;, pp);</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     e.timeout = PromiseGetConstraintAsInt(ctx, &quot;exec_timeout&quot;, pp);</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     e.chroot = PromiseGetConstraintAsRval(pp, &quot;chroot&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     e.chdir = PromiseGetConstraintAsRval(pp, &quot;chdir&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :     return e;</span>
+<span class="lineNum">     371 </span>            : }
+<span class="lineNum">     372 </span>            : 
+<a name="373"><span class="lineNum">     373 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 : DirectoryRecursion GetRecursionConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     376 </span>            : {
+<span class="lineNum">     377 </span>            :     DirectoryRecursion r;
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :     r.travlinks = PromiseGetConstraintAsBoolean(ctx, &quot;traverse_links&quot;, pp);</span>
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :     r.rmdeadlinks = PromiseGetConstraintAsBoolean(ctx, &quot;rmdeadlinks&quot;, pp);</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :     r.depth = PromiseGetConstraintAsInt(ctx, &quot;depth&quot;, pp);</span>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     if (r.depth == CF_NOINT)</span>
+<span class="lineNum">     384 </span>            :     {
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :         r.depth = 0;</span>
+<span class="lineNum">     386 </span>            :     }
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :     r.xdev = PromiseGetConstraintAsBoolean(ctx, &quot;xdev&quot;, pp);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     r.include_dirs = PromiseGetConstraintAsList(ctx, &quot;include_dirs&quot;, pp);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     r.exclude_dirs = PromiseGetConstraintAsList(ctx, &quot;exclude_dirs&quot;, pp);</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :     r.include_basedir = PromiseGetConstraintAsBoolean(ctx, &quot;include_basedir&quot;, pp);</span>
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :     return r;</span>
+<span class="lineNum">     393 </span>            : }
+<span class="lineNum">     394 </span>            : 
+<a name="395"><span class="lineNum">     395 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 : Acl GetAclConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     398 </span>            : {
+<span class="lineNum">     399 </span>            :     Acl ac;
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :     ac.acl_method = AclMethodFromString(PromiseGetConstraintAsRval(pp, &quot;acl_method&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :     ac.acl_type = AclTypeFromString(PromiseGetConstraintAsRval(pp, &quot;acl_type&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :     ac.acl_default = AclDefaultFromString(PromiseGetConstraintAsRval(pp, &quot;acl_default&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :     if (ac.acl_default == ACL_DEFAULT_NONE)</span>
+<span class="lineNum">     405 </span>            :     {
+<span class="lineNum">     406 </span>            :         /* Deprecated attribute. */
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :         ac.acl_default = AclDefaultFromString(PromiseGetConstraintAsRval(pp, &quot;acl_directory_inherit&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">     408 </span>            :     }
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :     ac.acl_entries = PromiseGetConstraintAsList(ctx, &quot;aces&quot;, pp);</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :     ac.acl_default_entries = PromiseGetConstraintAsList(ctx, &quot;specify_default_aces&quot;, pp);</span>
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :     if (ac.acl_default_entries == NULL)</span>
+<span class="lineNum">     412 </span>            :     {
+<span class="lineNum">     413 </span>            :         /* Deprecated attribute. */
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         ac.acl_default_entries = PromiseGetConstraintAsList(ctx, &quot;specify_inherit_aces&quot;, pp);</span>
+<span class="lineNum">     415 </span>            :     }
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     ac.acl_inherit = AclInheritFromString(PromiseGetConstraintAsRval(pp, &quot;acl_inherit&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :     return ac;</span>
+<span class="lineNum">     418 </span>            : }
+<span class="lineNum">     419 </span>            : 
+<a name="420"><span class="lineNum">     420 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 : static FilePerms GetPermissionConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     423 </span>            : {
+<span class="lineNum">     424 </span>            :     FilePerms p;
+<span class="lineNum">     425 </span>            :     char *value;
+<span class="lineNum">     426 </span>            :     Rlist *list;
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;mode&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :     p.plus = CF_SAMEMODE;</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     p.minus = CF_SAMEMODE;</span>
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     if (!ParseModeString(value, &amp;p.plus, &amp;p.minus))</span>
+<span class="lineNum">     434 </span>            :     {
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Problem validating a mode string&quot;);</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     437 </span>            :     }
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :     list = PromiseGetConstraintAsList(ctx, &quot;bsdflags&quot;, pp);</span>
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     p.plus_flags = 0;</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     p.minus_flags = 0;</span>
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :     if (list &amp;&amp; (!ParseFlagString(list, &amp;p.plus_flags, &amp;p.minus_flags)))</span>
+<span class="lineNum">     445 </span>            :     {
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Problem validating a BSD flag string&quot;);</span>
+<span class="lineNum">     447 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     448 </span>            :     }
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     p.owners = Rlist2UidList((Rlist *) PromiseGetConstraintAsRval(pp, &quot;owners&quot;, RVAL_TYPE_LIST), pp);</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     p.groups = Rlist2GidList((Rlist *) PromiseGetConstraintAsRval(pp, &quot;groups&quot;, RVAL_TYPE_LIST), pp);</span>
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :     p.findertype = PromiseGetConstraintAsRval(pp, &quot;findertype&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     p.rxdirs = PromiseGetConstraintAsBoolean(ctx, &quot;rxdirs&quot;, pp);</span>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span>            : // The default should be true
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     if (!PromiseGetConstraintAsRval(pp, &quot;rxdirs&quot;, RVAL_TYPE_SCALAR))</span>
+<span class="lineNum">     459 </span>            :     {
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :         p.rxdirs = true;</span>
+<span class="lineNum">     461 </span>            :     }
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :     return p;</span>
+<span class="lineNum">     464 </span>            : }
+<span class="lineNum">     465 </span>            : 
+<a name="466"><span class="lineNum">     466 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 : FileSelect GetSelectConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     469 </span>            : {
+<span class="lineNum">     470 </span>            :     FileSelect s;
+<span class="lineNum">     471 </span>            :     char *value;
+<span class="lineNum">     472 </span>            :     Rlist *rp;
+<span class="lineNum">     473 </span>            :     mode_t plus, minus;
+<span class="lineNum">     474 </span>            :     u_long fplus, fminus;
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :     int entries = false;</span>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     s.name = (Rlist *) PromiseGetConstraintAsRval(pp, &quot;leaf_name&quot;, RVAL_TYPE_LIST);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     s.path = (Rlist *) PromiseGetConstraintAsRval(pp, &quot;path_name&quot;, RVAL_TYPE_LIST);</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     s.filetypes = (Rlist *) PromiseGetConstraintAsRval(pp, &quot;file_types&quot;, RVAL_TYPE_LIST);</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     s.issymlinkto = (Rlist *) PromiseGetConstraintAsRval(pp, &quot;issymlinkto&quot;, RVAL_TYPE_LIST);</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :     s.perms = PromiseGetConstraintAsList(ctx, &quot;search_mode&quot;, pp);</span>
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     for (rp = s.perms; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     485 </span>            :     {
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :         plus = 0;</span>
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :         minus = 0;</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :         value = RlistScalarValue(rp);</span>
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :         if (!ParseModeString(value, &amp;plus, &amp;minus))</span>
+<span class="lineNum">     491 </span>            :         {
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Problem validating a mode string&quot;);</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :             PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     494 </span>            :         }
+<span class="lineNum">     495 </span>            :     }
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     s.bsdflags = PromiseGetConstraintAsList(ctx, &quot;search_bsdflags&quot;, pp);</span>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     fplus = 0;</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     fminus = 0;</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     if (!ParseFlagString(s.bsdflags, &amp;fplus, &amp;fminus))</span>
+<span class="lineNum">     503 </span>            :     {
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Problem validating a BSD flag string&quot;);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     506 </span>            :     }
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     if ((s.name) || (s.path) || (s.filetypes) || (s.issymlinkto) || (s.perms) || (s.bsdflags))</span>
+<span class="lineNum">     509 </span>            :     {
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :         entries = true;</span>
+<span class="lineNum">     511 </span>            :     }
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     s.owners = (Rlist *) PromiseGetConstraintAsRval(pp, &quot;search_owners&quot;, RVAL_TYPE_LIST);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :     s.groups = (Rlist *) PromiseGetConstraintAsRval(pp, &quot;search_groups&quot;, RVAL_TYPE_LIST);</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;search_size&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">     518 </span>            :     {
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">     520 </span>            :     }
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, (long *) &amp;s.min_size, (long *) &amp;s.max_size))</span>
+<span class="lineNum">     523 </span>            :     {
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">     526 </span>            :     }
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;ctime&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">     530 </span>            :     {
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">     532 </span>            :     }
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, (long *) &amp;s.min_ctime, (long *) &amp;s.max_ctime))</span>
+<span class="lineNum">     535 </span>            :     {
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">     538 </span>            :     }
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;atime&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">     542 </span>            :     {
+<span class="lineNum">     543 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">     544 </span>            :     }
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, (long *) &amp;s.min_atime, (long *) &amp;s.max_atime))</span>
+<span class="lineNum">     547 </span>            :     {
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">     550 </span>            :     }
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;mtime&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">     553 </span>            :     {
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">     555 </span>            :     }
+<span class="lineNum">     556 </span>            : 
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, (long *) &amp;s.min_mtime, (long *) &amp;s.max_mtime))</span>
+<span class="lineNum">     558 </span>            :     {
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">     561 </span>            :     }
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     s.exec_regex = PromiseGetConstraintAsRval(pp, &quot;exec_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     s.exec_program = PromiseGetConstraintAsRval(pp, &quot;exec_program&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :     if ((s.owners) || (s.min_size) || (s.exec_regex) || (s.exec_program))</span>
+<span class="lineNum">     567 </span>            :     {
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :         entries = true;</span>
+<span class="lineNum">     569 </span>            :     }
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :     if ((s.result = PromiseGetConstraintAsRval(pp, &quot;file_result&quot;, RVAL_TYPE_SCALAR)) == NULL)</span>
+<span class="lineNum">     572 </span>            :     {
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :         if (!entries)</span>
+<span class="lineNum">     574 </span>            :         {
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;file_select body missing its a file_result return value&quot;);</span>
+<span class="lineNum">     576 </span>            :         }
+<span class="lineNum">     577 </span>            :     }
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     return s;</span>
+<span class="lineNum">     580 </span>            : }
+<span class="lineNum">     581 </span>            : 
+<a name="582"><span class="lineNum">     582 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span><span class="lineCov">   29859840 : LogLevel ActionAttributeLogLevelFromString(const char *log_level)</span>
+<span class="lineNum">     585 </span>            : {
+<span class="lineNum">     586 </span><span class="lineCov">   29859840 :     if (!log_level)</span>
+<span class="lineNum">     587 </span>            :     {
+<span class="lineNum">     588 </span><span class="lineCov">   29859840 :         return LOG_LEVEL_ERR;</span>
+<span class="lineNum">     589 </span>            :     }
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :     if (strcmp(&quot;inform&quot;, log_level) == 0)</span>
+<span class="lineNum">     592 </span>            :     {
+<span class="lineNum">     593 </span><span class="lineNoCov">          0 :         return LOG_LEVEL_INFO;</span>
+<span class="lineNum">     594 </span>            :     }
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :     else if (strcmp(&quot;verbose&quot;, log_level) == 0)</span>
+<span class="lineNum">     596 </span>            :     {
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :         return LOG_LEVEL_VERBOSE;</span>
+<span class="lineNum">     598 </span>            :     }
+<span class="lineNum">     599 </span>            :     else
+<span class="lineNum">     600 </span>            :     {
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :         return LOG_LEVEL_ERR;</span>
+<span class="lineNum">     602 </span>            :     }
+<a name="603"><span class="lineNum">     603 </span>            : }</a>
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span><span class="lineCov">   14929920 : TransactionContext GetTransactionConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     606 </span>            : {
+<span class="lineNum">     607 </span>            :     TransactionContext t;
+<span class="lineNum">     608 </span>            :     char *value;
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span><span class="lineCov">   14929920 :     value = PromiseGetConstraintAsRval(pp, &quot;action_policy&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span><span class="lineCov">   14929920 :     if (value &amp;&amp; ((strcmp(value, &quot;warn&quot;) == 0) || (strcmp(value, &quot;nop&quot;) == 0)))</span>
+<span class="lineNum">     613 </span>            :     {
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :         t.action = cfa_warn;</span>
+<span class="lineNum">     615 </span>            :     }
+<span class="lineNum">     616 </span>            :     else
+<span class="lineNum">     617 </span>            :     {
+<span class="lineNum">     618 </span><span class="lineCov">   14929920 :         t.action = cfa_fix;     // default</span>
+<span class="lineNum">     619 </span>            :     }
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span><span class="lineCov">   14929920 :     t.background = PromiseGetConstraintAsBoolean(ctx, &quot;background&quot;, pp);</span>
+<span class="lineNum">     622 </span><span class="lineCov">   14929920 :     t.ifelapsed = PromiseGetConstraintAsInt(ctx, &quot;ifelapsed&quot;, pp);</span>
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span><span class="lineCov">   14929920 :     if (t.ifelapsed == CF_NOINT)</span>
+<span class="lineNum">     625 </span>            :     {
+<span class="lineNum">     626 </span><span class="lineCov">   14929920 :         t.ifelapsed = VIFELAPSED;</span>
+<span class="lineNum">     627 </span>            :     }
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span><span class="lineCov">   14929920 :     t.expireafter = PromiseGetConstraintAsInt(ctx, &quot;expireafter&quot;, pp);</span>
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span><span class="lineCov">   14929920 :     if (t.expireafter == CF_NOINT)</span>
+<span class="lineNum">     632 </span>            :     {
+<span class="lineNum">     633 </span><span class="lineCov">   14929920 :         t.expireafter = VEXPIREAFTER;</span>
+<span class="lineNum">     634 </span>            :     }
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span><span class="lineCov">   14929920 :     t.audit = PromiseGetConstraintAsBoolean(ctx, &quot;audit&quot;, pp);</span>
+<span class="lineNum">     637 </span><span class="lineCov">   14929920 :     t.log_string = PromiseGetConstraintAsRval(pp, &quot;log_string&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     638 </span><span class="lineCov">   14929920 :     t.log_priority = SyslogPriorityFromString(PromiseGetConstraintAsRval(pp, &quot;log_priority&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span><span class="lineCov">   14929920 :     t.log_kept = PromiseGetConstraintAsRval(pp, &quot;log_kept&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     641 </span><span class="lineCov">   14929920 :     t.log_repaired = PromiseGetConstraintAsRval(pp, &quot;log_repaired&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     642 </span><span class="lineCov">   14929920 :     t.log_failed = PromiseGetConstraintAsRval(pp, &quot;log_failed&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span><span class="lineCov">   14929920 :     value = PromiseGetConstraintAsRval(pp, &quot;log_level&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     645 </span><span class="lineCov">   14929920 :     t.log_level = ActionAttributeLogLevelFromString(value);</span>
+<span class="lineNum">     646 </span>            : 
+<span class="lineNum">     647 </span><span class="lineCov">   14929920 :     value = PromiseGetConstraintAsRval(pp, &quot;report_level&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     648 </span><span class="lineCov">   14929920 :     t.report_level = ActionAttributeLogLevelFromString(value);</span>
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span><span class="lineCov">   14929920 :     t.measure_id = PromiseGetConstraintAsRval(pp, &quot;measurement_class&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span><span class="lineCov">   14929920 :     return t;</span>
+<span class="lineNum">     653 </span>            : }
+<span class="lineNum">     654 </span>            : 
+<a name="655"><span class="lineNum">     655 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     656 </span>            : 
+<span class="lineNum">     657 </span><span class="lineCov">   14930240 : DefineClasses GetClassDefinitionConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     658 </span>            : {
+<span class="lineNum">     659 </span>            :     DefineClasses c;
+<span class="lineNum">     660 </span><span class="lineCov">   14930240 :     char *pt = NULL;</span>
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span>            :     {
+<span class="lineNum">     663 </span><span class="lineCov">   14930240 :         const char *context_scope = PromiseGetConstraintAsRval(pp, &quot;scope&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     664 </span><span class="lineCov">   14930240 :         c.scope = ContextScopeFromString(context_scope);</span>
+<span class="lineNum">     665 </span>            :     }
+<span class="lineNum">     666 </span><span class="lineCov">   14930240 :     c.change = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;promise_repaired&quot;, pp);</span>
+<span class="lineNum">     667 </span><span class="lineCov">   14930240 :     c.failure = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;repair_failed&quot;, pp);</span>
+<span class="lineNum">     668 </span><span class="lineCov">   14930240 :     c.denied = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;repair_denied&quot;, pp);</span>
+<span class="lineNum">     669 </span><span class="lineCov">   14930240 :     c.timeout = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;repair_timeout&quot;, pp);</span>
+<span class="lineNum">     670 </span><span class="lineCov">   14930240 :     c.kept = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;promise_kept&quot;, pp);</span>
+<span class="lineNum">     671 </span>            : 
+<span class="lineNum">     672 </span><span class="lineCov">   14930240 :     c.del_change = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;cancel_repaired&quot;, pp);</span>
+<span class="lineNum">     673 </span><span class="lineCov">   14930240 :     c.del_kept = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;cancel_kept&quot;, pp);</span>
+<span class="lineNum">     674 </span><span class="lineCov">   14930240 :     c.del_notkept = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;cancel_notkept&quot;, pp);</span>
+<span class="lineNum">     675 </span>            : 
+<span class="lineNum">     676 </span><span class="lineCov">   14930240 :     c.retcode_kept = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;kept_returncodes&quot;, pp);</span>
+<span class="lineNum">     677 </span><span class="lineCov">   14930240 :     c.retcode_repaired = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;repaired_returncodes&quot;, pp);</span>
+<span class="lineNum">     678 </span><span class="lineCov">   14930240 :     c.retcode_failed = (Rlist *) PromiseGetConstraintAsList(ctx, &quot;failed_returncodes&quot;, pp);</span>
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span><span class="lineCov">   14930240 :     c.persist = PromiseGetConstraintAsInt(ctx, &quot;persist_time&quot;, pp);</span>
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span><span class="lineCov">   14930240 :     if (c.persist == CF_NOINT)</span>
+<span class="lineNum">     683 </span>            :     {
+<span class="lineNum">     684 </span><span class="lineCov">   14930240 :         c.persist = 0;</span>
+<span class="lineNum">     685 </span>            :     }
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span><span class="lineCov">   14930240 :     pt = PromiseGetConstraintAsRval(pp, &quot;timer_policy&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     688 </span>            : 
+<span class="lineNum">     689 </span><span class="lineCov">   14930240 :     if (pt &amp;&amp; (strncmp(pt, &quot;abs&quot;, 3) == 0))</span>
+<span class="lineNum">     690 </span>            :     {
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :         c.timer = CONTEXT_STATE_POLICY_PRESERVE;</span>
+<span class="lineNum">     692 </span>            :     }
+<span class="lineNum">     693 </span>            :     else
+<span class="lineNum">     694 </span>            :     {
+<span class="lineNum">     695 </span><span class="lineCov">   14930240 :         c.timer = CONTEXT_STATE_POLICY_RESET;</span>
+<span class="lineNum">     696 </span>            :     }
+<span class="lineNum">     697 </span>            : 
+<span class="lineNum">     698 </span><span class="lineCov">   14930240 :     return c;</span>
+<span class="lineNum">     699 </span>            : }
+<span class="lineNum">     700 </span>            : 
+<a name="701"><span class="lineNum">     701 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 : FileDelete GetDeleteConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     704 </span>            : {
+<span class="lineNum">     705 </span>            :     FileDelete f;
+<span class="lineNum">     706 </span>            :     char *value;
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;dirlinks&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; (strcmp(value, &quot;keep&quot;) == 0))</span>
+<span class="lineNum">     711 </span>            :     {
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :         f.dirlinks = TIDY_LINK_KEEP;</span>
+<span class="lineNum">     713 </span>            :     }
+<span class="lineNum">     714 </span>            :     else
+<span class="lineNum">     715 </span>            :     {
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 :         f.dirlinks = TIDY_LINK_DELETE;</span>
+<span class="lineNum">     717 </span>            :     }
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :     f.rmdirs = PromiseGetConstraintAsBoolean(ctx, &quot;rmdirs&quot;, pp);</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :     return f;</span>
+<span class="lineNum">     721 </span>            : }
+<span class="lineNum">     722 </span>            : 
+<a name="723"><span class="lineNum">     723 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 : FileRename GetRenameConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     726 </span>            : {
+<span class="lineNum">     727 </span>            :     FileRename r;
+<span class="lineNum">     728 </span>            :     char *value;
+<span class="lineNum">     729 </span>            : 
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;disable_mode&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     731 </span>            : 
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :     if (!ParseModeString(value, &amp;r.plus, &amp;r.minus))</span>
+<span class="lineNum">     733 </span>            :     {
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Problem validating a mode string&quot;);</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     736 </span>            :     }
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :     r.disable = PromiseGetConstraintAsBoolean(ctx, &quot;disable&quot;, pp);</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :     r.disable_suffix = PromiseGetConstraintAsRval(pp, &quot;disable_suffix&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :     r.newname = PromiseGetConstraintAsRval(pp, &quot;newname&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :     r.rotate = PromiseGetConstraintAsInt(ctx, &quot;rotate&quot;, pp);</span>
+<span class="lineNum">     742 </span>            : 
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :     return r;</span>
+<span class="lineNum">     744 </span>            : }
+<span class="lineNum">     745 </span>            : 
+<a name="746"><span class="lineNum">     746 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     747 </span>            : 
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 : ENTERPRISE_FUNC_0ARG_DEFINE_STUB(HashMethod, GetBestFileChangeHashMethod)</span>
+<span class="lineNum">     749 </span>            : {
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :     return HASH_METHOD_BEST;</span>
+<a name="751"><span class="lineNum">     751 </span>            : }</a>
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 : FileChange GetChangeMgtConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     754 </span>            : {
+<span class="lineNum">     755 </span>            :     FileChange c;
+<span class="lineNum">     756 </span>            :     char *value;
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;hash&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     759 </span>            : 
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; (strcmp(value, &quot;best&quot;) == 0))</span>
+<span class="lineNum">     761 </span>            :     {
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :         c.hash = GetBestFileChangeHashMethod();</span>
+<span class="lineNum">     763 </span>            :     }
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;md5&quot;) == 0))</span>
+<span class="lineNum">     765 </span>            :     {
+<span class="lineNum">     766 </span><span class="lineNoCov">          0 :         c.hash = HASH_METHOD_MD5;</span>
+<span class="lineNum">     767 </span>            :     }
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;sha1&quot;) == 0))</span>
+<span class="lineNum">     769 </span>            :     {
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :         c.hash = HASH_METHOD_SHA1;</span>
+<span class="lineNum">     771 </span>            :     }
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;sha256&quot;) == 0))</span>
+<span class="lineNum">     773 </span>            :     {
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :         c.hash = HASH_METHOD_SHA256;</span>
+<span class="lineNum">     775 </span>            :     }
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;sha384&quot;) == 0))</span>
+<span class="lineNum">     777 </span>            :     {
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :         c.hash = HASH_METHOD_SHA384;</span>
+<span class="lineNum">     779 </span>            :     }
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;sha512&quot;) == 0))</span>
+<span class="lineNum">     781 </span>            :     {
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :         c.hash = HASH_METHOD_SHA512;</span>
+<span class="lineNum">     783 </span>            :     }
+<span class="lineNum">     784 </span>            :     else
+<span class="lineNum">     785 </span>            :     {
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :         c.hash = CF_DEFAULT_DIGEST;</span>
+<span class="lineNum">     787 </span>            :     }
+<span class="lineNum">     788 </span>            : 
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :     if (FIPS_MODE &amp;&amp; (c.hash == HASH_METHOD_MD5))</span>
+<span class="lineNum">     790 </span>            :     {
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;FIPS mode is enabled, and md5 is not an approved algorithm&quot;);</span>
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     793 </span>            :     }
+<span class="lineNum">     794 </span>            : 
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;report_changes&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; (strcmp(value, &quot;content&quot;) == 0))</span>
+<span class="lineNum">     798 </span>            :     {
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :         c.report_changes = FILE_CHANGE_REPORT_CONTENT_CHANGE;</span>
+<span class="lineNum">     800 </span>            :     }
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;stats&quot;) == 0))</span>
+<span class="lineNum">     802 </span>            :     {
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :         c.report_changes = FILE_CHANGE_REPORT_STATS_CHANGE;</span>
+<span class="lineNum">     804 </span>            :     }
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;all&quot;) == 0))</span>
+<span class="lineNum">     806 </span>            :     {
+<span class="lineNum">     807 </span><span class="lineNoCov">          0 :         c.report_changes = FILE_CHANGE_REPORT_ALL;</span>
+<span class="lineNum">     808 </span>            :     }
+<span class="lineNum">     809 </span>            :     else
+<span class="lineNum">     810 </span>            :     {
+<span class="lineNum">     811 </span><span class="lineNoCov">          0 :         c.report_changes = FILE_CHANGE_REPORT_NONE;</span>
+<span class="lineNum">     812 </span>            :     }
+<span class="lineNum">     813 </span>            : 
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :     if (PromiseGetConstraintAsRval(pp, &quot;update_hashes&quot;, RVAL_TYPE_SCALAR))</span>
+<span class="lineNum">     815 </span>            :     {
+<span class="lineNum">     816 </span><span class="lineNoCov">          0 :         c.update = PromiseGetConstraintAsBoolean(ctx, &quot;update_hashes&quot;, pp);</span>
+<span class="lineNum">     817 </span>            :     }
+<span class="lineNum">     818 </span>            :     else
+<span class="lineNum">     819 </span>            :     {
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :         c.update = GetChecksumUpdatesDefault(ctx);</span>
+<span class="lineNum">     821 </span>            :     }
+<span class="lineNum">     822 </span>            : 
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :     c.report_diffs = PromiseGetConstraintAsBoolean(ctx, &quot;report_diffs&quot;, pp);</span>
+<span class="lineNum">     824 </span><span class="lineNoCov">          0 :     return c;</span>
+<span class="lineNum">     825 </span>            : }
+<span class="lineNum">     826 </span>            : 
+<a name="827"><span class="lineNum">     827 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     828 </span>            : 
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 : FileCopy GetCopyConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     830 </span>            : {
+<span class="lineNum">     831 </span>            :     FileCopy f;
+<span class="lineNum">     832 </span>            :     long min, max;
+<span class="lineNum">     833 </span>            :     const char *value;
+<span class="lineNum">     834 </span>            : 
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :     f.source = PromiseGetConstraintAsRval(pp, &quot;source&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :     f.servers = PromiseGetConstraintAsList(ctx, &quot;servers&quot;, pp);</span>
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;compare&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     839 </span><span class="lineNoCov">          0 :     if (value == NULL)</span>
+<span class="lineNum">     840 </span>            :     {
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :         value = DEFAULT_COPYTYPE;</span>
+<span class="lineNum">     842 </span>            :     }
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :     f.compare = FileComparatorFromString(value);</span>
+<span class="lineNum">     844 </span>            : 
+<span class="lineNum">     845 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;link_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :     f.link_type = FileLinkTypeFromString(value);</span>
+<span class="lineNum">     847 </span>            : 
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :     char *protocol_version = PromiseGetConstraintAsRval(pp, &quot;protocol_version&quot;,</span>
+<span class="lineNum">     849 </span>            :                                                         RVAL_TYPE_SCALAR);
+<span class="lineNum">     850 </span>            : 
+<span class="lineNum">     851 </span>            :     /* Default is undefined, which leaves the choice to body common. */
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :     f.protocol_version = CF_PROTOCOL_UNDEFINED;</span>
+<span class="lineNum">     853 </span><span class="lineNoCov">          0 :     if (protocol_version != NULL)</span>
+<span class="lineNum">     854 </span>            :     {
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 :         if (strcmp(protocol_version, &quot;1&quot;) == 0 ||</span>
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :             strcmp(protocol_version, &quot;classic&quot;) == 0)</span>
+<span class="lineNum">     857 </span>            :         {
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :             f.protocol_version = CF_PROTOCOL_CLASSIC;</span>
+<span class="lineNum">     859 </span>            :         }
+<span class="lineNum">     860 </span><span class="lineNoCov">          0 :         else if (strcmp(protocol_version, &quot;2&quot;) == 0 ||</span>
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :                  strcmp(protocol_version, &quot;latest&quot;) == 0)</span>
+<span class="lineNum">     862 </span>            :         {
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :             f.protocol_version = CF_PROTOCOL_TLS;</span>
+<span class="lineNum">     864 </span>            :         }
+<span class="lineNum">     865 </span>            :     }
+<span class="lineNum">     866 </span>            : 
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :     f.port = PromiseGetConstraintAsRval(pp, &quot;portnumber&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     868 </span><span class="lineNoCov">          0 :     f.timeout = (short) PromiseGetConstraintAsInt(ctx, &quot;timeout&quot;, pp);</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :     f.link_instead = PromiseGetConstraintAsList(ctx, &quot;linkcopy_patterns&quot;, pp);</span>
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :     f.copy_links = PromiseGetConstraintAsList(ctx, &quot;copylink_patterns&quot;, pp);</span>
+<span class="lineNum">     871 </span>            : 
+<span class="lineNum">     872 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;copy_backup&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     873 </span>            : 
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; (strcmp(value, &quot;false&quot;) == 0))</span>
+<span class="lineNum">     875 </span>            :     {
+<span class="lineNum">     876 </span><span class="lineNoCov">          0 :         f.backup = BACKUP_OPTION_NO_BACKUP;</span>
+<span class="lineNum">     877 </span>            :     }
+<span class="lineNum">     878 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;timestamp&quot;) == 0))</span>
+<span class="lineNum">     879 </span>            :     {
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :         f.backup = BACKUP_OPTION_TIMESTAMP;</span>
+<span class="lineNum">     881 </span>            :     }
+<span class="lineNum">     882 </span>            :     else
+<span class="lineNum">     883 </span>            :     {
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :         f.backup = BACKUP_OPTION_BACKUP;</span>
+<span class="lineNum">     885 </span>            :     }
+<span class="lineNum">     886 </span>            : 
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :     f.stealth = PromiseGetConstraintAsBoolean(ctx, &quot;stealth&quot;, pp);</span>
+<span class="lineNum">     888 </span><span class="lineNoCov">          0 :     f.collapse = PromiseGetConstraintAsBoolean(ctx, &quot;collapse_destination_dir&quot;, pp);</span>
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :     f.preserve = PromiseGetConstraintAsBoolean(ctx, &quot;preserve&quot;, pp);</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :     f.type_check = PromiseGetConstraintAsBoolean(ctx, &quot;type_check&quot;, pp);</span>
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :     f.force_update = PromiseGetConstraintAsBoolean(ctx, &quot;force_update&quot;, pp);</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :     f.force_ipv4 = PromiseGetConstraintAsBoolean(ctx, &quot;force_ipv4&quot;, pp);</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :     f.check_root = PromiseGetConstraintAsBoolean(ctx, &quot;check_root&quot;, pp);</span>
+<span class="lineNum">     894 </span>            : 
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;copy_size&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, &amp;min, &amp;max))</span>
+<span class="lineNum">     897 </span>            :     {
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">     900 </span>            :     }
+<span class="lineNum">     901 </span>            : 
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :     f.min_size = (size_t) min;</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :     f.max_size = (size_t) max;</span>
+<span class="lineNum">     904 </span>            : 
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :     f.trustkey = PromiseGetConstraintAsBoolean(ctx, &quot;trustkey&quot;, pp);</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :     f.encrypt = PromiseGetConstraintAsBoolean(ctx, &quot;encrypt&quot;, pp);</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :     f.verify = PromiseGetConstraintAsBoolean(ctx, &quot;verify&quot;, pp);</span>
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :     f.purge = PromiseGetConstraintAsBoolean(ctx, &quot;purge&quot;, pp);</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :     f.destination = NULL;</span>
+<span class="lineNum">     910 </span>            : 
+<span class="lineNum">     911 </span><span class="lineNoCov">          0 :     return f;</span>
+<span class="lineNum">     912 </span>            : }
+<span class="lineNum">     913 </span>            : 
+<a name="914"><span class="lineNum">     914 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     915 </span>            : 
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 : FileLink GetLinkConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     917 </span>            : {
+<span class="lineNum">     918 </span>            :     FileLink f;
+<span class="lineNum">     919 </span>            :     char *value;
+<span class="lineNum">     920 </span>            : 
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :     f.source = PromiseGetConstraintAsRval(pp, &quot;source&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     922 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;link_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :     f.link_type = FileLinkTypeFromString(value);</span>
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :     f.copy_patterns = PromiseGetConstraintAsList(ctx, &quot;copy_patterns&quot;, pp);</span>
+<span class="lineNum">     925 </span>            : 
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;when_no_source&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     927 </span>            : 
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; (strcmp(value, &quot;force&quot;) == 0))</span>
+<span class="lineNum">     929 </span>            :     {
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :         f.when_no_file = cfa_force;</span>
+<span class="lineNum">     931 </span>            :     }
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;delete&quot;) == 0))</span>
+<span class="lineNum">     933 </span>            :     {
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :         f.when_no_file = cfa_delete;</span>
+<span class="lineNum">     935 </span>            :     }
+<span class="lineNum">     936 </span>            :     else
+<span class="lineNum">     937 </span>            :     {
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :         f.when_no_file = cfa_skip;</span>
+<span class="lineNum">     939 </span>            :     }
+<span class="lineNum">     940 </span>            : 
+<span class="lineNum">     941 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;when_linking_children&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     942 </span>            : 
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; (strcmp(value, &quot;override_file&quot;) == 0))</span>
+<span class="lineNum">     944 </span>            :     {
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :         f.when_linking_children = cfa_override;</span>
+<span class="lineNum">     946 </span>            :     }
+<span class="lineNum">     947 </span>            :     else
+<span class="lineNum">     948 </span>            :     {
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :         f.when_linking_children = cfa_onlynonexisting;</span>
+<span class="lineNum">     950 </span>            :     }
+<span class="lineNum">     951 </span>            : 
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :     f.link_children = PromiseGetConstraintAsBoolean(ctx, &quot;link_children&quot;, pp);</span>
+<span class="lineNum">     953 </span>            : 
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :     return f;</span>
+<span class="lineNum">     955 </span>            : }
+<span class="lineNum">     956 </span>            : 
+<a name="957"><span class="lineNum">     957 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     958 </span>            : 
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 : EditDefaults GetEditDefaults(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">     960 </span>            : {
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :     EditDefaults e = { 0 };</span>
+<span class="lineNum">     962 </span>            :     char *value;
+<span class="lineNum">     963 </span>            : 
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :     e.maxfilesize = PromiseGetConstraintAsInt(ctx, &quot;max_file_size&quot;, pp);</span>
+<span class="lineNum">     965 </span>            : 
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :     if (e.maxfilesize == CF_NOINT)</span>
+<span class="lineNum">     967 </span>            :     {
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :         e.maxfilesize = EDITFILESIZE;</span>
+<span class="lineNum">     969 </span>            :     }
+<span class="lineNum">     970 </span>            : 
+<span class="lineNum">     971 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;edit_backup&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">     972 </span>            : 
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; (strcmp(value, &quot;false&quot;) == 0))</span>
+<span class="lineNum">     974 </span>            :     {
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :         e.backup = BACKUP_OPTION_NO_BACKUP;</span>
+<span class="lineNum">     976 </span>            :     }
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;timestamp&quot;) == 0))</span>
+<span class="lineNum">     978 </span>            :     {
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :         e.backup = BACKUP_OPTION_TIMESTAMP;</span>
+<span class="lineNum">     980 </span>            :     }
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :     else if (value &amp;&amp; (strcmp(value, &quot;rotate&quot;) == 0))</span>
+<span class="lineNum">     982 </span>            :     {
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :         e.backup = BACKUP_OPTION_ROTATE;</span>
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :         e.rotate = PromiseGetConstraintAsInt(ctx, &quot;rotate&quot;, pp);</span>
+<span class="lineNum">     985 </span>            :     }
+<span class="lineNum">     986 </span>            :     else
+<span class="lineNum">     987 </span>            :     {
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :         e.backup = BACKUP_OPTION_BACKUP;</span>
+<span class="lineNum">     989 </span>            :     }
+<span class="lineNum">     990 </span>            : 
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :     e.empty_before_use = PromiseGetConstraintAsBoolean(ctx, &quot;empty_file_before_editing&quot;, pp);</span>
+<span class="lineNum">     992 </span>            : 
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :     e.joinlines = PromiseGetConstraintAsBoolean(ctx, &quot;recognize_join&quot;, pp);</span>
+<span class="lineNum">     994 </span>            : 
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :     e.inherit = PromiseGetConstraintAsBoolean(ctx, &quot;inherit&quot;, pp);</span>
+<span class="lineNum">     996 </span>            : 
+<span class="lineNum">     997 </span><span class="lineNoCov">          0 :     return e;</span>
+<span class="lineNum">     998 </span>            : }
+<span class="lineNum">     999 </span>            : 
+<a name="1000"><span class="lineNum">    1000 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1001 </span>            : 
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 : ContextConstraint GetContextConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1003 </span>            : {
+<span class="lineNum">    1004 </span>            :     ContextConstraint a;
+<span class="lineNum">    1005 </span>            : 
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 :     a.nconstraints = 0;</span>
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :     a.expression = NULL;</span>
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :     a.persistent = PromiseGetConstraintAsInt(ctx, &quot;persistence&quot;, pp);</span>
+<span class="lineNum">    1009 </span>            : 
+<span class="lineNum">    1010 </span>            :     {
+<span class="lineNum">    1011 </span><span class="lineNoCov">          0 :         const char *context_scope = PromiseGetConstraintAsRval(pp, &quot;scope&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :         a.scope = ContextScopeFromString(context_scope);</span>
+<span class="lineNum">    1013 </span>            :     }
+<span class="lineNum">    1014 </span>            : 
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :     for (size_t i = 0; i &lt; SeqLength(pp-&gt;conlist); i++)</span>
+<span class="lineNum">    1016 </span>            :     {
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :         Constraint *cp = SeqAt(pp-&gt;conlist, i);</span>
+<span class="lineNum">    1018 </span>            : 
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :         for (int k = 0; CF_CLASSBODY[k].lval != NULL; k++)</span>
+<span class="lineNum">    1020 </span>            :         {
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, &quot;persistence&quot;) == 0 || strcmp(cp-&gt;lval, &quot;scope&quot;) == 0)</span>
+<span class="lineNum">    1022 </span>            :             {
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1024 </span>            :             }
+<span class="lineNum">    1025 </span>            : 
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CF_CLASSBODY[k].lval) == 0)</span>
+<span class="lineNum">    1027 </span>            :             {
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :                 a.expression = cp;</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :                 a.nconstraints++;</span>
+<span class="lineNum">    1030 </span>            :             }
+<span class="lineNum">    1031 </span>            :         }
+<span class="lineNum">    1032 </span>            :     }
+<span class="lineNum">    1033 </span>            : 
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :     return a;</span>
+<span class="lineNum">    1035 </span>            : }
+<span class="lineNum">    1036 </span>            : 
+<a name="1037"><span class="lineNum">    1037 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1038 </span>            : 
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 : Packages GetPackageConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1040 </span>            : {
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :     Packages p = {0};</span>
+<span class="lineNum">    1042 </span>            :     
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :     bool has_package_method = </span>
+<span class="lineNum">    1044 </span>            :             PromiseBundleOrBodyConstraintExists(ctx, &quot;package_method&quot;, pp);
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :     bool has_generic_package_method = false;</span>
+<span class="lineNum">    1046 </span>            :     
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :     if (!has_package_method)</span>
+<span class="lineNum">    1048 </span>            :     {
+<span class="lineNum">    1049 </span>            :         /* Check if we have generic package_method. */
+<span class="lineNum">    1050 </span><span class="lineNoCov">          0 :         const Policy *policy = PolicyFromPromise(pp);</span>
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :         Seq *bodies_and_args = EvalContextResolveBodyExpression(ctx, policy, &quot;generic&quot;, &quot;package_method&quot;);; // at position 0 we'll have the body, then its rval, then the same for each of its inherit_from parents</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :         if (NULL != bodies_and_args &amp;&amp;</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 :             SeqLength(bodies_and_args) &gt; 0)</span>
+<span class="lineNum">    1054 </span>            :         {
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :             const Body *bp = SeqAt(bodies_and_args, 0); // guaranteed to be non-NULL</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :             CopyBodyConstraintsToPromise((EvalContext*)ctx, (Promise*)pp, bp);</span>
+<span class="lineNum">    1057 </span><span class="lineNoCov">          0 :             has_generic_package_method = true;</span>
+<span class="lineNum">    1058 </span>            :         }
+<span class="lineNum">    1059 </span>            :     }
+<span class="lineNum">    1060 </span>            : 
+<span class="lineNum">    1061 </span>            :     
+<span class="lineNum">    1062 </span><span class="lineNoCov">          0 :     p.package_version = PromiseGetConstraintAsRval(pp, &quot;package_version&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1063 </span><span class="lineNoCov">          0 :     p.package_architectures = PromiseGetConstraintAsList(ctx, &quot;package_architectures&quot;, pp);</span>
+<span class="lineNum">    1064 </span><span class="lineNoCov">          0 :     p.package_select = PackageVersionComparatorFromString(PromiseGetConstraintAsRval(pp, &quot;package_select&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :     p.package_policy = PackageActionFromString(PromiseGetConstraintAsRval(pp, &quot;package_policy&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">    1066 </span>            : 
+<span class="lineNum">    1067 </span><span class="lineNoCov">          0 :     if (p.package_version == NULL &amp;&amp; p.package_architectures == NULL &amp;&amp;</span>
+<span class="lineNum">    1068 </span><span class="lineNoCov">          0 :         p.package_select == PACKAGE_VERSION_COMPARATOR_NONE &amp;&amp;</span>
+<span class="lineNum">    1069 </span><span class="lineNoCov">          0 :         p.package_policy == PACKAGE_ACTION_NONE)</span>
+<span class="lineNum">    1070 </span>            :     {
+<span class="lineNum">    1071 </span><span class="lineNoCov">          0 :         p.is_empty = true;</span>
+<span class="lineNum">    1072 </span>            :     }
+<span class="lineNum">    1073 </span>            :     else
+<span class="lineNum">    1074 </span>            :     {
+<span class="lineNum">    1075 </span><span class="lineNoCov">          0 :         p.is_empty = false;</span>
+<span class="lineNum">    1076 </span>            :     }
+<span class="lineNum">    1077 </span>            :     
+<span class="lineNum">    1078 </span><span class="lineNoCov">          0 :     if (p.package_policy == PACKAGE_ACTION_NONE)        // Default action =&gt; package add</span>
+<span class="lineNum">    1079 </span>            :     {
+<span class="lineNum">    1080 </span><span class="lineNoCov">          0 :         p.package_policy = PACKAGE_ACTION_ADD;</span>
+<span class="lineNum">    1081 </span>            :     }
+<span class="lineNum">    1082 </span>            :     
+<span class="lineNum">    1083 </span><span class="lineNoCov">          0 :     p.has_package_method = has_package_method | has_generic_package_method;</span>
+<span class="lineNum">    1084 </span>            : 
+<span class="lineNum">    1085 </span>            :     /* body package_method constraints */
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :     p.package_add_command = PromiseGetConstraintAsRval(pp, &quot;package_add_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1087 </span><span class="lineNoCov">          0 :     p.package_arch_regex = PromiseGetConstraintAsRval(pp, &quot;package_arch_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :     p.package_changes = PackageActionPolicyFromString(PromiseGetConstraintAsRval(pp, &quot;package_changes&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :     p.package_delete_command = PromiseGetConstraintAsRval(pp, &quot;package_delete_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1090 </span><span class="lineNoCov">          0 :     p.package_delete_convention = PromiseGetConstraintAsRval(pp, &quot;package_delete_convention&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1091 </span><span class="lineNoCov">          0 :     p.package_file_repositories = PromiseGetConstraintAsList(ctx, &quot;package_file_repositories&quot;, pp);</span>
+<span class="lineNum">    1092 </span><span class="lineNoCov">          0 :     p.package_installed_regex = PromiseGetConstraintAsRval(pp, &quot;package_installed_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1093 </span><span class="lineNoCov">          0 :     p.package_default_arch_command = PromiseGetConstraintAsRval(pp, &quot;package_default_arch_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1094 </span><span class="lineNoCov">          0 :     p.package_list_arch_regex = PromiseGetConstraintAsRval(pp, &quot;package_list_arch_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1095 </span><span class="lineNoCov">          0 :     p.package_list_command = PromiseGetConstraintAsRval(pp, &quot;package_list_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1096 </span><span class="lineNoCov">          0 :     p.package_name_regex = PromiseGetConstraintAsRval(pp, &quot;package_name_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1097 </span><span class="lineNoCov">          0 :     p.package_list_update_command = PromiseGetConstraintAsRval(pp, &quot;package_list_update_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1098 </span><span class="lineNoCov">          0 :     p.package_list_update_ifelapsed = PromiseGetConstraintAsInt(ctx, &quot;package_list_update_ifelapsed&quot;, pp);</span>
+<span class="lineNum">    1099 </span><span class="lineNoCov">          0 :     p.package_list_version_regex = PromiseGetConstraintAsRval(pp, &quot;package_list_version_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1100 </span><span class="lineNoCov">          0 :     p.package_name_convention = PromiseGetConstraintAsRval(pp, &quot;package_name_convention&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1101 </span><span class="lineNoCov">          0 :     p.package_patch_name_regex = PromiseGetConstraintAsRval(pp, &quot;package_patch_name_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1102 </span><span class="lineNoCov">          0 :     p.package_noverify_regex = PromiseGetConstraintAsRval(pp, &quot;package_noverify_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1103 </span><span class="lineNoCov">          0 :     p.package_noverify_returncode = PromiseGetConstraintAsInt(ctx, &quot;package_noverify_returncode&quot;, pp);</span>
+<span class="lineNum">    1104 </span><span class="lineNoCov">          0 :     p.package_patch_arch_regex = PromiseGetConstraintAsRval(pp, &quot;package_patch_arch_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :     p.package_patch_command = PromiseGetConstraintAsRval(pp, &quot;package_patch_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :     p.package_patch_installed_regex = PromiseGetConstraintAsRval(pp, &quot;package_patch_installed_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1107 </span><span class="lineNoCov">          0 :     p.package_patch_list_command = PromiseGetConstraintAsRval(pp, &quot;package_patch_list_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1108 </span><span class="lineNoCov">          0 :     p.package_list_name_regex = PromiseGetConstraintAsRval(pp, &quot;package_list_name_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1109 </span><span class="lineNoCov">          0 :     p.package_patch_version_regex = PromiseGetConstraintAsRval(pp, &quot;package_patch_version_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :     p.package_update_command = PromiseGetConstraintAsRval(pp, &quot;package_update_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :     p.package_verify_command = PromiseGetConstraintAsRval(pp, &quot;package_verify_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1112 </span><span class="lineNoCov">          0 :     p.package_version_regex = PromiseGetConstraintAsRval(pp, &quot;package_version_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1113 </span><span class="lineNoCov">          0 :     p.package_multiline_start = PromiseGetConstraintAsRval(pp, &quot;package_multiline_start&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1114 </span><span class="lineNoCov">          0 :     if (PromiseGetConstraint(pp, &quot;package_commands_useshell&quot;) == NULL)</span>
+<span class="lineNum">    1115 </span>            :     {
+<span class="lineNum">    1116 </span><span class="lineNoCov">          0 :         p.package_commands_useshell = true;</span>
+<span class="lineNum">    1117 </span>            :     }
+<span class="lineNum">    1118 </span>            :     else
+<span class="lineNum">    1119 </span>            :     {
+<span class="lineNum">    1120 </span><span class="lineNoCov">          0 :         p.package_commands_useshell = PromiseGetConstraintAsBoolean(ctx, &quot;package_commands_useshell&quot;, pp);</span>
+<span class="lineNum">    1121 </span>            :     }
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :     p.package_version_less_command = PromiseGetConstraintAsRval(pp, &quot;package_version_less_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1123 </span><span class="lineNoCov">          0 :     p.package_version_equal_command = PromiseGetConstraintAsRval(pp, &quot;package_version_equal_command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1124 </span>            :     
+<span class="lineNum">    1125 </span><span class="lineNoCov">          0 :     return p;</span>
+<span class="lineNum">    1126 </span>            : }
+<span class="lineNum">    1127 </span>            : 
+<span class="lineNum">    1128 </span>            : /*******************************************************************/
+<span class="lineNum">    1129 </span>            : 
+<span class="lineNum">    1130 </span>            : static const char *new_packages_actions[] =
+<span class="lineNum">    1131 </span>            : {
+<span class="lineNum">    1132 </span>            :     &quot;absent&quot;,
+<span class="lineNum">    1133 </span>            :     &quot;present&quot;,
+<span class="lineNum">    1134 </span>            :     NULL
+<a name="1135"><span class="lineNum">    1135 </span>            : };</a>
+<span class="lineNum">    1136 </span>            : 
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 : NewPackages GetNewPackageConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1138 </span>            : {
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :     NewPackages p = {0};</span>
+<span class="lineNum">    1140 </span><span class="lineNoCov">          0 :     NewPackages empty = {0};</span>
+<span class="lineNum">    1141 </span>            :     
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :     p.package_version = PromiseGetConstraintAsRval(pp, &quot;version&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1143 </span><span class="lineNoCov">          0 :     p.package_architecture = PromiseGetConstraintAsRval(pp, &quot;architecture&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :     p.package_options = PromiseGetConstraintAsList(ctx, &quot;options&quot;, pp);</span>
+<span class="lineNum">    1145 </span>            :     
+<span class="lineNum">    1146 </span><span class="lineNoCov">          0 :     p.is_empty = (memcmp(&amp;p, &amp;empty, sizeof(NewPackages)) == 0);</span>
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :     p.package_policy = GetNewPackagePolicy(PromiseGetConstraintAsRval(pp, &quot;policy&quot;, RVAL_TYPE_SCALAR),</span>
+<span class="lineNum">    1148 </span>            :                                            new_packages_actions);
+<span class="lineNum">    1149 </span>            :     
+<span class="lineNum">    1150 </span>            :     /* We can have only policy specified in new package promise definition. */
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :     if (p.package_policy != NEW_PACKAGE_ACTION_NONE)</span>
+<span class="lineNum">    1152 </span>            :     {
+<span class="lineNum">    1153 </span><span class="lineNoCov">          0 :         p.is_empty = false;</span>
+<span class="lineNum">    1154 </span>            :     }
+<span class="lineNum">    1155 </span>            :     
+<span class="lineNum">    1156 </span>            :     /* If we have promise package manager specified. 
+<span class="lineNum">    1157 </span>            :      * IMPORTANT: this must be done after is_empty flag is set as we can have
+<span class="lineNum">    1158 </span>            :      * some default options for new package promise specified and still use
+<span class="lineNum">    1159 </span>            :      * old promise inside policy. */
+<span class="lineNum">    1160 </span><span class="lineNoCov">          0 :     char *local_promise_manager = </span>
+<span class="lineNum">    1161 </span>            :             PromiseGetConstraintAsRval(pp, &quot;package_module_name&quot;, RVAL_TYPE_SCALAR);
+<span class="lineNum">    1162 </span><span class="lineNoCov">          0 :     if (local_promise_manager)</span>
+<span class="lineNum">    1163 </span>            :     {
+<span class="lineNum">    1164 </span><span class="lineNoCov">          0 :         p.module_body = GetPackageModuleFromContext(ctx, local_promise_manager);</span>
+<span class="lineNum">    1165 </span>            :     }
+<span class="lineNum">    1166 </span>            :     else
+<span class="lineNum">    1167 </span>            :     {
+<span class="lineNum">    1168 </span><span class="lineNoCov">          0 :         p.module_body = GetDefaultPackageModuleFromContext(ctx);</span>
+<span class="lineNum">    1169 </span>            :     }
+<span class="lineNum">    1170 </span><span class="lineNoCov">          0 :     p.package_inventory = GetDefaultInventoryFromContext(ctx);</span>
+<span class="lineNum">    1171 </span>            :     
+<span class="lineNum">    1172 </span>            :     /* If global options are not override by promise specific ones. */
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :     if (!p.package_options &amp;&amp; p.module_body)</span>
+<span class="lineNum">    1174 </span>            :     {
+<span class="lineNum">    1175 </span><span class="lineNoCov">          0 :         p.package_options = p.module_body-&gt;options;</span>
+<span class="lineNum">    1176 </span>            :     }
+<span class="lineNum">    1177 </span>            : 
+<span class="lineNum">    1178 </span><span class="lineNoCov">          0 :     return p;</span>
+<span class="lineNum">    1179 </span>            : }
+<span class="lineNum">    1180 </span>            : 
+<a name="1181"><span class="lineNum">    1181 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1182 </span>            : 
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 : ProcessSelect GetProcessFilterConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1184 </span>            : {
+<span class="lineNum">    1185 </span>            :     ProcessSelect p;
+<span class="lineNum">    1186 </span>            :     char *value;
+<span class="lineNum">    1187 </span><span class="lineNoCov">          0 :     int entries = 0;</span>
+<span class="lineNum">    1188 </span>            : 
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :     p.owner = PromiseGetConstraintAsList(ctx, &quot;process_owner&quot;, pp);</span>
+<span class="lineNum">    1190 </span>            : 
+<span class="lineNum">    1191 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;pid&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1192 </span>            : 
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1194 </span>            :     {
+<span class="lineNum">    1195 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">    1196 </span>            :     }
+<span class="lineNum">    1197 </span>            : 
+<span class="lineNum">    1198 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, &amp;p.min_pid, &amp;p.max_pid))</span>
+<span class="lineNum">    1199 </span>            :     {
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1201 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1202 </span>            :     }
+<span class="lineNum">    1203 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;ppid&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1204 </span>            : 
+<span class="lineNum">    1205 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1206 </span>            :     {
+<span class="lineNum">    1207 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">    1208 </span>            :     }
+<span class="lineNum">    1209 </span>            : 
+<span class="lineNum">    1210 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, &amp;p.min_ppid, &amp;p.max_ppid))</span>
+<span class="lineNum">    1211 </span>            :     {
+<span class="lineNum">    1212 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1213 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1214 </span>            :     }
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;pgid&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1216 </span>            : 
+<span class="lineNum">    1217 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1218 </span>            :     {
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">    1220 </span>            :     }
+<span class="lineNum">    1221 </span>            : 
+<span class="lineNum">    1222 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, &amp;p.min_pgid, &amp;p.max_pgid))</span>
+<span class="lineNum">    1223 </span>            :     {
+<span class="lineNum">    1224 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1225 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1226 </span>            :     }
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;rsize&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1228 </span>            : 
+<span class="lineNum">    1229 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1230 </span>            :     {
+<span class="lineNum">    1231 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">    1232 </span>            :     }
+<span class="lineNum">    1233 </span>            : 
+<span class="lineNum">    1234 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, &amp;p.min_rsize, &amp;p.max_rsize))</span>
+<span class="lineNum">    1235 </span>            :     {
+<span class="lineNum">    1236 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1238 </span>            :     }
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;vsize&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1241 </span>            :     {
+<span class="lineNum">    1242 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">    1243 </span>            :     }
+<span class="lineNum">    1244 </span>            : 
+<span class="lineNum">    1245 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, &amp;p.min_vsize, &amp;p.max_vsize))</span>
+<span class="lineNum">    1246 </span>            :     {
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1248 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1249 </span>            :     }
+<span class="lineNum">    1250 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;ttime_range&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1251 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1252 </span>            :     {
+<span class="lineNum">    1253 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">    1254 </span>            :     }
+<span class="lineNum">    1255 </span>            : 
+<span class="lineNum">    1256 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, (long *) &amp;p.min_ttime, (long *) &amp;p.max_ttime))</span>
+<span class="lineNum">    1257 </span>            :     {
+<span class="lineNum">    1258 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1259 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1260 </span>            :     }
+<span class="lineNum">    1261 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;stime_range&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1262 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1263 </span>            :     {
+<span class="lineNum">    1264 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">    1265 </span>            :     }
+<span class="lineNum">    1266 </span>            : 
+<span class="lineNum">    1267 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, (long *) &amp;p.min_stime, (long *) &amp;p.max_stime))</span>
+<span class="lineNum">    1268 </span>            :     {
+<span class="lineNum">    1269 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1270 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1271 </span>            :     }
+<span class="lineNum">    1272 </span>            : 
+<span class="lineNum">    1273 </span><span class="lineNoCov">          0 :     p.status = PromiseGetConstraintAsRval(pp, &quot;status&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1274 </span><span class="lineNoCov">          0 :     p.command = PromiseGetConstraintAsRval(pp, &quot;command&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1275 </span><span class="lineNoCov">          0 :     p.tty = PromiseGetConstraintAsRval(pp, &quot;tty&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1276 </span>            : 
+<span class="lineNum">    1277 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;priority&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1278 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1279 </span>            :     {
+<span class="lineNum">    1280 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">    1281 </span>            :     }
+<span class="lineNum">    1282 </span>            : 
+<span class="lineNum">    1283 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, &amp;p.min_pri, &amp;p.max_pri))</span>
+<span class="lineNum">    1284 </span>            :     {
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1287 </span>            :     }
+<span class="lineNum">    1288 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;threads&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1289 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1290 </span>            :     {
+<span class="lineNum">    1291 </span><span class="lineNoCov">          0 :         entries++;</span>
+<span class="lineNum">    1292 </span>            :     }
+<span class="lineNum">    1293 </span>            : 
+<span class="lineNum">    1294 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, &amp;p.min_thread, &amp;p.max_thread))</span>
+<span class="lineNum">    1295 </span>            :     {
+<span class="lineNum">    1296 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1297 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1298 </span>            :     }
+<span class="lineNum">    1299 </span>            : 
+<span class="lineNum">    1300 </span><span class="lineNoCov">          0 :     if ((p.owner) || (p.status) || (p.command) || (p.tty))</span>
+<span class="lineNum">    1301 </span>            :     {
+<span class="lineNum">    1302 </span><span class="lineNoCov">          0 :         entries = true;</span>
+<span class="lineNum">    1303 </span>            :     }
+<span class="lineNum">    1304 </span>            : 
+<span class="lineNum">    1305 </span><span class="lineNoCov">          0 :     if ((p.process_result = PromiseGetConstraintAsRval(pp, &quot;process_result&quot;, RVAL_TYPE_SCALAR)) == NULL)</span>
+<span class="lineNum">    1306 </span>            :     {
+<span class="lineNum">    1307 </span><span class="lineNoCov">          0 :         if (entries)</span>
+<span class="lineNum">    1308 </span>            :         {
+<span class="lineNum">    1309 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;process_select body missing its a process_result return value&quot;);</span>
+<span class="lineNum">    1310 </span>            :         }
+<span class="lineNum">    1311 </span>            :     }
+<span class="lineNum">    1312 </span>            : 
+<span class="lineNum">    1313 </span><span class="lineNoCov">          0 :     return p;</span>
+<span class="lineNum">    1314 </span>            : }
+<span class="lineNum">    1315 </span>            : 
+<a name="1316"><span class="lineNum">    1316 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1317 </span>            : 
+<span class="lineNum">    1318 </span><span class="lineNoCov">          0 : ProcessCount GetMatchesConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1319 </span>            : {
+<span class="lineNum">    1320 </span>            :     ProcessCount p;
+<span class="lineNum">    1321 </span>            :     char *value;
+<span class="lineNum">    1322 </span>            : 
+<span class="lineNum">    1323 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;match_range&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1324 </span><span class="lineNoCov">          0 :     if (!IntegerRangeFromString(value, &amp;p.min_range, &amp;p.max_range))</span>
+<span class="lineNum">    1325 </span>            :     {
+<span class="lineNum">    1326 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1327 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Could not make sense of integer range [%s]&quot;, value);</span>
+<span class="lineNum">    1328 </span>            :     }
+<span class="lineNum">    1329 </span><span class="lineNoCov">          0 :     p.in_range_define = PromiseGetConstraintAsList(ctx, &quot;in_range_define&quot;, pp);</span>
+<span class="lineNum">    1330 </span><span class="lineNoCov">          0 :     p.out_of_range_define = PromiseGetConstraintAsList(ctx, &quot;out_of_range_define&quot;, pp);</span>
+<span class="lineNum">    1331 </span>            : 
+<span class="lineNum">    1332 </span><span class="lineNoCov">          0 :     return p;</span>
+<a name="1333"><span class="lineNum">    1333 </span>            : }</a>
+<span class="lineNum">    1334 </span>            : 
+<span class="lineNum">    1335 </span><span class="lineNoCov">          0 : Attributes GetInsertionAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1336 </span>            : {
+<span class="lineNum">    1337 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">    1338 </span>            : 
+<span class="lineNum">    1339 </span><span class="lineNoCov">          0 :     attr.havelocation = PromiseGetConstraintAsBoolean(ctx, &quot;location&quot;, pp);</span>
+<span class="lineNum">    1340 </span><span class="lineNoCov">          0 :     attr.location = GetLocationAttributes(pp);</span>
+<span class="lineNum">    1341 </span>            : 
+<span class="lineNum">    1342 </span><span class="lineNoCov">          0 :     attr.sourcetype = PromiseGetConstraintAsRval(pp, &quot;insert_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :     attr.expandvars = PromiseGetConstraintAsBoolean(ctx, &quot;expand_scalars&quot;, pp);</span>
+<span class="lineNum">    1344 </span>            : 
+<span class="lineNum">    1345 </span><span class="lineNoCov">          0 :     attr.haveinsertselect = PromiseGetConstraintAsBoolean(ctx, &quot;insert_select&quot;, pp);</span>
+<span class="lineNum">    1346 </span><span class="lineNoCov">          0 :     attr.line_select = GetInsertSelectConstraints(ctx, pp);</span>
+<span class="lineNum">    1347 </span>            : 
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :     attr.insert_match = PromiseGetConstraintAsList(ctx, &quot;whitespace_policy&quot;, pp);</span>
+<span class="lineNum">    1349 </span>            : 
+<span class="lineNum">    1350 </span>            : /* Common (&quot;included&quot;) */
+<span class="lineNum">    1351 </span>            : 
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :     attr.haveregion = PromiseGetConstraintAsBoolean(ctx, &quot;select_region&quot;, pp);</span>
+<span class="lineNum">    1353 </span><span class="lineNoCov">          0 :     attr.region = GetRegionConstraints(ctx, pp);</span>
+<span class="lineNum">    1354 </span>            : 
+<span class="lineNum">    1355 </span><span class="lineNoCov">          0 :     attr.xml = GetXmlConstraints(pp);</span>
+<span class="lineNum">    1356 </span>            : 
+<span class="lineNum">    1357 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">    1358 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">    1359 </span>            : 
+<span class="lineNum">    1360 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">    1361 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">    1362 </span>            : 
+<span class="lineNum">    1363 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">    1364 </span>            : }
+<span class="lineNum">    1365 </span>            : 
+<a name="1366"><span class="lineNum">    1366 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1367 </span>            : 
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 : EditLocation GetLocationAttributes(const Promise *pp)</span>
+<span class="lineNum">    1369 </span>            : {
+<span class="lineNum">    1370 </span>            :     EditLocation e;
+<span class="lineNum">    1371 </span>            :     char *value;
+<span class="lineNum">    1372 </span>            : 
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 :     e.line_matching = PromiseGetConstraintAsRval(pp, &quot;select_line_matching&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1374 </span>            : 
+<span class="lineNum">    1375 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;before_after&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1376 </span>            : 
+<span class="lineNum">    1377 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; (strcmp(value, &quot;before&quot;) == 0))</span>
+<span class="lineNum">    1378 </span>            :     {
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :         e.before_after = EDIT_ORDER_BEFORE;</span>
+<span class="lineNum">    1380 </span>            :     }
+<span class="lineNum">    1381 </span>            :     else
+<span class="lineNum">    1382 </span>            :     {
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :         e.before_after = EDIT_ORDER_AFTER;</span>
+<span class="lineNum">    1384 </span>            :     }
+<span class="lineNum">    1385 </span>            : 
+<span class="lineNum">    1386 </span><span class="lineNoCov">          0 :     e.first_last = PromiseGetConstraintAsRval(pp, &quot;first_last&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1387 </span><span class="lineNoCov">          0 :     return e;</span>
+<span class="lineNum">    1388 </span>            : }
+<span class="lineNum">    1389 </span>            : 
+<a name="1390"><span class="lineNum">    1390 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1391 </span>            : 
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 : Attributes GetDeletionAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1393 </span>            : {
+<span class="lineNum">    1394 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">    1395 </span>            : 
+<span class="lineNum">    1396 </span><span class="lineNoCov">          0 :     attr.not_matching = PromiseGetConstraintAsBoolean(ctx, &quot;not_matching&quot;, pp);</span>
+<span class="lineNum">    1397 </span>            : 
+<span class="lineNum">    1398 </span><span class="lineNoCov">          0 :     attr.havedeleteselect = PromiseGetConstraintAsBoolean(ctx, &quot;delete_select&quot;, pp);</span>
+<span class="lineNum">    1399 </span><span class="lineNoCov">          0 :     attr.line_select = GetDeleteSelectConstraints(ctx, pp);</span>
+<span class="lineNum">    1400 </span>            : 
+<span class="lineNum">    1401 </span>            :     /* common */
+<span class="lineNum">    1402 </span>            : 
+<span class="lineNum">    1403 </span><span class="lineNoCov">          0 :     attr.haveregion = PromiseGetConstraintAsBoolean(ctx, &quot;select_region&quot;, pp);</span>
+<span class="lineNum">    1404 </span><span class="lineNoCov">          0 :     attr.region = GetRegionConstraints(ctx, pp);</span>
+<span class="lineNum">    1405 </span>            : 
+<span class="lineNum">    1406 </span><span class="lineNoCov">          0 :     attr.xml = GetXmlConstraints(pp);</span>
+<span class="lineNum">    1407 </span>            : 
+<span class="lineNum">    1408 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">    1409 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">    1410 </span>            : 
+<span class="lineNum">    1411 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">    1412 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">    1413 </span>            : 
+<span class="lineNum">    1414 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">    1415 </span>            : }
+<span class="lineNum">    1416 </span>            : 
+<a name="1417"><span class="lineNum">    1417 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1418 </span>            : 
+<span class="lineNum">    1419 </span><span class="lineNoCov">          0 : Attributes GetColumnAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1420 </span>            : {
+<span class="lineNum">    1421 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">    1422 </span>            : 
+<span class="lineNum">    1423 </span><span class="lineNoCov">          0 :     attr.havecolumn = PromiseGetConstraintAsBoolean(ctx, &quot;edit_field&quot;, pp);</span>
+<span class="lineNum">    1424 </span><span class="lineNoCov">          0 :     attr.column = GetColumnConstraints(ctx, pp);</span>
+<span class="lineNum">    1425 </span>            : 
+<span class="lineNum">    1426 </span>            :     /* common */
+<span class="lineNum">    1427 </span>            : 
+<span class="lineNum">    1428 </span><span class="lineNoCov">          0 :     attr.haveregion = PromiseGetConstraintAsBoolean(ctx, &quot;select_region&quot;, pp);</span>
+<span class="lineNum">    1429 </span><span class="lineNoCov">          0 :     attr.region = GetRegionConstraints(ctx, pp);</span>
+<span class="lineNum">    1430 </span>            : 
+<span class="lineNum">    1431 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">    1432 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">    1433 </span>            : 
+<span class="lineNum">    1434 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">    1435 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">    1436 </span>            : 
+<span class="lineNum">    1437 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">    1438 </span>            : }
+<span class="lineNum">    1439 </span>            : 
+<a name="1440"><span class="lineNum">    1440 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1441 </span>            : 
+<span class="lineNum">    1442 </span><span class="lineNoCov">          0 : Attributes GetReplaceAttributes(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1443 </span>            : {
+<span class="lineNum">    1444 </span><span class="lineNoCov">          0 :     Attributes attr = { {0} };</span>
+<span class="lineNum">    1445 </span>            : 
+<span class="lineNum">    1446 </span><span class="lineNoCov">          0 :     attr.havereplace = PromiseGetConstraintAsBoolean(ctx, &quot;replace_patterns&quot;, pp);</span>
+<span class="lineNum">    1447 </span><span class="lineNoCov">          0 :     attr.replace = GetReplaceConstraints(pp);</span>
+<span class="lineNum">    1448 </span>            : 
+<span class="lineNum">    1449 </span><span class="lineNoCov">          0 :     attr.havecolumn = PromiseGetConstraintAsBoolean(ctx, &quot;replace_with&quot;, pp);</span>
+<span class="lineNum">    1450 </span>            : 
+<span class="lineNum">    1451 </span>            :     /* common */
+<span class="lineNum">    1452 </span>            : 
+<span class="lineNum">    1453 </span><span class="lineNoCov">          0 :     attr.haveregion = PromiseGetConstraintAsBoolean(ctx, &quot;select_region&quot;, pp);</span>
+<span class="lineNum">    1454 </span><span class="lineNoCov">          0 :     attr.region = GetRegionConstraints(ctx, pp);</span>
+<span class="lineNum">    1455 </span>            : 
+<span class="lineNum">    1456 </span><span class="lineNoCov">          0 :     attr.xml = GetXmlConstraints(pp);</span>
+<span class="lineNum">    1457 </span>            : 
+<span class="lineNum">    1458 </span><span class="lineNoCov">          0 :     attr.havetrans = PromiseGetConstraintAsBoolean(ctx, CF_TRANSACTION, pp);</span>
+<span class="lineNum">    1459 </span><span class="lineNoCov">          0 :     attr.transaction = GetTransactionConstraints(ctx, pp);</span>
+<span class="lineNum">    1460 </span>            : 
+<span class="lineNum">    1461 </span><span class="lineNoCov">          0 :     attr.haveclasses = PromiseGetConstraintAsBoolean(ctx, CF_DEFINECLASSES, pp);</span>
+<span class="lineNum">    1462 </span><span class="lineNoCov">          0 :     attr.classes = GetClassDefinitionConstraints(ctx, pp);</span>
+<span class="lineNum">    1463 </span>            : 
+<span class="lineNum">    1464 </span><span class="lineNoCov">          0 :     return attr;</span>
+<span class="lineNum">    1465 </span>            : }
+<span class="lineNum">    1466 </span>            : 
+<a name="1467"><span class="lineNum">    1467 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1468 </span>            : 
+<span class="lineNum">    1469 </span><span class="lineNoCov">          0 : EditXml GetXmlConstraints(const Promise *pp)</span>
+<span class="lineNum">    1470 </span>            : {
+<span class="lineNum">    1471 </span>            :     EditXml x;
+<span class="lineNum">    1472 </span>            : 
+<span class="lineNum">    1473 </span><span class="lineNoCov">          0 :     x.havebuildxpath = ((x.build_xpath = PromiseGetConstraintAsRval(pp, &quot;build_xpath&quot;, RVAL_TYPE_SCALAR)) != NULL);</span>
+<span class="lineNum">    1474 </span><span class="lineNoCov">          0 :     x.haveselectxpath = ((x.select_xpath = PromiseGetConstraintAsRval(pp, &quot;select_xpath&quot;, RVAL_TYPE_SCALAR)) != NULL);</span>
+<span class="lineNum">    1475 </span><span class="lineNoCov">          0 :     x.haveattributevalue = ((x.attribute_value = PromiseGetConstraintAsRval(pp, &quot;attribute_value&quot;, RVAL_TYPE_SCALAR)) != NULL);</span>
+<span class="lineNum">    1476 </span>            : 
+<span class="lineNum">    1477 </span><span class="lineNoCov">          0 :     return x;</span>
+<span class="lineNum">    1478 </span>            : }
+<span class="lineNum">    1479 </span>            : 
+<a name="1480"><span class="lineNum">    1480 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1481 </span>            : 
+<span class="lineNum">    1482 </span><span class="lineNoCov">          0 : EditRegion GetRegionConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1483 </span>            : {
+<span class="lineNum">    1484 </span>            :     EditRegion e;
+<span class="lineNum">    1485 </span>            : 
+<span class="lineNum">    1486 </span><span class="lineNoCov">          0 :     e.select_start = PromiseGetConstraintAsRval(pp, &quot;select_start&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1487 </span><span class="lineNoCov">          0 :     e.select_end = PromiseGetConstraintAsRval(pp, &quot;select_end&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1488 </span><span class="lineNoCov">          0 :     e.include_start = PromiseGetConstraintAsBoolean(ctx, &quot;include_start_delimiter&quot;, pp);</span>
+<span class="lineNum">    1489 </span><span class="lineNoCov">          0 :     e.include_end = PromiseGetConstraintAsBoolean(ctx, &quot;include_end_delimiter&quot;, pp);</span>
+<span class="lineNum">    1490 </span><span class="lineNoCov">          0 :     return e;</span>
+<span class="lineNum">    1491 </span>            : }
+<span class="lineNum">    1492 </span>            : 
+<a name="1493"><span class="lineNum">    1493 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1494 </span>            : 
+<span class="lineNum">    1495 </span><span class="lineNoCov">          0 : EditReplace GetReplaceConstraints(const Promise *pp)</span>
+<span class="lineNum">    1496 </span>            : {
+<span class="lineNum">    1497 </span>            :     EditReplace r;
+<span class="lineNum">    1498 </span>            : 
+<span class="lineNum">    1499 </span><span class="lineNoCov">          0 :     r.replace_value = PromiseGetConstraintAsRval(pp, &quot;replace_value&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1500 </span><span class="lineNoCov">          0 :     r.occurrences = PromiseGetConstraintAsRval(pp, &quot;occurrences&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1501 </span>            : 
+<span class="lineNum">    1502 </span><span class="lineNoCov">          0 :     return r;</span>
+<span class="lineNum">    1503 </span>            : }
+<span class="lineNum">    1504 </span>            : 
+<a name="1505"><span class="lineNum">    1505 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1506 </span>            : 
+<span class="lineNum">    1507 </span><span class="lineNoCov">          0 : EditColumn GetColumnConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1508 </span>            : {
+<span class="lineNum">    1509 </span>            :     EditColumn c;
+<span class="lineNum">    1510 </span>            :     char *value;
+<span class="lineNum">    1511 </span>            : 
+<span class="lineNum">    1512 </span><span class="lineNoCov">          0 :     c.column_separator = PromiseGetConstraintAsRval(pp, &quot;field_separator&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1513 </span><span class="lineNoCov">          0 :     c.select_column = PromiseGetConstraintAsInt(ctx, &quot;select_field&quot;, pp);</span>
+<span class="lineNum">    1514 </span>            : 
+<span class="lineNum">    1515 </span><span class="lineNoCov">          0 :     if (((c.select_column) != CF_NOINT) &amp;&amp; (PromiseGetConstraintAsBoolean(ctx, &quot;start_fields_from_zero&quot;, pp)))</span>
+<span class="lineNum">    1516 </span>            :     {
+<span class="lineNum">    1517 </span><span class="lineNoCov">          0 :         c.select_column++;</span>
+<span class="lineNum">    1518 </span>            :     }
+<span class="lineNum">    1519 </span>            : 
+<span class="lineNum">    1520 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;value_separator&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1521 </span>            : 
+<span class="lineNum">    1522 </span><span class="lineNoCov">          0 :     if (value)</span>
+<span class="lineNum">    1523 </span>            :     {
+<span class="lineNum">    1524 </span><span class="lineNoCov">          0 :         c.value_separator = *value;</span>
+<span class="lineNum">    1525 </span>            :     }
+<span class="lineNum">    1526 </span>            :     else
+<span class="lineNum">    1527 </span>            :     {
+<span class="lineNum">    1528 </span><span class="lineNoCov">          0 :         c.value_separator = '\0';</span>
+<span class="lineNum">    1529 </span>            :     }
+<span class="lineNum">    1530 </span>            : 
+<span class="lineNum">    1531 </span><span class="lineNoCov">          0 :     c.column_value = PromiseGetConstraintAsRval(pp, &quot;field_value&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1532 </span><span class="lineNoCov">          0 :     c.column_operation = PromiseGetConstraintAsRval(pp, &quot;field_operation&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1533 </span><span class="lineNoCov">          0 :     c.extend_columns = PromiseGetConstraintAsBoolean(ctx, &quot;extend_fields&quot;, pp);</span>
+<span class="lineNum">    1534 </span><span class="lineNoCov">          0 :     c.blanks_ok = PromiseGetConstraintAsBoolean(ctx, &quot;allow_blank_fields&quot;, pp);</span>
+<span class="lineNum">    1535 </span><span class="lineNoCov">          0 :     return c;</span>
+<span class="lineNum">    1536 </span>            : }
+<span class="lineNum">    1537 </span>            : 
+<span class="lineNum">    1538 </span>            : /*******************************************************************/
+<span class="lineNum">    1539 </span>            : /* Storage                                                         */
+<a name="1540"><span class="lineNum">    1540 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1541 </span>            : 
+<span class="lineNum">    1542 </span><span class="lineNoCov">          0 : StorageMount GetMountConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1543 </span>            : {
+<span class="lineNum">    1544 </span>            :     StorageMount m;
+<span class="lineNum">    1545 </span>            : 
+<span class="lineNum">    1546 </span><span class="lineNoCov">          0 :     m.mount_type = PromiseGetConstraintAsRval(pp, &quot;mount_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1547 </span><span class="lineNoCov">          0 :     m.mount_source = PromiseGetConstraintAsRval(pp, &quot;mount_source&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1548 </span><span class="lineNoCov">          0 :     m.mount_server = PromiseGetConstraintAsRval(pp, &quot;mount_server&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1549 </span><span class="lineNoCov">          0 :     m.mount_options = PromiseGetConstraintAsList(ctx, &quot;mount_options&quot;, pp);</span>
+<span class="lineNum">    1550 </span><span class="lineNoCov">          0 :     m.editfstab = PromiseGetConstraintAsBoolean(ctx, &quot;edit_fstab&quot;, pp);</span>
+<span class="lineNum">    1551 </span><span class="lineNoCov">          0 :     m.unmount = PromiseGetConstraintAsBoolean(ctx, &quot;unmount&quot;, pp);</span>
+<span class="lineNum">    1552 </span>            : 
+<span class="lineNum">    1553 </span><span class="lineNoCov">          0 :     return m;</span>
+<span class="lineNum">    1554 </span>            : }
+<span class="lineNum">    1555 </span>            : 
+<a name="1556"><span class="lineNum">    1556 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1557 </span>            : 
+<span class="lineNum">    1558 </span><span class="lineNoCov">          0 : StorageVolume GetVolumeConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1559 </span>            : {
+<span class="lineNum">    1560 </span>            :     StorageVolume v;
+<span class="lineNum">    1561 </span>            :     char *value;
+<span class="lineNum">    1562 </span>            : 
+<span class="lineNum">    1563 </span><span class="lineNoCov">          0 :     v.check_foreign = PromiseGetConstraintAsBoolean(ctx, &quot;check_foreign&quot;, pp);</span>
+<span class="lineNum">    1564 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;freespace&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1565 </span>            : 
+<span class="lineNum">    1566 </span><span class="lineNoCov">          0 :     v.freespace = (long) IntFromString(value);</span>
+<span class="lineNum">    1567 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;sensible_size&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1568 </span><span class="lineNoCov">          0 :     v.sensible_size = (int) IntFromString(value);</span>
+<span class="lineNum">    1569 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;sensible_count&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1570 </span><span class="lineNoCov">          0 :     v.sensible_count = (int) IntFromString(value);</span>
+<span class="lineNum">    1571 </span><span class="lineNoCov">          0 :     v.scan_arrivals = PromiseGetConstraintAsBoolean(ctx, &quot;scan_arrivals&quot;, pp);</span>
+<span class="lineNum">    1572 </span>            : 
+<span class="lineNum">    1573 </span>            : // defaults
+<span class="lineNum">    1574 </span><span class="lineNoCov">          0 :     if (v.sensible_size == CF_NOINT)</span>
+<span class="lineNum">    1575 </span>            :     {
+<span class="lineNum">    1576 </span><span class="lineNoCov">          0 :         v.sensible_size = 1000;</span>
+<span class="lineNum">    1577 </span>            :     }
+<span class="lineNum">    1578 </span>            : 
+<span class="lineNum">    1579 </span><span class="lineNoCov">          0 :     if (v.sensible_count == CF_NOINT)</span>
+<span class="lineNum">    1580 </span>            :     {
+<span class="lineNum">    1581 </span><span class="lineNoCov">          0 :         v.sensible_count = 2;</span>
+<span class="lineNum">    1582 </span>            :     }
+<span class="lineNum">    1583 </span>            : 
+<span class="lineNum">    1584 </span><span class="lineNoCov">          0 :     return v;</span>
+<a name="1585"><span class="lineNum">    1585 </span>            : }</a>
+<span class="lineNum">    1586 </span>            : 
+<span class="lineNum">    1587 </span><span class="lineCov">   14929920 : Report GetReportConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1588 </span>            : {
+<span class="lineNum">    1589 </span><span class="lineCov">   14929920 :  Report r = {0};</span>
+<span class="lineNum">    1590 </span>            :  
+<span class="lineNum">    1591 </span><span class="lineCov">   14929920 :  r.result = PromiseGetConstraintAsRval(pp, &quot;bundle_return_value_index&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1592 </span>            :     
+<span class="lineNum">    1593 </span><span class="lineCov">   14929920 :     if (PromiseGetConstraintAsRval(pp, &quot;lastseen&quot;, RVAL_TYPE_SCALAR))</span>
+<span class="lineNum">    1594 </span>            :     {
+<span class="lineNum">    1595 </span><span class="lineNoCov">          0 :         r.havelastseen = true;</span>
+<span class="lineNum">    1596 </span><span class="lineNoCov">          0 :         r.lastseen = PromiseGetConstraintAsInt(ctx, &quot;lastseen&quot;, pp);</span>
+<span class="lineNum">    1597 </span>            : 
+<span class="lineNum">    1598 </span><span class="lineNoCov">          0 :         if (r.lastseen == CF_NOINT)</span>
+<span class="lineNum">    1599 </span>            :         {
+<span class="lineNum">    1600 </span><span class="lineNoCov">          0 :             r.lastseen = 0;</span>
+<span class="lineNum">    1601 </span>            :         }
+<span class="lineNum">    1602 </span>            :     }
+<span class="lineNum">    1603 </span>            :     else
+<span class="lineNum">    1604 </span>            :     {
+<span class="lineNum">    1605 </span><span class="lineCov">   14929920 :         r.havelastseen = false;</span>
+<span class="lineNum">    1606 </span><span class="lineCov">   14929920 :         r.lastseen = 0;</span>
+<span class="lineNum">    1607 </span>            :     }
+<span class="lineNum">    1608 </span>            : 
+<span class="lineNum">    1609 </span><span class="lineCov">   14929920 :     if (!PromiseGetConstraintAsReal(ctx, &quot;intermittency&quot;, pp, &amp;r.intermittency))</span>
+<span class="lineNum">    1610 </span>            :     {
+<span class="lineNum">    1611 </span><span class="lineCov">   14929920 :         r.intermittency = 0;</span>
+<span class="lineNum">    1612 </span>            :     }
+<span class="lineNum">    1613 </span>            : 
+<span class="lineNum">    1614 </span><span class="lineCov">   14929920 :     r.haveprintfile = PromiseGetConstraintAsBoolean(ctx, &quot;printfile&quot;, pp);</span>
+<span class="lineNum">    1615 </span><span class="lineCov">   14929920 :     r.filename = PromiseGetConstraintAsRval(pp, &quot;file_to_print&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1616 </span><span class="lineCov">   14929920 :     r.numlines = PromiseGetConstraintAsInt(ctx, &quot;number_of_lines&quot;, pp);</span>
+<span class="lineNum">    1617 </span>            : 
+<span class="lineNum">    1618 </span><span class="lineCov">   14929920 :     if (r.numlines == CF_NOINT)</span>
+<span class="lineNum">    1619 </span>            :     {
+<span class="lineNum">    1620 </span><span class="lineCov">   14929920 :         r.numlines = 5;</span>
+<span class="lineNum">    1621 </span>            :     }
+<span class="lineNum">    1622 </span>            : 
+<span class="lineNum">    1623 </span><span class="lineCov">   14929920 :     r.showstate = PromiseGetConstraintAsList(ctx, &quot;showstate&quot;, pp);</span>
+<span class="lineNum">    1624 </span>            : 
+<span class="lineNum">    1625 </span><span class="lineCov">   14929920 :     r.friend_pattern = PromiseGetConstraintAsRval(pp, &quot;friend_pattern&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1626 </span>            : 
+<span class="lineNum">    1627 </span><span class="lineCov">   14929920 :     r.to_file = PromiseGetConstraintAsRval(pp, &quot;report_to_file&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1628 </span>            : 
+<span class="lineNum">    1629 </span><span class="lineCov">   14929920 :     if ((r.result) &amp;&amp; ((r.haveprintfile) || (r.filename) || (r.showstate) || (r.to_file) || (r.lastseen)))</span>
+<span class="lineNum">    1630 </span>            :     {
+<span class="lineNum">    1631 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;bundle_return_value promise for '%s' in bundle '%s' with too many constraints (ignored)&quot;, pp-&gt;promiser, PromiseGetBundle(pp)-&gt;name);</span>
+<span class="lineNum">    1632 </span>            :     }
+<span class="lineNum">    1633 </span>            :     
+<span class="lineNum">    1634 </span><span class="lineCov">   14929920 :     return r;</span>
+<span class="lineNum">    1635 </span>            : }
+<span class="lineNum">    1636 </span>            : 
+<a name="1637"><span class="lineNum">    1637 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1638 </span>            : 
+<span class="lineNum">    1639 </span><span class="lineNoCov">          0 : LineSelect GetInsertSelectConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1640 </span>            : {
+<span class="lineNum">    1641 </span>            :     LineSelect s;
+<span class="lineNum">    1642 </span>            : 
+<span class="lineNum">    1643 </span><span class="lineNoCov">          0 :     s.startwith_from_list = PromiseGetConstraintAsList(ctx, &quot;insert_if_startwith_from_list&quot;, pp);</span>
+<span class="lineNum">    1644 </span><span class="lineNoCov">          0 :     s.not_startwith_from_list = PromiseGetConstraintAsList(ctx, &quot;insert_if_not_startwith_from_list&quot;, pp);</span>
+<span class="lineNum">    1645 </span><span class="lineNoCov">          0 :     s.match_from_list = PromiseGetConstraintAsList(ctx, &quot;insert_if_match_from_list&quot;, pp);</span>
+<span class="lineNum">    1646 </span><span class="lineNoCov">          0 :     s.not_match_from_list = PromiseGetConstraintAsList(ctx, &quot;insert_if_not_match_from_list&quot;, pp);</span>
+<span class="lineNum">    1647 </span><span class="lineNoCov">          0 :     s.contains_from_list = PromiseGetConstraintAsList(ctx, &quot;insert_if_contains_from_list&quot;, pp);</span>
+<span class="lineNum">    1648 </span><span class="lineNoCov">          0 :     s.not_contains_from_list = PromiseGetConstraintAsList(ctx, &quot;insert_if_not_contains_from_list&quot;, pp);</span>
+<span class="lineNum">    1649 </span>            : 
+<span class="lineNum">    1650 </span><span class="lineNoCov">          0 :     return s;</span>
+<span class="lineNum">    1651 </span>            : }
+<span class="lineNum">    1652 </span>            : 
+<a name="1653"><span class="lineNum">    1653 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1654 </span>            : 
+<span class="lineNum">    1655 </span><span class="lineNoCov">          0 : LineSelect GetDeleteSelectConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1656 </span>            : {
+<span class="lineNum">    1657 </span>            :     LineSelect s;
+<span class="lineNum">    1658 </span>            : 
+<span class="lineNum">    1659 </span><span class="lineNoCov">          0 :     s.startwith_from_list = PromiseGetConstraintAsList(ctx, &quot;delete_if_startwith_from_list&quot;, pp);</span>
+<span class="lineNum">    1660 </span><span class="lineNoCov">          0 :     s.not_startwith_from_list = PromiseGetConstraintAsList(ctx, &quot;delete_if_not_startwith_from_list&quot;, pp);</span>
+<span class="lineNum">    1661 </span><span class="lineNoCov">          0 :     s.match_from_list = PromiseGetConstraintAsList(ctx, &quot;delete_if_match_from_list&quot;, pp);</span>
+<span class="lineNum">    1662 </span><span class="lineNoCov">          0 :     s.not_match_from_list = PromiseGetConstraintAsList(ctx, &quot;delete_if_not_match_from_list&quot;, pp);</span>
+<span class="lineNum">    1663 </span><span class="lineNoCov">          0 :     s.contains_from_list = PromiseGetConstraintAsList(ctx, &quot;delete_if_contains_from_list&quot;, pp);</span>
+<span class="lineNum">    1664 </span><span class="lineNoCov">          0 :     s.not_contains_from_list = PromiseGetConstraintAsList(ctx, &quot;delete_if_not_contains_from_list&quot;, pp);</span>
+<span class="lineNum">    1665 </span>            : 
+<span class="lineNum">    1666 </span><span class="lineNoCov">          0 :     return s;</span>
+<span class="lineNum">    1667 </span>            : }
+<span class="lineNum">    1668 </span>            : 
+<a name="1669"><span class="lineNum">    1669 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1670 </span>            : 
+<span class="lineNum">    1671 </span><span class="lineNoCov">          0 : Measurement GetMeasurementConstraint(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1672 </span>            : {
+<span class="lineNum">    1673 </span>            :     Measurement m;
+<span class="lineNum">    1674 </span>            :     char *value;
+<span class="lineNum">    1675 </span>            : 
+<span class="lineNum">    1676 </span><span class="lineNoCov">          0 :     m.stream_type = PromiseGetConstraintAsRval(pp, &quot;stream_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1677 </span>            : 
+<span class="lineNum">    1678 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;data_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1679 </span><span class="lineNoCov">          0 :     m.data_type = DataTypeFromString(value);</span>
+<span class="lineNum">    1680 </span>            : 
+<span class="lineNum">    1681 </span><span class="lineNoCov">          0 :     if (m.data_type == CF_DATA_TYPE_NONE)</span>
+<span class="lineNum">    1682 </span>            :     {
+<span class="lineNum">    1683 </span><span class="lineNoCov">          0 :         m.data_type = CF_DATA_TYPE_STRING;</span>
+<span class="lineNum">    1684 </span>            :     }
+<span class="lineNum">    1685 </span>            : 
+<span class="lineNum">    1686 </span><span class="lineNoCov">          0 :     m.history_type = PromiseGetConstraintAsRval(pp, &quot;history_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1687 </span><span class="lineNoCov">          0 :     m.select_line_matching = PromiseGetConstraintAsRval(pp, &quot;select_line_matching&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1688 </span><span class="lineNoCov">          0 :     m.select_line_number = PromiseGetConstraintAsInt(ctx, &quot;select_line_number&quot;, pp);</span>
+<span class="lineNum">    1689 </span><span class="lineNoCov">          0 :     m.policy = MeasurePolicyFromString(PromiseGetConstraintAsRval(pp, &quot;select_multiline_policy&quot;, RVAL_TYPE_SCALAR));</span>
+<span class="lineNum">    1690 </span>            :     
+<span class="lineNum">    1691 </span><span class="lineNoCov">          0 :     m.extraction_regex = PromiseGetConstraintAsRval(pp, &quot;extraction_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1692 </span><span class="lineNoCov">          0 :     m.units = PromiseGetConstraintAsRval(pp, &quot;units&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1693 </span><span class="lineNoCov">          0 :     m.growing = PromiseGetConstraintAsBoolean(ctx, &quot;track_growing_file&quot;, pp);</span>
+<span class="lineNum">    1694 </span><span class="lineNoCov">          0 :     return m;</span>
+<span class="lineNum">    1695 </span>            : }
+<span class="lineNum">    1696 </span>            : 
+<a name="1697"><span class="lineNum">    1697 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1698 </span>            : 
+<span class="lineNum">    1699 </span><span class="lineNoCov">          0 : Database GetDatabaseConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1700 </span>            : {
+<span class="lineNum">    1701 </span>            :     Database d;
+<span class="lineNum">    1702 </span>            :     char *value;
+<span class="lineNum">    1703 </span>            : 
+<span class="lineNum">    1704 </span><span class="lineNoCov">          0 :     d.db_server_owner = PromiseGetConstraintAsRval(pp, &quot;db_server_owner&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1705 </span><span class="lineNoCov">          0 :     d.db_server_password = PromiseGetConstraintAsRval(pp, &quot;db_server_password&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1706 </span><span class="lineNoCov">          0 :     d.db_server_host = PromiseGetConstraintAsRval(pp, &quot;db_server_host&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1707 </span><span class="lineNoCov">          0 :     d.db_connect_db = PromiseGetConstraintAsRval(pp, &quot;db_server_connection_db&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1708 </span><span class="lineNoCov">          0 :     d.type = PromiseGetConstraintAsRval(pp, &quot;database_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1709 </span><span class="lineNoCov">          0 :     d.server = PromiseGetConstraintAsRval(pp, &quot;database_server&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1710 </span><span class="lineNoCov">          0 :     d.columns = PromiseGetConstraintAsList(ctx, &quot;database_columns&quot;, pp);</span>
+<span class="lineNum">    1711 </span><span class="lineNoCov">          0 :     d.rows = PromiseGetConstraintAsList(ctx, &quot;database_rows&quot;, pp);</span>
+<span class="lineNum">    1712 </span><span class="lineNoCov">          0 :     d.operation = PromiseGetConstraintAsRval(pp, &quot;database_operation&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1713 </span><span class="lineNoCov">          0 :     d.exclude = PromiseGetConstraintAsList(ctx, &quot;registry_exclude&quot;, pp);</span>
+<span class="lineNum">    1714 </span>            : 
+<span class="lineNum">    1715 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;db_server_type&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1716 </span><span class="lineNoCov">          0 :     d.db_server_type = DatabaseTypeFromString(value);</span>
+<span class="lineNum">    1717 </span>            : 
+<span class="lineNum">    1718 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; ((d.db_server_type) == DATABASE_TYPE_NONE))</span>
+<span class="lineNum">    1719 </span>            :     {
+<span class="lineNum">    1720 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Unsupported database type '%s' in databases promise&quot;, value);</span>
+<span class="lineNum">    1721 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1722 </span>            :     }
+<span class="lineNum">    1723 </span>            : 
+<span class="lineNum">    1724 </span><span class="lineNoCov">          0 :     return d;</span>
+<span class="lineNum">    1725 </span>            : }
+<a name="1726"><span class="lineNum">    1726 </span>            : /*******************************************************************/</a>
+<span class="lineNum">    1727 </span>            : 
+<span class="lineNum">    1728 </span><span class="lineNoCov">          0 : User GetUserConstraints(const EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1729 </span>            : {
+<span class="lineNum">    1730 </span>            :     User u;
+<span class="lineNum">    1731 </span>            :     char *value;
+<span class="lineNum">    1732 </span>            : 
+<span class="lineNum">    1733 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;policy&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1734 </span><span class="lineNoCov">          0 :     u.policy = UserStateFromString(value);</span>
+<span class="lineNum">    1735 </span>            : 
+<span class="lineNum">    1736 </span><span class="lineNoCov">          0 :     u.uid = PromiseGetConstraintAsRval(pp, &quot;uid&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1737 </span>            : 
+<span class="lineNum">    1738 </span><span class="lineNoCov">          0 :     value = PromiseGetConstraintAsRval(pp, &quot;format&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1739 </span><span class="lineNoCov">          0 :     u.password_format = PasswordFormatFromString(value);</span>
+<span class="lineNum">    1740 </span><span class="lineNoCov">          0 :     u.password = PromiseGetConstraintAsRval(pp, &quot;data&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1741 </span><span class="lineNoCov">          0 :     u.description = PromiseGetConstraintAsRval(pp, &quot;description&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1742 </span>            : 
+<span class="lineNum">    1743 </span><span class="lineNoCov">          0 :     u.group_primary = PromiseGetConstraintAsRval(pp, &quot;group_primary&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1744 </span><span class="lineNoCov">          0 :     u.groups_secondary = PromiseGetConstraintAsList(ctx, &quot;groups_secondary&quot;, pp);</span>
+<span class="lineNum">    1745 </span><span class="lineNoCov">          0 :     u.home_dir = PromiseGetConstraintAsRval(pp, &quot;home_dir&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1746 </span><span class="lineNoCov">          0 :     u.shell = PromiseGetConstraintAsRval(pp, &quot;shell&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1747 </span>            : 
+<span class="lineNum">    1748 </span><span class="lineNoCov">          0 :     if (value &amp;&amp; ((u.policy) == USER_STATE_NONE))</span>
+<span class="lineNum">    1749 </span>            :     {
+<span class="lineNum">    1750 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Unsupported user policy '%s' in users promise&quot;, value);</span>
+<span class="lineNum">    1751 </span><span class="lineNoCov">          0 :         PromiseRef(LOG_LEVEL_ERR, pp);</span>
+<span class="lineNum">    1752 </span>            :     }
+<span class="lineNum">    1753 </span>            : 
+<span class="lineNum">    1754 </span><span class="lineNoCov">          0 :     return u;</span>
+<span class="lineNum">    1755 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

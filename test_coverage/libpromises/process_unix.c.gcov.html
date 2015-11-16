@@ -1,0 +1,358 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/process_unix.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - process_unix.c<span style="font-size: 80%;"> (source / <a href="process_unix.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">71</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;platform.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &lt;logging.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;process_lib.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;process_unix_priv.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #define SLEEP_POLL_TIMEOUT_NS 10000000
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : /*
+<span class="lineNum">      38 </span>            :  * Wait until process specified by #pid is stopped due to SIGSTOP signal.
+<span class="lineNum">      39 </span>            :  *
+<span class="lineNum">      40 </span>            :  * @returns true if process has come to stop during #timeout_ns nanoseconds,
+<span class="lineNum">      41 </span>            :  * false if the process cannot be found or failed to stop during #timeout_ns
+<span class="lineNum">      42 </span>            :  * nanoseconds.
+<span class="lineNum">      43 </span>            :  *
+<a name="44"><span class="lineNum">      44 </span>            :  * FIXME: Only timeouts &lt; 1s are supported</a>
+<span class="lineNum">      45 </span>            :  */
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 : static bool ProcessWaitUntilStopped(pid_t pid, long timeout_ns)</span>
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     while (timeout_ns &gt; 0)</span>
+<span class="lineNum">      49 </span>            :     {
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :         switch (GetProcessState(pid))</span>
+<span class="lineNum">      51 </span>            :         {
+<span class="lineNum">      52 </span>            :         case PROCESS_STATE_RUNNING:
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :             break;                                      /* retry in a while */</span>
+<span class="lineNum">      54 </span>            :         case PROCESS_STATE_STOPPED:
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">      56 </span>            :         case PROCESS_STATE_ZOMBIE:
+<span class="lineNum">      57 </span>            :             /* There is not much we can do by waiting a zombie process. It
+<span class="lineNum">      58 </span>            :              * will never change to a stopped state. */
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">      60 </span>            :         case PROCESS_STATE_DOES_NOT_EXIST:
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">      62 </span>            :         }
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :         struct timespec ts = {</span>
+<span class="lineNum">      65 </span>            :             .tv_sec = 0,
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :             .tv_nsec = MIN(SLEEP_POLL_TIMEOUT_NS, timeout_ns),</span>
+<span class="lineNum">      67 </span>            :         };
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         while (nanosleep(&amp;ts, &amp;ts) &lt; 0)</span>
+<span class="lineNum">      70 </span>            :         {
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :             if (errno != EINTR)</span>
+<span class="lineNum">      72 </span>            :             {
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :                 ProgrammingError(&quot;Invalid timeout for nanosleep&quot;);</span>
+<span class="lineNum">      74 </span>            :             }
+<span class="lineNum">      75 </span>            :         }
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         timeout_ns = MAX(0, timeout_ns - SLEEP_POLL_TIMEOUT_NS);</span>
+<span class="lineNum">      78 </span>            :     }
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">      81 </span>            : }
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : /*
+<a name="84"><span class="lineNum">      84 </span>            :  * Currently only timeouts &lt; 1s are supported</a>
+<span class="lineNum">      85 </span>            :  */
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 : static bool ProcessWaitUntilExited(pid_t pid, long timeout_ns)</span>
+<span class="lineNum">      87 </span>            : {
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     assert(timeout_ns &lt; 1000000000);</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     while (timeout_ns &gt; 0)</span>
+<span class="lineNum">      91 </span>            :     {
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :         switch (GetProcessState(pid))</span>
+<span class="lineNum">      93 </span>            :         {
+<span class="lineNum">      94 </span>            :         case PROCESS_STATE_RUNNING:
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :             break;                                      /* retry in a while */</span>
+<span class="lineNum">      96 </span>            :         case PROCESS_STATE_DOES_NOT_EXIST:
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">      98 </span>            :         case PROCESS_STATE_ZOMBIE:
+<span class="lineNum">      99 </span>            :             /* There is not much we can do by waiting a zombie process. It's
+<span class="lineNum">     100 </span>            :                the responsibility of the caller to reap the child so we're
+<span class="lineNum">     101 </span>            :                considering it has already exited.  */
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     103 </span>            :         case PROCESS_STATE_STOPPED:
+<span class="lineNum">     104 </span>            :             /* Almost the same case with a zombie process, but it will
+<span class="lineNum">     105 </span>            :              * respond only to signals that can't be caught. */
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     107 </span>            :         }
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :         struct timespec ts = {</span>
+<span class="lineNum">     110 </span>            :             .tv_sec = 0,
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :             .tv_nsec = MIN(SLEEP_POLL_TIMEOUT_NS, timeout_ns),</span>
+<span class="lineNum">     112 </span>            :         };
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     115 </span>            :             &quot;PID %jd still alive after signalling, waiting for %lu ms...&quot;,
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :             (intmax_t) pid, ts.tv_nsec / 1000000);</span>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         while (nanosleep(&amp;ts, &amp;ts) &lt; 0)</span>
+<span class="lineNum">     119 </span>            :         {
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :             if (errno != EINTR)</span>
+<span class="lineNum">     121 </span>            :             {
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :                 ProgrammingError(&quot;Invalid timeout for nanosleep&quot;);</span>
+<span class="lineNum">     123 </span>            :             }
+<span class="lineNum">     124 </span>            :         }
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         timeout_ns = MAX(0, timeout_ns - SLEEP_POLL_TIMEOUT_NS);</span>
+<span class="lineNum">     127 </span>            :     }
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     130 </span>            : }
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : /* A timeout (in nanoseconds) to wait for process to stop (pause) or exit.
+<span class="lineNum">     133 </span>            :  * Note that it's important that it does not overflow 32 bits; no more than
+<span class="lineNum">     134 </span>            :  * nine 9s in a row, i.e. one second. */
+<span class="lineNum">     135 </span>            : #define STOP_WAIT_TIMEOUT 999999999L
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span>            : /*
+<span class="lineNum">     138 </span>            :  * Safely kill process by checking that the process is the right one by matching
+<span class="lineNum">     139 </span>            :  * process start time.
+<span class="lineNum">     140 </span>            :  *
+<span class="lineNum">     141 </span>            :  * The algorithm:
+<span class="lineNum">     142 </span>            :  *
+<span class="lineNum">     143 </span>            :  *   1. Check that the process has the same start time as stored in lock. If it
+<span class="lineNum">     144 </span>            :  *      is not, return, as we know for sure this is a wrong process. (This step
+<span class="lineNum">     145 </span>            :  *      is an optimization to avoid sending SIGSTOP/SIGCONT to wrong processes).
+<span class="lineNum">     146 </span>            :  *
+<span class="lineNum">     147 </span>            :  *   2. Send SIGSTOP to the process.
+<span class="lineNum">     148 </span>            :  *
+<span class="lineNum">     149 </span>            :  *   3. Poll process state until it is stopped.
+<span class="lineNum">     150 </span>            :  *
+<span class="lineNum">     151 </span>            :  *   Now the process is stopped, so we may examine it and not be afraid that it
+<span class="lineNum">     152 </span>            :  *   will exit and another one with the same PID will appear.
+<span class="lineNum">     153 </span>            :  *
+<span class="lineNum">     154 </span>            :  *   4. Check that the process has the same start time as provided.
+<span class="lineNum">     155 </span>            :  *      If it is, send the signal to the process.
+<span class="lineNum">     156 </span>            :  *
+<span class="lineNum">     157 </span>            :  *   5. Send SIGCONT to the process, so it may continue.
+<span class="lineNum">     158 </span>            :  *
+<span class="lineNum">     159 </span>            :  *
+<span class="lineNum">     160 </span>            :  * Returns 0 on success, -1 on error. Error code is signalled through errno.
+<span class="lineNum">     161 </span>            :  *
+<span class="lineNum">     162 </span>            :  * ERRORS
+<span class="lineNum">     163 </span>            :  *
+<span class="lineNum">     164 </span>            :  *  EINVAL An invalid signal was specified.
+<span class="lineNum">     165 </span>            :  *  EPERM The process does not have permission to send the signal.
+<a name="166"><span class="lineNum">     166 </span>            :  *  ESRCH The pid does not exist or its start time does not match expected one.</a>
+<span class="lineNum">     167 </span>            :  */
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 : static int SafeKill(pid_t pid, time_t expected_start_time, int signal)</span>
+<span class="lineNum">     169 </span>            : {
+<span class="lineNum">     170 </span>            :     /* Preliminary check: in case process start time is different already, we
+<span class="lineNum">     171 </span>            :      * are sure we don't want to STOP it or kill it. */
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     time_t pid_start_time = GetProcessStartTime(pid);</span>
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :     if (pid_start_time != expected_start_time)</span>
+<span class="lineNum">     176 </span>            :     {
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         errno = ESRCH;</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     179 </span>            :     }
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            :     /* Now to avoid race conditions we need to stop process so it won't exit
+<span class="lineNum">     182 </span>            :      * voluntarily while we are working on it */
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     if (kill(pid, SIGSTOP) &lt; 0)</span>
+<span class="lineNum">     185 </span>            :     {
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     187 </span>            :     }
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     if (!ProcessWaitUntilStopped(pid, STOP_WAIT_TIMEOUT))</span>
+<span class="lineNum">     190 </span>            :     {
+<span class="lineNum">     191 </span>            :         /* Ensure the process is started again in case of timeout or error, so
+<span class="lineNum">     192 </span>            :          * we don't leave SIGSTOP'ed processes around on overloaded or
+<span class="lineNum">     193 </span>            :          * misconfigured machine */
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         kill(pid, SIGCONT);</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         errno = ESRCH;</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     197 </span>            :     }
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span>            :     /* Here process has stopped, so we may interrogate it without race conditions */
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span><span class="lineNoCov">          0 :     pid_start_time = GetProcessStartTime(pid);</span>
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     if (pid_start_time != expected_start_time)</span>
+<span class="lineNum">     204 </span>            :     {
+<span class="lineNum">     205 </span>            :         /* This is a wrong process, let it continue */
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         kill(pid, SIGCONT);</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         errno = ESRCH;</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     209 </span>            :     }
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span>            :     /* We've got a right process, signal it and let it continue */
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     int ret = kill(pid, signal);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :     int saved_errno = errno;</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            :     /*
+<span class="lineNum">     217 </span>            :      * We don't check return value of SIGCONT, as the process may have been
+<span class="lineNum">     218 </span>            :      * terminated already by previous kill. Moreover, what would we do with the
+<span class="lineNum">     219 </span>            :      * return code?
+<span class="lineNum">     220 </span>            :      */
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     kill(pid, SIGCONT);</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     errno = saved_errno;</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     return ret;</span>
+<a name="225"><span class="lineNum">     225 </span>            : }</a>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 : static int Kill(pid_t pid, time_t process_start_time, int signal)</span>
+<span class="lineNum">     228 </span>            : {
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     if (process_start_time == PROCESS_START_TIME_UNKNOWN)</span>
+<span class="lineNum">     230 </span>            :     {
+<span class="lineNum">     231 </span>            :         /* We don't know when the process has started, do a plain kill(2) */
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         return kill(pid, signal);</span>
+<span class="lineNum">     233 </span>            :     }
+<span class="lineNum">     234 </span>            :     else
+<span class="lineNum">     235 </span>            :     {
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         return SafeKill(pid, process_start_time, signal);</span>
+<span class="lineNum">     237 </span>            :     }
+<span class="lineNum">     238 </span>            : }
+<a name="239"><span class="lineNum">     239 </span>            : </a>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 : bool GracefulTerminate(pid_t pid, time_t process_start_time)</span>
+<span class="lineNum">     242 </span>            : {
+<span class="lineNum">     243 </span>            :     /* We can't allow to kill ourselves. First it does not make sense, and
+<span class="lineNum">     244 </span>            :      * second, once SafeKill() sends SIGSTOP, we will just freeze forever. */
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     if (pid == getpid())</span>
+<span class="lineNum">     246 </span>            :     {
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_WARNING,</span>
+<span class="lineNum">     248 </span>            :             &quot;Ignoring request to kill ourself (pid %jd)!&quot;,
+<span class="lineNum">     249 </span>            :             (intmax_t) pid);
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     251 </span>            :     }
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     if (Kill(pid, process_start_time, SIGINT) &lt; 0)</span>
+<span class="lineNum">     254 </span>            :     {
+<span class="lineNum">     255 </span>            :         /* If we failed to kill the process return error. If the process
+<span class="lineNum">     256 </span>            :          * doesn't even exist (errno==ESRCH), again return error, we shouldn't
+<span class="lineNum">     257 </span>            :          * have signalled the PID in the first place. */
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     259 </span>            :     }
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :     if (ProcessWaitUntilExited(pid, STOP_WAIT_TIMEOUT))</span>
+<span class="lineNum">     262 </span>            :     {
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     264 </span>            :     }
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :     if (Kill(pid, process_start_time, SIGTERM) &lt; 0)</span>
+<span class="lineNum">     267 </span>            :     {
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         return errno == ESRCH;</span>
+<span class="lineNum">     269 </span>            :     }
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :     if (ProcessWaitUntilExited(pid, STOP_WAIT_TIMEOUT))</span>
+<span class="lineNum">     272 </span>            :     {
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     274 </span>            :     }
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :     if (Kill(pid, process_start_time, SIGKILL) &lt; 0)</span>
+<span class="lineNum">     277 </span>            :     {
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :         return errno == ESRCH;</span>
+<span class="lineNum">     279 </span>            :     }
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     282 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

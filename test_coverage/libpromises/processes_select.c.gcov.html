@@ -1,0 +1,1450 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/processes_select.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - processes_select.c<span style="font-size: 80%;"> (source / <a href="processes_select.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">420</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;processes_select.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;string.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;files_names.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;conversion.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;matching.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;systype.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;string_lib.h&gt;                                         /* Chop */
+<span class="lineNum">      35 </span>            : #include &lt;regex.h&gt; /* CompileRegex,StringMatchWithPrecompiledRegex,StringMatchFull */
+<span class="lineNum">      36 </span>            : #include &lt;item_lib.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;pipes.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;files_interfaces.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;rlist.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;policy.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;zones.h&gt;
+<span class="lineNum">      42 </span>            : #include &lt;printsize.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;known_dirs.h&gt;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : # ifdef HAVE_GETZONEID
+<span class="lineNum">      46 </span>            : #include &lt;sequence.h&gt;
+<span class="lineNum">      47 </span>            : #define MAX_ZONENAME_SIZE 64
+<span class="lineNum">      48 </span>            : # endif
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : static int SelectProcRangeMatch(char *name1, char *name2, int min, int max, char **names, char **line);
+<span class="lineNum">      51 </span>            : static bool SelectProcRegexMatch(const char *name1, const char *name2, const char *regex, char **colNames, char **line);
+<span class="lineNum">      52 </span>            : static int SplitProcLine(const char *proc, time_t pstime, char **names, int *start, int *end, char **line);
+<span class="lineNum">      53 </span>            : static int SelectProcTimeCounterRangeMatch(char *name1, char *name2, time_t min, time_t max, char **names, char **line);
+<span class="lineNum">      54 </span>            : static int SelectProcTimeAbsRangeMatch(char *name1, char *name2, time_t min, time_t max, char **names, char **line);
+<span class="lineNum">      55 </span>            : static int GetProcColumnIndex(const char *name1, const char *name2, char **names);
+<span class="lineNum">      56 </span>            : static void GetProcessColumnNames(const char *proc, char **names, int *start, int *end);
+<span class="lineNum">      57 </span>            : static int ExtractPid(char *psentry, char **names, int *end);
+<span class="lineNum">      58 </span>            : 
+<a name="59"><span class="lineNum">      59 </span>            : /***************************************************************************/</a>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 : static int SelectProcess(const char *procentry, time_t pstime, char **names, int *start, int *end, ProcessSelect a)</span>
+<span class="lineNum">      62 </span>            : {
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :     int result = true, i;</span>
+<span class="lineNum">      64 </span>            :     char *column[CF_PROCCOLS];
+<span class="lineNum">      65 </span>            :     Rlist *rp;
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     StringSet *process_select_attributes = StringSetNew();</span>
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     if (!SplitProcLine(procentry, pstime, names, start, end, column))</span>
+<span class="lineNum">      70 </span>            :     {
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">      72 </span>            :     }
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :     for (i = 0; names[i] != NULL; i++)</span>
+<span class="lineNum">      75 </span>            :     {
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG, &quot;In SelectProcess, COL[%s] = '%s'&quot;, names[i], column[i]);</span>
+<span class="lineNum">      77 </span>            :     }
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :     for (rp = a.owner; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">      80 </span>            :     {
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :         if (SelectProcRegexMatch(&quot;USER&quot;, &quot;UID&quot;, RlistScalarValue(rp), names, column))</span>
+<span class="lineNum">      82 </span>            :         {
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :             StringSetAdd(process_select_attributes, xstrdup(&quot;process_owner&quot;));</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">      85 </span>            :         }
+<span class="lineNum">      86 </span>            :     }
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     if (SelectProcRangeMatch(&quot;PID&quot;, &quot;PID&quot;, a.min_pid, a.max_pid, names, column))</span>
+<span class="lineNum">      89 </span>            :     {
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;pid&quot;));</span>
+<span class="lineNum">      91 </span>            :     }
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     if (SelectProcRangeMatch(&quot;PPID&quot;, &quot;PPID&quot;, a.min_ppid, a.max_ppid, names, column))</span>
+<span class="lineNum">      94 </span>            :     {
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;ppid&quot;));</span>
+<span class="lineNum">      96 </span>            :     }
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     if (SelectProcRangeMatch(&quot;PGID&quot;, &quot;PGID&quot;, a.min_pgid, a.max_pgid, names, column))</span>
+<span class="lineNum">      99 </span>            :     {
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;pgid&quot;));</span>
+<span class="lineNum">     101 </span>            :     }
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     if (SelectProcRangeMatch(&quot;VSZ&quot;, &quot;SZ&quot;, a.min_vsize, a.max_vsize, names, column))</span>
+<span class="lineNum">     104 </span>            :     {
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;vsize&quot;));</span>
+<span class="lineNum">     106 </span>            :     }
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :     if (SelectProcRangeMatch(&quot;RSS&quot;, &quot;RSS&quot;, a.min_rsize, a.max_rsize, names, column))</span>
+<span class="lineNum">     109 </span>            :     {
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;rsize&quot;));</span>
+<span class="lineNum">     111 </span>            :     }
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :     if (SelectProcTimeCounterRangeMatch(&quot;TIME&quot;, &quot;TIME&quot;, a.min_ttime, a.max_ttime, names, column))</span>
+<span class="lineNum">     114 </span>            :     {
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;ttime&quot;));</span>
+<span class="lineNum">     116 </span>            :     }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     if (SelectProcTimeAbsRangeMatch</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         (&quot;STIME&quot;, &quot;START&quot;, a.min_stime, a.max_stime, names, column))</span>
+<span class="lineNum">     120 </span>            :     {
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;stime&quot;));</span>
+<span class="lineNum">     122 </span>            :     }
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :     if (SelectProcRangeMatch(&quot;NI&quot;, &quot;PRI&quot;, a.min_pri, a.max_pri, names, column))</span>
+<span class="lineNum">     125 </span>            :     {
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;priority&quot;));</span>
+<span class="lineNum">     127 </span>            :     }
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :     if (SelectProcRangeMatch(&quot;NLWP&quot;, &quot;NLWP&quot;, a.min_thread, a.max_thread, names, column))</span>
+<span class="lineNum">     130 </span>            :     {
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;threads&quot;));</span>
+<span class="lineNum">     132 </span>            :     }
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     if (SelectProcRegexMatch(&quot;S&quot;, &quot;STAT&quot;, a.status, names, column))</span>
+<span class="lineNum">     135 </span>            :     {
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;status&quot;));</span>
+<span class="lineNum">     137 </span>            :     }
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     if (SelectProcRegexMatch(&quot;CMD&quot;, &quot;COMMAND&quot;, a.command, names, column))</span>
+<span class="lineNum">     140 </span>            :     {
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;command&quot;));</span>
+<span class="lineNum">     142 </span>            :     }
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :     if (SelectProcRegexMatch(&quot;TTY&quot;, &quot;TTY&quot;, a.tty, names, column))</span>
+<span class="lineNum">     145 </span>            :     {
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         StringSetAdd(process_select_attributes, xstrdup(&quot;tty&quot;));</span>
+<span class="lineNum">     147 </span>            :     }
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     if (!a.process_result)</span>
+<span class="lineNum">     150 </span>            :     {
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         if (StringSetSize(process_select_attributes) == 0)</span>
+<span class="lineNum">     152 </span>            :         {
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :             result = EvalProcessResult(&quot;&quot;, process_select_attributes);</span>
+<span class="lineNum">     154 </span>            :         }
+<span class="lineNum">     155 </span>            :         else
+<span class="lineNum">     156 </span>            :         {
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :             Writer *w = StringWriter();</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :             StringSetIterator iter = StringSetIteratorInit(process_select_attributes);</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             char *attr = StringSetIteratorNext(&amp;iter);</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             WriterWrite(w, attr);</span>
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :             while ((attr = StringSetIteratorNext(&amp;iter)))</span>
+<span class="lineNum">     163 </span>            :             {
+<span class="lineNum">     164 </span><span class="lineNoCov">          0 :                 WriterWriteChar(w, '.');</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                 WriterWrite(w, attr);</span>
+<span class="lineNum">     166 </span>            :             }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :             result = EvalProcessResult(StringWriterData(w), process_select_attributes);</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :             WriterClose(w);</span>
+<span class="lineNum">     170 </span>            :         }
+<span class="lineNum">     171 </span>            :     }
+<span class="lineNum">     172 </span>            :     else
+<span class="lineNum">     173 </span>            :     {
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :         result = EvalProcessResult(a.process_result, process_select_attributes);</span>
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     StringSetDestroy(process_select_attributes);</span>
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     for (i = 0; column[i] != NULL; i++)</span>
+<span class="lineNum">     180 </span>            :     {
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         free(column[i]);</span>
+<span class="lineNum">     182 </span>            :     }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     return result;</span>
+<a name="185"><span class="lineNum">     185 </span>            : }</a>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span><span class="lineNoCov">          0 : Item *SelectProcesses(const Item *processes, const char *process_name, ProcessSelect a, bool attrselect)</span>
+<span class="lineNum">     188 </span>            : {
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :     Item *result = NULL;</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :     if (processes == NULL)</span>
+<span class="lineNum">     192 </span>            :     {
+<span class="lineNum">     193 </span><span class="lineNoCov">          0 :         return result;</span>
+<span class="lineNum">     194 </span>            :     }
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            :     char *names[CF_PROCCOLS];
+<span class="lineNum">     197 </span>            :     int start[CF_PROCCOLS];
+<span class="lineNum">     198 </span>            :     int end[CF_PROCCOLS];
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :     GetProcessColumnNames(processes-&gt;name, &amp;names[0], start, end);</span>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :     pcre *rx = CompileRegex(process_name);</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :     if (rx)</span>
+<span class="lineNum">     204 </span>            :     {
+<span class="lineNum">     205 </span>            :         /* TODO: use actual time of ps-run, as time(NULL) may be later. */
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         time_t pstime = time(NULL);</span>
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         for (Item *ip = processes-&gt;next; ip != NULL; ip = ip-&gt;next)</span>
+<span class="lineNum">     209 </span>            :         {
+<span class="lineNum">     210 </span>            :             int s, e;
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :             if (StringMatchWithPrecompiledRegex(rx, ip-&gt;name, &amp;s, &amp;e))</span>
+<span class="lineNum">     213 </span>            :             {
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :                 if (NULL_OR_EMPTY(ip-&gt;name))</span>
+<span class="lineNum">     215 </span>            :                 {
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     217 </span>            :                 }
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :                 if (attrselect &amp;&amp; !SelectProcess(ip-&gt;name, pstime, names, start, end, a))</span>
+<span class="lineNum">     220 </span>            :                 {
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     222 </span>            :                 }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                 pid_t pid = ExtractPid(ip-&gt;name, names, end);</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                 if (pid == -1)</span>
+<span class="lineNum">     227 </span>            :                 {
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_VERBOSE, &quot;Unable to extract pid while looking for %s&quot;, process_name);</span>
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                     continue;</span>
+<span class="lineNum">     230 </span>            :                 }
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                 PrependItem(&amp;result, ip-&gt;name, &quot;&quot;);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :                 result-&gt;counter = (int)pid;</span>
+<span class="lineNum">     234 </span>            :             }
+<span class="lineNum">     235 </span>            :         }
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         pcre_free(rx);</span>
+<span class="lineNum">     238 </span>            :     }
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; CF_PROCCOLS; i++)</span>
+<span class="lineNum">     241 </span>            :     {
+<span class="lineNum">     242 </span><span class="lineNoCov">          0 :         free(names[i]);</span>
+<span class="lineNum">     243 </span>            :     }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     return result;</span>
+<a name="246"><span class="lineNum">     246 </span>            : }</a>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 : static int SelectProcRangeMatch(char *name1, char *name2, int min, int max, char **names, char **line)</span>
+<span class="lineNum">     249 </span>            : {
+<span class="lineNum">     250 </span>            :     int i;
+<span class="lineNum">     251 </span>            :     long value;
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     if ((min == CF_NOINT) || (max == CF_NOINT))</span>
+<span class="lineNum">     254 </span>            :     {
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     256 </span>            :     }
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     if ((i = GetProcColumnIndex(name1, name2, names)) != -1)</span>
+<span class="lineNum">     259 </span>            :     {
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         value = IntFromString(line[i]);</span>
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         if (value == CF_NOINT)</span>
+<span class="lineNum">     263 </span>            :         {
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO, &quot;Failed to extract a valid integer from '%s' =&gt; '%s' in process list&quot;, names[i],</span>
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :                   line[i]);</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     267 </span>            :         }
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :         if ((min &lt;= value) &amp;&amp; (value &lt;= max))</span>
+<span class="lineNum">     270 </span>            :         {
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     272 </span>            :         }
+<span class="lineNum">     273 </span>            :         else
+<span class="lineNum">     274 </span>            :         {
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     276 </span>            :         }
+<span class="lineNum">     277 </span>            :     }
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     280 </span>            : }
+<span class="lineNum">     281 </span>            : 
+<a name="282"><span class="lineNum">     282 </span>            : /***************************************************************************/</a>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineNoCov">          0 : static long TimeCounter2Int(const char *s)</span>
+<span class="lineNum">     285 </span>            : {
+<span class="lineNum">     286 </span>            :     long days, hours, minutes, seconds;
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     if (s == NULL)</span>
+<span class="lineNum">     289 </span>            :     {
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :         return CF_NOINT;</span>
+<span class="lineNum">     291 </span>            :     }
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            :     /* If we match dd-hh:mm[:ss], believe it: */
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :     int got = sscanf(s, &quot;%ld-%ld:%ld:%ld&quot;, &amp;days, &amp;hours, &amp;minutes, &amp;seconds);</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     if (got &gt; 2)</span>
+<span class="lineNum">     296 </span>            :     {
+<span class="lineNum">     297 </span>            :         /* All but perhaps seconds set */
+<span class="lineNum">     298 </span>            :     }
+<span class="lineNum">     299 </span>            :     /* Failing that, try matching hh:mm[:ss] */
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     else if (1 &lt; (got = sscanf(s, &quot;%ld:%ld:%ld&quot;, &amp;hours, &amp;minutes, &amp;seconds)))</span>
+<span class="lineNum">     301 </span>            :     {
+<span class="lineNum">     302 </span>            :         /* All but days and perhaps seconds set */
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         days = 0;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         got++;</span>
+<span class="lineNum">     305 </span>            :     }
+<span class="lineNum">     306 </span>            :     else
+<span class="lineNum">     307 </span>            :     {
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     309 </span>            :             &quot;Unable to parse 'ps' time field as [dd-]hh:mm[:ss], got '%s'&quot;,
+<span class="lineNum">     310 </span>            :             s);
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :         return CF_NOINT;</span>
+<span class="lineNum">     312 </span>            :     }
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :     assert(got &gt; 2); /* i.e. all but maybe seconds have been set */</span>
+<span class="lineNum">     314 </span>            :     /* Clear seconds if unset: */
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :     if (got &lt; 4)</span>
+<span class="lineNum">     316 </span>            :     {
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         seconds = 0;</span>
+<span class="lineNum">     318 </span>            :     }
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     321 </span>            :         &quot;TimeCounter2Int: Parsed '%s' as elapsed time '%ld-%02ld:%02ld:%02ld'&quot;,
+<span class="lineNum">     322 </span>            :         s, days, hours, minutes, seconds);
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            :     /* Convert to seconds: */
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     return ((days * 24 + hours) * 60 + minutes) * 60 + seconds;</span>
+<a name="326"><span class="lineNum">     326 </span>            : }</a>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 : static int SelectProcTimeCounterRangeMatch(char *name1, char *name2, time_t min, time_t max, char **names, char **line)</span>
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :     if ((min == CF_NOINT) || (max == CF_NOINT))</span>
+<span class="lineNum">     331 </span>            :     {
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     333 </span>            :     }
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :     int i = GetProcColumnIndex(name1, name2, names);</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :     if (i != -1)</span>
+<span class="lineNum">     337 </span>            :     {
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         time_t value = (time_t) TimeCounter2Int(line[i]);</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :         if (value == CF_NOINT)</span>
+<span class="lineNum">     341 </span>            :         {
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO,</span>
+<span class="lineNum">     343 </span>            :                 &quot;Failed to extract a valid integer from %c =&gt; '%s' in process list&quot;,
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                 name1[i], line[i]);</span>
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     346 </span>            :         }
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :         if ((min &lt;= value) &amp;&amp; (value &lt;= max))</span>
+<span class="lineNum">     349 </span>            :         {
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Selection filter matched counter range '%s/%s' = '%s' in [%jd,%jd] (= %jd secs)&quot;,</span>
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :                   name1, name2, line[i], (intmax_t)min, (intmax_t)max, (intmax_t)value);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     353 </span>            :         }
+<span class="lineNum">     354 </span>            :         else
+<span class="lineNum">     355 </span>            :         {
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     357 </span>            :                 &quot;Selection filter REJECTED counter range '%s/%s' = '%s' in [%jd,%jd] (= %jd secs)&quot;,
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                 name1, name2, line[i],</span>
+<span class="lineNum">     359 </span>            :                 (intmax_t) min, (intmax_t) max, (intmax_t) value);
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     361 </span>            :         }
+<span class="lineNum">     362 </span>            :     }
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :     return false;</span>
+<a name="365"><span class="lineNum">     365 </span>            : }</a>
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 : static time_t TimeAbs2Int(const char *s)</span>
+<span class="lineNum">     368 </span>            : {
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     if (s == NULL)</span>
+<span class="lineNum">     370 </span>            :     {
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         return CF_NOINT;</span>
+<span class="lineNum">     372 </span>            :     }
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span>            :     struct tm tm;
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :     localtime_r(&amp;CFSTARTTIME, &amp;tm);</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     tm.tm_sec = 0;</span>
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     tm.tm_isdst = -1;</span>
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span>            :     /* Try various ways to parse s: */
+<span class="lineNum">     380 </span>            :     char word[4]; /* Abbreviated month name */
+<span class="lineNum">     381 </span>            :     long ns[3]; /* Miscellaneous numbers, diverse readings */
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :     int got = sscanf(s, &quot;%2ld:%2ld:%2ld&quot;, ns, ns + 1, ns + 2);</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :     if (1 &lt; got) /* Hr:Min[:Sec] */</span>
+<span class="lineNum">     384 </span>            :     {
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :         tm.tm_hour = ns[0];</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :         tm.tm_min = ns[1];</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         if (got == 3)</span>
+<span class="lineNum">     388 </span>            :         {
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             tm.tm_sec = ns[2];</span>
+<span class="lineNum">     390 </span>            :         }
+<span class="lineNum">     391 </span>            :     }
+<span class="lineNum">     392 </span>            :     /* or MMM dd (the %ld shall ignore any leading space) */
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :     else if (2 == sscanf(s, &quot;%3[a-zA-Z]%ld&quot;, word, ns) &amp;&amp;</span>
+<span class="lineNum">     394 </span>            :              /* Only match if word is a valid month text: */
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :              0 &lt; (ns[1] = Month2Int(word)))</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :     {</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :         int month = ns[1] - 1;</span>
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :         if (tm.tm_mon &lt; month)</span>
+<span class="lineNum">     399 </span>            :         {
+<span class="lineNum">     400 </span>            :             /* Wrapped around */
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :             tm.tm_year--;</span>
+<span class="lineNum">     402 </span>            :         }
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         tm.tm_mon = month;</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         tm.tm_mday = ns[0];</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         tm.tm_hour = 0;</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         tm.tm_min = 0;</span>
+<span class="lineNum">     407 </span>            :     }
+<span class="lineNum">     408 </span>            :     /* or just year, or seconds since 1970 */
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :     else if (1 == sscanf(s, &quot;%ld&quot;, ns))</span>
+<span class="lineNum">     410 </span>            :     {
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         if (ns[0] &gt; 9999)</span>
+<span class="lineNum">     412 </span>            :         {
+<span class="lineNum">     413 </span>            :             /* Seconds since 1970.
+<span class="lineNum">     414 </span>            :              *
+<span class="lineNum">     415 </span>            :              * This is the amended value SplitProcLine() replaces
+<span class="lineNum">     416 </span>            :              * start time with if it's imprecise and a better value
+<span class="lineNum">     417 </span>            :              * can be calculated from elapsed time.
+<span class="lineNum">     418 </span>            :              */
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :             return (time_t)ns[0];</span>
+<span class="lineNum">     420 </span>            :         }
+<span class="lineNum">     421 </span>            :         /* else year, at most four digits; either 4-digit CE or
+<span class="lineNum">     422 </span>            :          * already relative to 1900. */
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         memset(&amp;tm, 0, sizeof(tm));</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         tm.tm_year = ns[0] &lt; 999 ? ns[0] : ns[0] - 1900;</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         tm.tm_isdst = -1;</span>
+<span class="lineNum">     427 </span>            :     }
+<span class="lineNum">     428 </span>            :     else
+<span class="lineNum">     429 </span>            :     {
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         return CF_NOINT;</span>
+<span class="lineNum">     431 </span>            :     }
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :     return mktime(&amp;tm);</span>
+<a name="434"><span class="lineNum">     434 </span>            : }</a>
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 : static int SelectProcTimeAbsRangeMatch(char *name1, char *name2, time_t min, time_t max, char **names, char **line)</span>
+<span class="lineNum">     437 </span>            : {
+<span class="lineNum">     438 </span>            :     int i;
+<span class="lineNum">     439 </span>            :     time_t value;
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     if ((min == CF_NOINT) || (max == CF_NOINT))</span>
+<span class="lineNum">     442 </span>            :     {
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     444 </span>            :     }
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     if ((i = GetProcColumnIndex(name1, name2, names)) != -1)</span>
+<span class="lineNum">     447 </span>            :     {
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :         value = TimeAbs2Int(line[i]);</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :         if (value == CF_NOINT)</span>
+<span class="lineNum">     451 </span>            :         {
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO, &quot;Failed to extract a valid integer from %c =&gt; '%s' in process list&quot;, name1[i],</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :                   line[i]);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     455 </span>            :         }
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         if ((min &lt;= value) &amp;&amp; (value &lt;= max))</span>
+<span class="lineNum">     458 </span>            :         {
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Selection filter matched absolute '%s/%s' = '%s(%jd)' in [%jd,%jd]&quot;, name1, name2, line[i], (intmax_t)value,</span>
+<span class="lineNum">     460 </span>            :                   (intmax_t)min, (intmax_t)max);
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     462 </span>            :         }
+<span class="lineNum">     463 </span>            :         else
+<span class="lineNum">     464 </span>            :         {
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     466 </span>            :         }
+<span class="lineNum">     467 </span>            :     }
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     470 </span>            : }
+<span class="lineNum">     471 </span>            : 
+<a name="472"><span class="lineNum">     472 </span>            : /***************************************************************************/</a>
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 : static bool SelectProcRegexMatch(const char *name1, const char *name2,</span>
+<span class="lineNum">     475 </span>            :                                  const char *regex, char **colNames, char **line)
+<span class="lineNum">     476 </span>            : {
+<span class="lineNum">     477 </span>            :     int i;
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :     if (regex == NULL)</span>
+<span class="lineNum">     480 </span>            :     {
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     482 </span>            :     }
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :     if ((i = GetProcColumnIndex(name1, name2, colNames)) != -1)</span>
+<span class="lineNum">     485 </span>            :     {
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :         if (StringMatchFull(regex, line[i]))</span>
+<span class="lineNum">     488 </span>            :         {
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :             return true;</span>
+<span class="lineNum">     490 </span>            :         }
+<span class="lineNum">     491 </span>            :         else
+<span class="lineNum">     492 </span>            :         {
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     494 </span>            :         }
+<span class="lineNum">     495 </span>            :     }
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     return false;</span>
+<span class="lineNum">     498 </span>            : }
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span>            : /*******************************************************************/
+<span class="lineNum">     501 </span>            : /* line must be char *line[CF_PROCCOLS] in fact. */
+<a name="502"><span class="lineNum">     502 </span>            : /* pstime should be the time at which ps was run. */</a>
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 : static int SplitProcLine(const char *proc, time_t pstime,</span>
+<span class="lineNum">     505 </span>            :                          char **names, int *start, int *end,
+<span class="lineNum">     506 </span>            :                          char **line)
+<span class="lineNum">     507 </span>            : {
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     if (proc == NULL || proc[0] == '\0')</span>
+<span class="lineNum">     509 </span>            :     {
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     511 </span>            :     }
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     memset(line, 0, sizeof(char *) * CF_PROCCOLS);</span>
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :     int prior = -1; /* End of last header-selected field. */</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     const size_t linelen = strlen(proc);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     const char *sp = proc; /* Just after last space-separated field. */</span>
+<span class="lineNum">     518 </span>            :     /* Scan in parallel for two heuristics: space-delimited fields
+<span class="lineNum">     519 </span>            :      * found using sp, and ones inferred from the column headers. */
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span>            :     /* TODO: we test with isspace() mostly, which makes sense as TAB
+<span class="lineNum">     522 </span>            :      * might be used to enable field alignment; but we make no attempt
+<span class="lineNum">     523 </span>            :      * to account for the alignment offsets this may introduce, that
+<span class="lineNum">     524 </span>            :      * would mess up the heuristic based on column headers.  Hard to
+<span class="lineNum">     525 </span>            :      * do robustly, as we'd need to assume a tab-width and apply the
+<span class="lineNum">     526 </span>            :      * same accounting to the headers (where start and end are indices
+<span class="lineNum">     527 </span>            :      * of bytes, we'd need a third array for tab-induced offsets
+<span class="lineNum">     528 </span>            :      * between headers). */
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     for (int i = 0; i &lt; CF_PROCCOLS &amp;&amp; names[i] != NULL; i++)</span>
+<span class="lineNum">     531 </span>            :     {
+<span class="lineNum">     532 </span>            :         /* Space-delimited heuristic, from sp to just before ep: */
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :         while (isspace((unsigned char) sp[0]))</span>
+<span class="lineNum">     534 </span>            :         {
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :             sp++;</span>
+<span class="lineNum">     536 </span>            :         }
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :         const char *ep = sp;</span>
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span>            :         /* Header-driven heuristic, field from proc[s] to proc[e].
+<span class="lineNum">     540 </span>            :          * Start with the column header's position and maybe grow
+<span class="lineNum">     541 </span>            :          * outwards. */
+<span class="lineNum">     542 </span><span class="lineNoCov">          0 :         int s = start[i], e;</span>
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            :         /* If the previous field over-spilled into this one, our start
+<span class="lineNum">     545 </span>            :          * may be under our header, not directly below the header's
+<span class="lineNum">     546 </span>            :          * start; but only believe this if the earlier field is
+<span class="lineNum">     547 </span>            :          * followed by one space and the subsequent field does start
+<span class="lineNum">     548 </span>            :          * under our header.  Otherwise, allow that the prior field
+<span class="lineNum">     549 </span>            :          * may be abutting this field, or this field may have
+<span class="lineNum">     550 </span>            :          * overflowed left into the prior field causing the prior to
+<span class="lineNum">     551 </span>            :          * (mistakenly) think it includes the present. */
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :         if (s &lt;= prior &amp;&amp;</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :             prior + 2 &lt;= end[i] &amp;&amp;</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :             proc[prior + 1] == ' ' &amp;&amp;</span>
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :             proc[prior + 2] != '\0' &amp;&amp;</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :             !isspace((unsigned char) proc[prior + 2]))</span>
+<span class="lineNum">     557 </span>            :         {
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :             s = prior + 2;</span>
+<span class="lineNum">     559 </span>            :         }
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :         if (i + 1 == CF_PROCCOLS || names[i + 1] == NULL)</span>
+<span class="lineNum">     562 </span>            :         {
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :             e = linelen - 1;</span>
+<span class="lineNum">     564 </span>            :             /* Extend space-delimited field to line end: */
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :             while (ep[0] &amp;&amp; ep[0] != '\n')</span>
+<span class="lineNum">     566 </span>            :             {
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :                 ep++;</span>
+<span class="lineNum">     568 </span>            :             }
+<span class="lineNum">     569 </span>            :             /* But trim trailing hspace: */
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :             while (isspace((unsigned char)ep[-1]))</span>
+<span class="lineNum">     571 </span>            :             {
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :                 ep--;</span>
+<span class="lineNum">     573 </span>            :             }
+<span class="lineNum">     574 </span>            :         }
+<span class="lineNum">     575 </span>            :         else
+<span class="lineNum">     576 </span>            :         {
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :             e = end[i];</span>
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span>            :             /* It's possible the present field has been shunted left
+<span class="lineNum">     580 </span>            :              * to make way for an over-sized number or date to the
+<span class="lineNum">     581 </span>            :              * right.  This can confuse the numeric check below, on
+<span class="lineNum">     582 </span>            :              * which left-overspill is conditioned - it fails to
+<span class="lineNum">     583 </span>            :              * recognise this field as numeric, so doesn't check for
+<span class="lineNum">     584 </span>            :              * it overspilling to the left.  Look to see whether we
+<span class="lineNum">     585 </span>            :              * should move e left a bit: this is a conservative check,
+<span class="lineNum">     586 </span>            :              * that'll be revisited below. */
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :             int back = start[i + 1];</span>
+<span class="lineNum">     588 </span><span class="lineNoCov">          0 :             while (back &gt; s &amp;&amp; !isspace((unsigned char) proc[back]))</span>
+<span class="lineNum">     589 </span>            :             {
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :                 back--;</span>
+<span class="lineNum">     591 </span>            :             }
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :             if (back &gt; s &amp;&amp; back &lt;= e &amp;&amp;</span>
+<span class="lineNum">     593 </span>            :                 /* back &gt; s implies isspace(proc[back]), with no
+<span class="lineNum">     594 </span>            :                  * further space before the next field; if this is a
+<span class="lineNum">     595 </span>            :                  * single space, it's credibly the separator between
+<span class="lineNum">     596 </span>            :                  * our field, shunted left, and this over-spilled
+<span class="lineNum">     597 </span>            :                  * field: */
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :                 proc[back] == ' ' &amp;&amp;</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :                 !isspace((unsigned char) proc[back - 1]))</span>
+<span class="lineNum">     600 </span>            :             {
+<span class="lineNum">     601 </span>            :                 /* So we have a non-empty field that ends under our
+<span class="lineNum">     602 </span>            :                  * header but before e; adjust e. */
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :                 e = back - 1;</span>
+<span class="lineNum">     604 </span>            :             }
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span>            :             /* Extend space-delimited to next space: */
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :             while (ep[0] &amp;&amp; !isspace((unsigned char)ep[0]))</span>
+<span class="lineNum">     608 </span>            :             {
+<span class="lineNum">     609 </span><span class="lineNoCov">          0 :                 ep++;</span>
+<span class="lineNum">     610 </span>            :             }
+<span class="lineNum">     611 </span>            :         }
+<span class="lineNum">     612 </span>            :         /* ep points at the space (or '\0') *following* the word or
+<span class="lineNum">     613 </span>            :          * final field. */
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span>            :         /* Some ps stimes may contain spaces, e.g. &quot;Jan 25&quot; */
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :         if (strcmp(names[i], &quot;STIME&quot;) == 0 &amp;&amp;</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :             ep - sp == 3)</span>
+<span class="lineNum">     618 </span>            :         {
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :             const char *np = ep;</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :             while (isspace((unsigned char) np[0]))</span>
+<span class="lineNum">     621 </span>            :             {
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :                 np++;</span>
+<span class="lineNum">     623 </span>            :             }
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :             if (isdigit((unsigned char) np[0]))</span>
+<span class="lineNum">     625 </span>            :             {
+<span class="lineNum">     626 </span>            :                 do
+<span class="lineNum">     627 </span>            :                 {
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :                     np++;</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :                 } while (isdigit((unsigned char) np[0]));</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :                 ep = np;</span>
+<span class="lineNum">     631 </span>            :             }
+<span class="lineNum">     632 </span>            :         }
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span>            :         /* Numeric columns, including times, are apt to grow leftwards
+<span class="lineNum">     635 </span>            :          * and be right-aligned; identify candidates for this by
+<span class="lineNum">     636 </span>            :          * proc[e] being a digit.  Text columns are typically
+<span class="lineNum">     637 </span>            :          * left-aligned and may grow rightwards; identify candidates
+<span class="lineNum">     638 </span>            :          * for this by proc[s] being alphabetic.  Some columns shall
+<span class="lineNum">     639 </span>            :          * match both (e.g. STIME).  Some numeric columns may grow
+<span class="lineNum">     640 </span>            :          * left even as far as under the heading of the next column
+<span class="lineNum">     641 </span>            :          * (seen with ps -fel's SZ spilling left into ADDR's space on
+<span class="lineNum">     642 </span>            :          * Linux).  While widening, it's OK to include a stray space;
+<span class="lineNum">     643 </span>            :          * we'll trim that afterwards.  Overspill from neighbouring
+<span class="lineNum">     644 </span>            :          * columns can muck up alignment, so &quot;digit&quot; means any
+<span class="lineNum">     645 </span>            :          * character that can appear in a numeric field (we may need
+<span class="lineNum">     646 </span>            :          * to tweak &quot;alphabetic&quot; likewise for text fields; the user
+<span class="lineNum">     647 </span>            :          * field can, for example, have a '+' appended). */
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :         bool overspilt = false;</span>
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span>            :         /* Numeric fields may include [-.:] and perhaps other
+<span class="lineNum">     651 </span>            :          * punctuators: */
+<span class="lineNum">     652 </span>            : #define IsNumberish(c) (isdigit((unsigned char)(c)) || ispunct((unsigned char)(c)))
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span>            :         /* Right-aligned numeric: move s left until we run outside the
+<span class="lineNum">     655 </span>            :          * field or find space. */
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :         if (IsNumberish(proc[e]))</span>
+<span class="lineNum">     657 </span>            :         {
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :             bool number = i &gt; 0; /* Should we check for under-spill ? */</span>
+<span class="lineNum">     659 </span><span class="lineNoCov">          0 :             int outer = number ? end[i - 1] + 1 : 0;</span>
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :             while (s &gt;= outer &amp;&amp; !isspace((unsigned char) proc[s]))</span>
+<span class="lineNum">     661 </span>            :             {
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :                 if (number &amp;&amp; !IsNumberish(proc[s]))</span>
+<span class="lineNum">     663 </span>            :                 {
+<span class="lineNum">     664 </span><span class="lineNoCov">          0 :                     number = false;</span>
+<span class="lineNum">     665 </span>            :                 }
+<span class="lineNum">     666 </span><span class="lineNoCov">          0 :                 s--;</span>
+<span class="lineNum">     667 </span>            :             }
+<span class="lineNum">     668 </span>            : 
+<span class="lineNum">     669 </span>            :             /* Numeric field might overspill under previous header: */
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :             if (s &lt; outer)</span>
+<span class="lineNum">     671 </span>            :             {
+<span class="lineNum">     672 </span><span class="lineNoCov">          0 :                 int spill = s;</span>
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :                 s = outer; /* By default, don't overlap previous column. */</span>
+<span class="lineNum">     674 </span>            : 
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :                 if (number &amp;&amp; IsNumberish(proc[spill]))</span>
+<span class="lineNum">     676 </span>            :                 {
+<span class="lineNum">     677 </span><span class="lineNoCov">          0 :                     outer = start[i - 1];</span>
+<span class="lineNum">     678 </span>            :                     /* Explore all the way to the start-column of the
+<span class="lineNum">     679 </span>            :                      * previous field's header.  If we get there, in
+<span class="lineNum">     680 </span>            :                      * digits-and-punctuation, we've got two numeric
+<span class="lineNum">     681 </span>            :                      * fields that abut; we can't do better than assume
+<span class="lineNum">     682 </span>            :                      * the boundary is under the right end of the previous
+<span class="lineNum">     683 </span>            :                      * column label (which is what our parsing of the
+<span class="lineNum">     684 </span>            :                      * previous column assumed).  So leave s where it is,
+<span class="lineNum">     685 </span>            :                      * just after the previous field's header's
+<span class="lineNum">     686 </span>            :                      * end-column. */
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :                     while (spill &gt; outer)</span>
+<span class="lineNum">     689 </span>            :                     {
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :                         spill--;</span>
+<span class="lineNum">     691 </span><span class="lineNoCov">          0 :                         if (!IsNumberish(proc[spill]))</span>
+<span class="lineNum">     692 </span>            :                         {
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :                             s = spill + 1; /* Confirmed overlap. */</span>
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     695 </span>            :                         }
+<span class="lineNum">     696 </span>            :                     }
+<span class="lineNum">     697 </span>            :                 }
+<span class="lineNum">     698 </span>            :             }
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :             overspilt = IsNumberish(proc[e + 1]);</span>
+<span class="lineNum">     701 </span>            :         }
+<span class="lineNum">     702 </span>            : #undef IsNumberish
+<span class="lineNum">     703 </span>            : 
+<span class="lineNum">     704 </span><span class="lineNoCov">          0 :         bool abut = false;</span>
+<span class="lineNum">     705 </span>            :         /* Left-aligned text or numeric misaligned by overspill; move
+<span class="lineNum">     706 </span>            :          * e right (if there's any right to move into; last column
+<span class="lineNum">     707 </span>            :          * already reaches end of proc): */
+<span class="lineNum">     708 </span><span class="lineNoCov">          0 :         if (proc[e + 1] &amp;&amp;</span>
+<span class="lineNum">     709 </span><span class="lineNoCov">          0 :             (overspilt || isalpha((unsigned char) proc[s])))</span>
+<span class="lineNum">     710 </span>            :         {
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :             assert(i + 1 &lt; CF_PROCCOLS &amp;&amp; names[i + 1]);</span>
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :             int outer = start[i + 1]; /* Start of next field's header. */</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :             int beyond = end[i + 1]; /* End of next field's header. */</span>
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :             if (beyond &gt; linelen)</span>
+<span class="lineNum">     715 </span>            :             {
+<span class="lineNum">     716 </span>            :                 /* Command is shorter than its header. */
+<span class="lineNum">     717 </span><span class="lineNoCov">          0 :                 assert(i + 2 &gt;= CF_PROCCOLS || NULL == names[i + 2]);</span>
+<span class="lineNum">     718 </span><span class="lineNoCov">          0 :                 beyond = linelen;</span>
+<span class="lineNum">     719 </span>            :             }
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :             assert(beyond &gt;= outer);</span>
+<span class="lineNum">     721 </span>            : 
+<span class="lineNum">     722 </span><span class="lineNoCov">          0 :             int out = e;</span>
+<span class="lineNum">     723 </span>            :             do
+<span class="lineNum">     724 </span>            :             {
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :                 out++;</span>
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :             } while (out &lt; beyond &amp;&amp; !isspace((unsigned char) proc[out]));</span>
+<span class="lineNum">     727 </span>            : 
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :             if (out &lt; outer)</span>
+<span class="lineNum">     729 </span>            :             {
+<span class="lineNum">     730 </span>            :                 /* Simple extension to the right, no overlap: we're on
+<span class="lineNum">     731 </span>            :                  * a space just before the next field's header. */
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :                 e = out - 1;</span>
+<span class="lineNum">     733 </span>            :             }
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :             else if (out == beyond)</span>
+<span class="lineNum">     735 </span>            :             {
+<span class="lineNum">     736 </span>            :                 /* This looks like we're actually looking at the next
+<span class="lineNum">     737 </span>            :                  * field over-spilling left so far that it reaches
+<span class="lineNum">     738 </span>            :                  * under our header; but we did previously check for
+<span class="lineNum">     739 </span>            :                  * this and amend e left-wards if it's credible; so
+<span class="lineNum">     740 </span>            :                  * we're now looking at a case where it isn't;
+<span class="lineNum">     741 </span>            :                  * probably our columns abut, with no space in
+<span class="lineNum">     742 </span>            :                  * between.  The best we can do is include the text
+<span class="lineNum">     743 </span>            :                  * between columns as part of both columns :-( */
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :                 abut = true;</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :                 prior = e; /* Before adjusting it: */</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :                 e = outer - 1;</span>
+<span class="lineNum">     747 </span>            :             }
+<span class="lineNum">     748 </span>            :             else
+<span class="lineNum">     749 </span>            :             {
+<span class="lineNum">     750 </span>            :                 /* Our word appears to over-spill under the next
+<span class="lineNum">     751 </span>            :                  * header.  See if that's credible.  If the next is a
+<span class="lineNum">     752 </span>            :                  * left-aligned field, it'll follow ours after exactly
+<span class="lineNum">     753 </span>            :                  * a simple space.  If it's right-aligned (numeric),
+<span class="lineNum">     754 </span>            :                  * it'll still follow after a single space unless it
+<span class="lineNum">     755 </span>            :                  * has enough space to fit under its header after more
+<span class="lineNum">     756 </span>            :                  * than one space. */
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :                 assert(out &lt; beyond &amp;&amp; isspace((unsigned char) proc[out]));</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :                 if ((proc[out] == ' ' &amp;&amp; proc[out + 1] &amp;&amp;</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :                      !isspace((unsigned char) proc[out + 1])) ||</span>
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :                     (isdigit((unsigned char) proc[beyond]) &amp;&amp;</span>
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :                      isspace((unsigned char) proc[beyond + 1])))</span>
+<span class="lineNum">     763 </span>            :                 {
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :                     e = out - 1;</span>
+<span class="lineNum">     765 </span>            :                 }
+<span class="lineNum">     766 </span>            :                 else
+<span class="lineNum">     767 </span>            :                 {
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :                     e = outer - 1;</span>
+<span class="lineNum">     769 </span>            :                 }
+<span class="lineNum">     770 </span>            :             }
+<span class="lineNum">     771 </span>            :         }
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :         if (!abut)</span>
+<span class="lineNum">     773 </span>            :         {
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :             prior = e;</span>
+<span class="lineNum">     775 </span>            :         }
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span>            :         /* Strip off any leading and trailing spaces: */
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :         while (isspace((unsigned char) proc[s]))</span>
+<span class="lineNum">     779 </span>            :         {
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :             s++;</span>
+<span class="lineNum">     781 </span>            :         }
+<span class="lineNum">     782 </span>            :         /* ... but stop if the field is empty ! */
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :         while (s &lt;= e &amp;&amp; isspace((unsigned char) proc[e]))</span>
+<span class="lineNum">     784 </span>            :         {
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :             e--;</span>
+<span class="lineNum">     786 </span>            :         }
+<span class="lineNum">     787 </span>            : 
+<span class="lineNum">     788 </span>            :         /* Grumble if the two heuristics don't agree: */
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :         size_t wordlen = ep - sp;</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :         if (e &lt; s ? ep &gt; sp : (sp != proc + s || ep != proc + e + 1))</span>
+<span class="lineNum">     791 </span>            :         {
+<span class="lineNum">     792 </span>            :             char word[CF_SMALLBUF];
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :             if (wordlen &gt;= CF_SMALLBUF)</span>
+<span class="lineNum">     794 </span>            :             {
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :                 wordlen = CF_SMALLBUF - 1;</span>
+<span class="lineNum">     796 </span>            :             }
+<span class="lineNum">     797 </span><span class="lineNoCov">          0 :             memcpy(word, sp, wordlen);</span>
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :             word[wordlen] = '\0';</span>
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span>            :             char column[CF_SMALLBUF];
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :             if (s &lt;= e)</span>
+<span class="lineNum">     802 </span>            :             {
+<span class="lineNum">     803 </span>            :                 /* Copy proc[s through e] inclusive:  */
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :                 const size_t len = MIN(1 + e - s, CF_SMALLBUF - 1);</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :                 memcpy(column, proc + s, len);</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :                 column[len] = '\0';</span>
+<span class="lineNum">     807 </span>            :             }
+<span class="lineNum">     808 </span>            :             else
+<span class="lineNum">     809 </span>            :             {
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :                 column[0] = '\0';</span>
+<span class="lineNum">     811 </span>            :             }
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     814 </span>            :                 &quot;Unreliable fuzzy parsing of ps output (%s) %s: '%s' != '%s'&quot;,
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :                 proc, names[i], word, column);</span>
+<span class="lineNum">     816 </span>            :         }
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span>            :         /* Fall back on word if column got an empty answer: */
+<span class="lineNum">     819 </span><span class="lineNoCov">          0 :         line[i] = e &lt; s ? xstrndup(sp, ep - sp) : xstrndup(proc + s, 1 + e - s);</span>
+<span class="lineNum">     820 </span><span class="lineNoCov">          0 :         sp = ep;</span>
+<span class="lineNum">     821 </span>            :     }
+<span class="lineNum">     822 </span>            : 
+<span class="lineNum">     823 </span>            :     /* Since start times can be very imprecise (e.g. just a past day's
+<span class="lineNum">     824 </span>            :      * date, or a past year), calculate a better value from elapsed
+<span class="lineNum">     825 </span>            :      * time, if available: */
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :     int k = GetProcColumnIndex(&quot;ELAPSED&quot;, &quot;ELAPSED&quot;, names);</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :     if (k != -1)</span>
+<span class="lineNum">     828 </span>            :     {
+<span class="lineNum">     829 </span><span class="lineNoCov">          0 :         const long elapsed = TimeCounter2Int(line[k]);</span>
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :         if (elapsed != CF_NOINT) /* Only use if parsed successfully ! */</span>
+<span class="lineNum">     831 </span>            :         {
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :             int j = GetProcColumnIndex(&quot;STIME&quot;, &quot;START&quot;, names), ns[3];</span>
+<span class="lineNum">     833 </span>            :             /* Trust the reported value if it matches hh:mm[:ss], though: */
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :             if (sscanf(line[j], &quot;%d:%d:%d&quot;, ns, ns + 1, ns + 2) &lt; 2)</span>
+<span class="lineNum">     835 </span>            :             {
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :                 time_t value = pstime - (time_t) elapsed;</span>
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_DEBUG,</span>
+<span class="lineNum">     839 </span>            :                     &quot;SplitProcLine: Replacing parsed start time %s with %s&quot;,
+<span class="lineNum">     840 </span><span class="lineNoCov">          0 :                     line[j], ctime(&amp;value));</span>
+<span class="lineNum">     841 </span>            : 
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 :                 free(line[j]);</span>
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :                 xasprintf(line + j, &quot;%ld&quot;, value);</span>
+<span class="lineNum">     844 </span>            :             }
+<span class="lineNum">     845 </span>            :         }
+<span class="lineNum">     846 </span><span class="lineNoCov">          0 :         else if (line[k])</span>
+<span class="lineNum">     847 </span>            :         {
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     849 </span>            :                 &quot;Parsing problem was in ELAPSED field of '%s'&quot;,
+<span class="lineNum">     850 </span>            :                 proc);
+<span class="lineNum">     851 </span>            :         }
+<span class="lineNum">     852 </span>            :     }
+<span class="lineNum">     853 </span>            : 
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">     855 </span>            : }
+<span class="lineNum">     856 </span>            : 
+<a name="857"><span class="lineNum">     857 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     858 </span>            : 
+<span class="lineNum">     859 </span><span class="lineNoCov">          0 : static int GetProcColumnIndex(const char *name1, const char *name2, char **names)</span>
+<span class="lineNum">     860 </span>            : {
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :     for (int i = 0; names[i] != NULL; i++)</span>
+<span class="lineNum">     862 </span>            :     {
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :         if (strcmp(names[i], name1) == 0 ||</span>
+<span class="lineNum">     864 </span><span class="lineNoCov">          0 :             strcmp(names[i], name2) == 0)</span>
+<span class="lineNum">     865 </span>            :         {
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :             return i;</span>
+<span class="lineNum">     867 </span>            :         }
+<span class="lineNum">     868 </span>            :     }
+<span class="lineNum">     869 </span>            : 
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     871 </span>            :         &quot;Process column %s/%s was not supported on this system&quot;,
+<span class="lineNum">     872 </span>            :         name1, name2);
+<span class="lineNum">     873 </span>            : 
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">     875 </span>            : }
+<span class="lineNum">     876 </span>            : 
+<a name="877"><span class="lineNum">     877 </span>            : /**********************************************************************************/</a>
+<span class="lineNum">     878 </span>            : 
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 : bool IsProcessNameRunning(char *procNameRegex)</span>
+<span class="lineNum">     880 </span>            : {
+<span class="lineNum">     881 </span>            :     char *colHeaders[CF_PROCCOLS];
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :     int start[CF_PROCCOLS] = { 0 };</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :     int end[CF_PROCCOLS] = { 0 };</span>
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :     bool matched = false;</span>
+<span class="lineNum">     885 </span>            :     int i;
+<span class="lineNum">     886 </span>            : 
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :     if (PROCESSTABLE == NULL)</span>
+<span class="lineNum">     888 </span>            :     {
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;IsProcessNameRunning: PROCESSTABLE is empty&quot;);</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     891 </span>            :     }
+<span class="lineNum">     892 </span>            :     /* TODO: use actual time of ps-run, not time(NULL), which may be later. */
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :     time_t pstime = time(NULL);</span>
+<span class="lineNum">     894 </span>            : 
+<span class="lineNum">     895 </span><span class="lineNoCov">          0 :     GetProcessColumnNames(PROCESSTABLE-&gt;name, colHeaders, start, end);</span>
+<span class="lineNum">     896 </span>            : 
+<span class="lineNum">     897 </span><span class="lineNoCov">          0 :     for (const Item *ip = PROCESSTABLE-&gt;next; !matched &amp;&amp; ip != NULL; ip = ip-&gt;next) // iterate over ps lines</span>
+<span class="lineNum">     898 </span>            :     {
+<span class="lineNum">     899 </span>            :         char *lineSplit[CF_PROCCOLS];
+<span class="lineNum">     900 </span>            : 
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :         if (NULL_OR_EMPTY(ip-&gt;name))</span>
+<span class="lineNum">     902 </span>            :         {
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     904 </span>            :         }
+<span class="lineNum">     905 </span>            : 
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :         if (!SplitProcLine(ip-&gt;name, pstime, colHeaders, start, end, lineSplit))</span>
+<span class="lineNum">     907 </span>            :         {
+<span class="lineNum">     908 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;IsProcessNameRunning: Could not split process line '%s'&quot;, ip-&gt;name);</span>
+<span class="lineNum">     909 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     910 </span>            :         }
+<span class="lineNum">     911 </span>            : 
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :         if (SelectProcRegexMatch(&quot;CMD&quot;, &quot;COMMAND&quot;, procNameRegex, colHeaders, lineSplit))</span>
+<span class="lineNum">     913 </span>            :         {
+<span class="lineNum">     914 </span><span class="lineNoCov">          0 :             matched = true;</span>
+<span class="lineNum">     915 </span>            :         }
+<span class="lineNum">     916 </span>            : 
+<span class="lineNum">     917 </span><span class="lineNoCov">          0 :         for (i = 0; lineSplit[i] != NULL; i++)</span>
+<span class="lineNum">     918 </span>            :         {
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :             free(lineSplit[i]);</span>
+<span class="lineNum">     920 </span>            :         }
+<span class="lineNum">     921 </span>            :     }
+<span class="lineNum">     922 </span>            : 
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :     for (i = 0; colHeaders[i] != NULL; i++)</span>
+<span class="lineNum">     924 </span>            :     {
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :         free(colHeaders[i]);</span>
+<span class="lineNum">     926 </span>            :     }
+<span class="lineNum">     927 </span>            : 
+<span class="lineNum">     928 </span><span class="lineNoCov">          0 :     return matched;</span>
+<span class="lineNum">     929 </span>            : }
+<a name="930"><span class="lineNum">     930 </span>            : </a>
+<span class="lineNum">     931 </span>            : 
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 : static void GetProcessColumnNames(const char *proc, char **names, int *start, int *end)</span>
+<span class="lineNum">     933 </span>            : {
+<span class="lineNum">     934 </span>            :     char title[16];
+<span class="lineNum">     935 </span><span class="lineNoCov">          0 :     int col, offset = 0;</span>
+<span class="lineNum">     936 </span>            : 
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :     for (col = 0; col &lt; CF_PROCCOLS; col++)</span>
+<span class="lineNum">     938 </span>            :     {
+<span class="lineNum">     939 </span><span class="lineNoCov">          0 :         start[col] = end[col] = -1;</span>
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :         names[col] = NULL;</span>
+<span class="lineNum">     941 </span>            :     }
+<span class="lineNum">     942 </span>            : 
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :     col = 0;</span>
+<span class="lineNum">     944 </span>            : 
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :     for (const char *sp = proc; *sp != '\0'; sp++)</span>
+<span class="lineNum">     946 </span>            :     {
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :         offset = sp - proc;</span>
+<span class="lineNum">     948 </span>            : 
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :         if (isspace((unsigned char) *sp))</span>
+<span class="lineNum">     950 </span>            :         {
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :             if (start[col] != -1)</span>
+<span class="lineNum">     952 </span>            :             {
+<span class="lineNum">     953 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_DEBUG, &quot;End of '%s' is %d&quot;, title, offset - 1);</span>
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :                 end[col++] = offset - 1;</span>
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :                 if (col &gt;= CF_PROCCOLS) /* No space for more columns. */</span>
+<span class="lineNum">     956 </span>            :                 {
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :                     size_t blank = strspn(sp, &quot; \t\r\n\f\v&quot;);</span>
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :                     if (sp[blank]) /* i.e. that wasn't everything. */</span>
+<span class="lineNum">     959 </span>            :                     {
+<span class="lineNum">     960 </span>            :                         /* If this happens, we have more columns in
+<span class="lineNum">     961 </span>            :                          * our ps output than space to store them.
+<span class="lineNum">     962 </span>            :                          * Update the #define CF_PROCCOLS (last seen
+<span class="lineNum">     963 </span>            :                          * in libpromises/cf3.defs.h) to a bigger
+<span class="lineNum">     964 </span>            :                          * number ! */
+<span class="lineNum">     965 </span><span class="lineNoCov">          0 :                         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     966 </span>            :                             &quot;Process table lacks space for last columns: %s&quot;,
+<span class="lineNum">     967 </span>            :                             sp + blank);
+<span class="lineNum">     968 </span>            :                     }
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     970 </span>            :                 }
+<span class="lineNum">     971 </span>            :             }
+<span class="lineNum">     972 </span>            :         }
+<span class="lineNum">     973 </span><span class="lineNoCov">          0 :         else if (start[col] == -1)</span>
+<span class="lineNum">     974 </span>            :         {
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :             start[col] = offset;</span>
+<span class="lineNum">     976 </span><span class="lineNoCov">          0 :             sscanf(sp, &quot;%15s&quot;, title);</span>
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Start of '%s' is %d&quot;, title, offset);</span>
+<span class="lineNum">     978 </span><span class="lineNoCov">          0 :             names[col] = xstrdup(title);</span>
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Col[%d] = '%s'&quot;, col, names[col]);</span>
+<span class="lineNum">     980 </span>            :         }
+<span class="lineNum">     981 </span>            :     }
+<span class="lineNum">     982 </span>            : 
+<span class="lineNum">     983 </span><span class="lineNoCov">          0 :     if (end[col] == -1)</span>
+<span class="lineNum">     984 </span>            :     {
+<span class="lineNum">     985 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG, &quot;End of '%s' is %d&quot;, title, offset);</span>
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :         end[col] = offset;</span>
+<span class="lineNum">     987 </span>            :     }
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 : }</span>
+<a name="989"><span class="lineNum">     989 </span>            : </a>
+<span class="lineNum">     990 </span>            : #ifndef __MINGW32__
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 : static const char *GetProcessOptions(void)</span>
+<span class="lineNum">     992 </span>            : {
+<span class="lineNum">     993 </span>            : 
+<span class="lineNum">     994 </span>            : # ifdef __linux__
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :     if (strncmp(VSYSNAME.release, &quot;2.4&quot;, 3) == 0)</span>
+<span class="lineNum">     996 </span>            :     {
+<span class="lineNum">     997 </span>            :         // No threads on 2.4 kernels, so omit nlwp
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :         return &quot;-eo user,pid,ppid,pgid,pcpu,pmem,vsz,ni,rss:9,stime,etime,time,args&quot;;</span>
+<span class="lineNum">     999 </span>            :     }
+<span class="lineNum">    1000 </span>            : # endif
+<span class="lineNum">    1001 </span>            : 
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :     return VPSOPTS[VPSHARDCLASS];</span>
+<span class="lineNum">    1003 </span>            : }
+<a name="1004"><span class="lineNum">    1004 </span>            : #endif</a>
+<span class="lineNum">    1005 </span>            : 
+<span class="lineNum">    1006 </span><span class="lineNoCov">          0 : static int ExtractPid(char *psentry, char **names, int *end)</span>
+<span class="lineNum">    1007 </span>            : {
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :     int offset = 0;</span>
+<span class="lineNum">    1009 </span>            : 
+<span class="lineNum">    1010 </span><span class="lineNoCov">          0 :     for (int col = 0; col &lt; CF_PROCCOLS; col++)</span>
+<span class="lineNum">    1011 </span>            :     {
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :         if (strcmp(names[col], &quot;PID&quot;) == 0)</span>
+<span class="lineNum">    1013 </span>            :         {
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :             if (col &gt; 0)</span>
+<span class="lineNum">    1015 </span>            :             {
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :                 offset = end[col - 1];</span>
+<span class="lineNum">    1017 </span>            :             }
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">    1019 </span>            :         }
+<span class="lineNum">    1020 </span>            :     }
+<span class="lineNum">    1021 </span>            : 
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :     for (const char *sp = psentry + offset; *sp != '\0'; sp++) /* if first field contains alpha, skip */</span>
+<span class="lineNum">    1023 </span>            :     {
+<span class="lineNum">    1024 </span>            :         /* If start with alphanum then skip it till the first space */
+<span class="lineNum">    1025 </span>            : 
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :         if (isalnum((unsigned char) *sp))</span>
+<span class="lineNum">    1027 </span>            :         {
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :             while (*sp != ' ' &amp;&amp; *sp != '\0')</span>
+<span class="lineNum">    1029 </span>            :             {
+<span class="lineNum">    1030 </span><span class="lineNoCov">          0 :                 sp++;</span>
+<span class="lineNum">    1031 </span>            :             }
+<span class="lineNum">    1032 </span>            :         }
+<span class="lineNum">    1033 </span>            : 
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :         while (*sp == ' ' || *sp == '\t')</span>
+<span class="lineNum">    1035 </span>            :         {
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :             sp++;</span>
+<span class="lineNum">    1037 </span>            :         }
+<span class="lineNum">    1038 </span>            : 
+<span class="lineNum">    1039 </span>            :         int pid;
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :         if (sscanf(sp, &quot;%d&quot;, &amp;pid) == 1 &amp;&amp; pid != -1)</span>
+<span class="lineNum">    1041 </span>            :         {
+<span class="lineNum">    1042 </span><span class="lineNoCov">          0 :             return pid;</span>
+<span class="lineNum">    1043 </span>            :         }
+<span class="lineNum">    1044 </span>            :     }
+<span class="lineNum">    1045 </span>            : 
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :     return -1;</span>
+<span class="lineNum">    1047 </span>            : }
+<span class="lineNum">    1048 </span>            : 
+<span class="lineNum">    1049 </span>            : # ifndef __MINGW32__
+<span class="lineNum">    1050 </span>            : # ifdef HAVE_GETZONEID
+<span class="lineNum">    1051 </span>            : /* ListLookup with the following return semantics
+<span class="lineNum">    1052 </span>            :  * -1 if the first argument is smaller than the second
+<span class="lineNum">    1053 </span>            :  *  0 if the arguments are equal
+<span class="lineNum">    1054 </span>            :  *  1 if the first argument is bigger than the second
+<span class="lineNum">    1055 </span>            :  */
+<span class="lineNum">    1056 </span>            : int PidListCompare(const void *pid1, const void *pid2, ARG_UNUSED void *user_data)
+<span class="lineNum">    1057 </span>            : {
+<span class="lineNum">    1058 </span>            :     int p1 = (intptr_t)(void *)pid1;
+<span class="lineNum">    1059 </span>            :     int p2 = (intptr_t)(void *)pid2;
+<span class="lineNum">    1060 </span>            : 
+<span class="lineNum">    1061 </span>            :     if (p1 &lt; p2)
+<span class="lineNum">    1062 </span>            :     {
+<span class="lineNum">    1063 </span>            :         return -1;
+<span class="lineNum">    1064 </span>            :     }
+<span class="lineNum">    1065 </span>            :     else if (p1 &gt; p2)
+<span class="lineNum">    1066 </span>            :     {
+<span class="lineNum">    1067 </span>            :         return 1;
+<span class="lineNum">    1068 </span>            :     }
+<span class="lineNum">    1069 </span>            :     return 0;
+<span class="lineNum">    1070 </span>            : }
+<span class="lineNum">    1071 </span>            : /* Load processes using zone-aware ps
+<span class="lineNum">    1072 </span>            :  * to obtain solaris list of global
+<span class="lineNum">    1073 </span>            :  * process ids for root and non-root
+<span class="lineNum">    1074 </span>            :  * users to lookup later */
+<span class="lineNum">    1075 </span>            : int ZLoadProcesstable(Seq *pidlist, Seq *rootpidlist)
+<span class="lineNum">    1076 </span>            : {
+<span class="lineNum">    1077 </span>            : 
+<span class="lineNum">    1078 </span>            :     char *names[CF_PROCCOLS];
+<span class="lineNum">    1079 </span>            :     int start[CF_PROCCOLS];
+<span class="lineNum">    1080 </span>            :     int end[CF_PROCCOLS];
+<span class="lineNum">    1081 </span>            : 
+<span class="lineNum">    1082 </span>            :     int index = 0;
+<span class="lineNum">    1083 </span>            :     const char *pscmd = &quot;/usr/bin/ps -Aleo zone,user,pid&quot;;
+<span class="lineNum">    1084 </span>            : 
+<span class="lineNum">    1085 </span>            :     FILE *psf = cf_popen(pscmd, &quot;r&quot;, false);
+<span class="lineNum">    1086 </span>            :     if (psf == NULL)
+<span class="lineNum">    1087 </span>            :     {
+<span class="lineNum">    1088 </span>            :         Log(LOG_LEVEL_ERR, &quot;ZLoadProcesstable: Couldn't open the process list with command %s.&quot;, pscmd);
+<span class="lineNum">    1089 </span>            :         return false;
+<span class="lineNum">    1090 </span>            :     }
+<span class="lineNum">    1091 </span>            : 
+<span class="lineNum">    1092 </span>            :     size_t pbuff_size = CF_BUFSIZE;
+<span class="lineNum">    1093 </span>            :     char *pbuff = xmalloc(pbuff_size);
+<span class="lineNum">    1094 </span>            : 
+<span class="lineNum">    1095 </span>            :     while (true)
+<span class="lineNum">    1096 </span>            :     {
+<span class="lineNum">    1097 </span>            :         ssize_t res = CfReadLine(&amp;pbuff, &amp;pbuff_size, psf);
+<span class="lineNum">    1098 </span>            :         if (res == -1)
+<span class="lineNum">    1099 </span>            :         {
+<span class="lineNum">    1100 </span>            :             if (!feof(psf))
+<span class="lineNum">    1101 </span>            :             {
+<span class="lineNum">    1102 </span>            :                 Log(LOG_LEVEL_ERR, &quot;IsGlobalProcess(char **, int): Unable to read process list with command '%s'. (fread: %s)&quot;, pscmd, GetErrorStr());
+<span class="lineNum">    1103 </span>            :                 cf_pclose(psf);
+<span class="lineNum">    1104 </span>            :                 free(pbuff);
+<span class="lineNum">    1105 </span>            :                 return false;
+<span class="lineNum">    1106 </span>            :             }
+<span class="lineNum">    1107 </span>            :             else
+<span class="lineNum">    1108 </span>            :             {
+<span class="lineNum">    1109 </span>            :                 break;
+<span class="lineNum">    1110 </span>            :             }
+<span class="lineNum">    1111 </span>            :         }
+<span class="lineNum">    1112 </span>            :         Chop(pbuff, pbuff_size);
+<span class="lineNum">    1113 </span>            :         if (strstr(pbuff, &quot;PID&quot;)) /* This line is the header. */
+<span class="lineNum">    1114 </span>            :         {
+<span class="lineNum">    1115 </span>            :             GetProcessColumnNames(pbuff, &amp;names[0], start, end);
+<span class="lineNum">    1116 </span>            :         }
+<span class="lineNum">    1117 </span>            :         else
+<span class="lineNum">    1118 </span>            :         {
+<span class="lineNum">    1119 </span>            :             int pid = ExtractPid(pbuff, &amp;names[0], end);
+<span class="lineNum">    1120 </span>            : 
+<span class="lineNum">    1121 </span>            :             size_t zone_offset = strspn(pbuff, &quot; &quot;);
+<span class="lineNum">    1122 </span>            :             size_t zone_end_offset = strcspn(pbuff + zone_offset, &quot; &quot;) + zone_offset;
+<span class="lineNum">    1123 </span>            :             size_t user_offset = strspn(pbuff + zone_end_offset, &quot; &quot;) + zone_end_offset;
+<span class="lineNum">    1124 </span>            :             size_t user_end_offset = strcspn(pbuff + user_offset, &quot; &quot;) + user_offset;
+<span class="lineNum">    1125 </span>            :             bool is_global = (zone_end_offset - zone_offset == 6
+<span class="lineNum">    1126 </span>            :                                   &amp;&amp; strncmp(pbuff + zone_offset, &quot;global&quot;, 6) == 0);
+<span class="lineNum">    1127 </span>            :             bool is_root = (user_end_offset - user_offset == 4
+<span class="lineNum">    1128 </span>            :                                 &amp;&amp; strncmp(pbuff + user_offset, &quot;root&quot;, 4) == 0);
+<span class="lineNum">    1129 </span>            : 
+<span class="lineNum">    1130 </span>            :             if (is_global &amp;&amp; is_root)
+<span class="lineNum">    1131 </span>            :             {
+<span class="lineNum">    1132 </span>            :                 SeqAppend(rootpidlist, (void*)(intptr_t)pid);
+<span class="lineNum">    1133 </span>            :             }
+<span class="lineNum">    1134 </span>            :             else if (is_global &amp;&amp; !is_root)
+<span class="lineNum">    1135 </span>            :             {
+<span class="lineNum">    1136 </span>            :                 SeqAppend(pidlist, (void*)(intptr_t)pid);
+<span class="lineNum">    1137 </span>            :             }
+<span class="lineNum">    1138 </span>            :         }
+<span class="lineNum">    1139 </span>            :     }
+<span class="lineNum">    1140 </span>            :     cf_pclose(psf);
+<span class="lineNum">    1141 </span>            :     free(pbuff);
+<span class="lineNum">    1142 </span>            :     return true;
+<span class="lineNum">    1143 </span>            : }
+<span class="lineNum">    1144 </span>            : bool PidInSeq(Seq *list, int pid)
+<span class="lineNum">    1145 </span>            : {
+<span class="lineNum">    1146 </span>            :     void *res = SeqLookup(list, (void *)(intptr_t)pid, PidListCompare);
+<span class="lineNum">    1147 </span>            :     int result = (intptr_t)(void*)res;
+<span class="lineNum">    1148 </span>            : 
+<span class="lineNum">    1149 </span>            :     if (result == pid)
+<span class="lineNum">    1150 </span>            :     {
+<span class="lineNum">    1151 </span>            :         return true;
+<span class="lineNum">    1152 </span>            :     }
+<span class="lineNum">    1153 </span>            :     return false;
+<span class="lineNum">    1154 </span>            : }
+<span class="lineNum">    1155 </span>            : /* return true if the process with
+<span class="lineNum">    1156 </span>            :  * pid is in the global zone */
+<span class="lineNum">    1157 </span>            : int IsGlobalProcess(int pid, Seq *pidlist, Seq *rootpidlist)
+<span class="lineNum">    1158 </span>            : {
+<span class="lineNum">    1159 </span>            :     if (PidInSeq(pidlist, pid) || PidInSeq(rootpidlist, pid))
+<span class="lineNum">    1160 </span>            :     {
+<span class="lineNum">    1161 </span>            :        return true;
+<span class="lineNum">    1162 </span>            :     }
+<span class="lineNum">    1163 </span>            :     else
+<span class="lineNum">    1164 </span>            :     {
+<span class="lineNum">    1165 </span>            :        return false;
+<span class="lineNum">    1166 </span>            :     }
+<span class="lineNum">    1167 </span>            : }
+<span class="lineNum">    1168 </span>            : void ZCopyProcessList(Item **dest, const Item *source, Seq *pidlist, char **names, int *end)
+<span class="lineNum">    1169 </span>            : {
+<span class="lineNum">    1170 </span>            :     int gpid = ExtractPid(source-&gt;name, names, end);
+<span class="lineNum">    1171 </span>            : 
+<span class="lineNum">    1172 </span>            :     if (PidInSeq(pidlist, gpid))
+<span class="lineNum">    1173 </span>            :     {
+<span class="lineNum">    1174 </span>            :         PrependItem(dest, source-&gt;name, &quot;&quot;);
+<span class="lineNum">    1175 </span>            :     }
+<span class="lineNum">    1176 </span>            : }
+<a name="1177"><span class="lineNum">    1177 </span>            : # endif /* HAVE_GETZONEID */</a>
+<span class="lineNum">    1178 </span>            : 
+<span class="lineNum">    1179 </span><span class="lineNoCov">          0 : static void CheckPsLineLimitations(void)</span>
+<span class="lineNum">    1180 </span>            : {
+<span class="lineNum">    1181 </span>            : #ifdef __hpux
+<span class="lineNum">    1182 </span>            :     FILE *ps_fd;
+<span class="lineNum">    1183 </span>            :     int ret;
+<span class="lineNum">    1184 </span>            :     char limit[21];
+<span class="lineNum">    1185 </span>            :     char *buf = NULL;
+<span class="lineNum">    1186 </span>            :     size_t bufsize = 0;
+<span class="lineNum">    1187 </span>            : 
+<span class="lineNum">    1188 </span>            :     ps_fd = fopen(&quot;/etc/default/ps&quot;, &quot;r&quot;);
+<span class="lineNum">    1189 </span>            :     if (!ps_fd)
+<span class="lineNum">    1190 </span>            :     {
+<span class="lineNum">    1191 </span>            :         Log(LOG_LEVEL_VERBOSE, &quot;Could not open '/etc/default/ps' &quot;
+<span class="lineNum">    1192 </span>            :             &quot;to check ps line length limitations.&quot;);
+<span class="lineNum">    1193 </span>            :         return;
+<span class="lineNum">    1194 </span>            :     }
+<span class="lineNum">    1195 </span>            : 
+<span class="lineNum">    1196 </span>            :     while (true)
+<span class="lineNum">    1197 </span>            :     {
+<span class="lineNum">    1198 </span>            :         ret = CfReadLine(&amp;buf, &amp;bufsize, ps_fd);
+<span class="lineNum">    1199 </span>            :         if (ret &lt; 0)
+<span class="lineNum">    1200 </span>            :         {
+<span class="lineNum">    1201 </span>            :             break;
+<span class="lineNum">    1202 </span>            :         }
+<span class="lineNum">    1203 </span>            : 
+<span class="lineNum">    1204 </span>            :         ret = sscanf(buf, &quot;DEFAULT_CMD_LINE_WIDTH = %20[0-9]&quot;, limit);
+<span class="lineNum">    1205 </span>            : 
+<span class="lineNum">    1206 </span>            :         if (ret == 1)
+<span class="lineNum">    1207 </span>            :         {
+<span class="lineNum">    1208 </span>            :             if (atoi(limit) &lt; 1024)
+<span class="lineNum">    1209 </span>            :             {
+<span class="lineNum">    1210 </span>            :                 Log(LOG_LEVEL_VERBOSE, &quot;ps line length limit is less than 1024. &quot;
+<span class="lineNum">    1211 </span>            :                     &quot;Consider adjusting the DEFAULT_CMD_LINE_WIDTH setting in /etc/default/ps &quot;
+<span class="lineNum">    1212 </span>            :                     &quot;in order to guarantee correct process matching.&quot;);
+<span class="lineNum">    1213 </span>            :             }
+<span class="lineNum">    1214 </span>            :             break;
+<span class="lineNum">    1215 </span>            :         }
+<span class="lineNum">    1216 </span>            :     }
+<span class="lineNum">    1217 </span>            : 
+<span class="lineNum">    1218 </span>            :     free(buf);
+<span class="lineNum">    1219 </span>            :     fclose(ps_fd);
+<span class="lineNum">    1220 </span>            : #endif
+<a name="1221"><span class="lineNum">    1221 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1222 </span>            : 
+<span class="lineNum">    1223 </span><span class="lineNoCov">          0 : int LoadProcessTable(Item **procdata)</span>
+<span class="lineNum">    1224 </span>            : {
+<span class="lineNum">    1225 </span>            :     FILE *prp;
+<span class="lineNum">    1226 </span>            :     char pscomm[CF_MAXLINKSIZE];
+<span class="lineNum">    1227 </span><span class="lineNoCov">          0 :     Item *rootprocs = NULL;</span>
+<span class="lineNum">    1228 </span><span class="lineNoCov">          0 :     Item *otherprocs = NULL;</span>
+<span class="lineNum">    1229 </span>            : 
+<span class="lineNum">    1230 </span>            : 
+<span class="lineNum">    1231 </span><span class="lineNoCov">          0 :     if (PROCESSTABLE)</span>
+<span class="lineNum">    1232 </span>            :     {
+<span class="lineNum">    1233 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Reusing cached process table&quot;);</span>
+<span class="lineNum">    1234 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">    1235 </span>            :     }
+<span class="lineNum">    1236 </span>            : 
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :     CheckPsLineLimitations();</span>
+<span class="lineNum">    1238 </span>            : 
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :     const char *psopts = GetProcessOptions();</span>
+<span class="lineNum">    1240 </span>            : 
+<span class="lineNum">    1241 </span><span class="lineNoCov">          0 :     snprintf(pscomm, CF_MAXLINKSIZE, &quot;%s %s&quot;, VPSCOMM[VPSHARDCLASS], psopts);</span>
+<span class="lineNum">    1242 </span>            : 
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE, &quot;Observe process table with %s&quot;, pscomm);</span>
+<span class="lineNum">    1244 </span>            : 
+<span class="lineNum">    1245 </span><span class="lineNoCov">          0 :     if ((prp = cf_popen(pscomm, &quot;r&quot;, false)) == NULL)</span>
+<span class="lineNum">    1246 </span>            :     {
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Couldn't open the process list with command '%s'. (popen: %s)&quot;, pscomm, GetErrorStr());</span>
+<span class="lineNum">    1248 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">    1249 </span>            :     }
+<span class="lineNum">    1250 </span>            : 
+<span class="lineNum">    1251 </span><span class="lineNoCov">          0 :     size_t vbuff_size = CF_BUFSIZE;</span>
+<span class="lineNum">    1252 </span><span class="lineNoCov">          0 :     char *vbuff = xmalloc(vbuff_size);</span>
+<span class="lineNum">    1253 </span>            : 
+<span class="lineNum">    1254 </span>            : # ifdef HAVE_GETZONEID
+<span class="lineNum">    1255 </span>            : 
+<span class="lineNum">    1256 </span>            :     char *names[CF_PROCCOLS];
+<span class="lineNum">    1257 </span>            :     int start[CF_PROCCOLS];
+<span class="lineNum">    1258 </span>            :     int end[CF_PROCCOLS];
+<span class="lineNum">    1259 </span>            :     Seq *pidlist = SeqNew(1, NULL);
+<span class="lineNum">    1260 </span>            :     Seq *rootpidlist = SeqNew(1, NULL);
+<span class="lineNum">    1261 </span>            :     bool global_zone = IsGlobalZone();
+<span class="lineNum">    1262 </span>            : 
+<span class="lineNum">    1263 </span>            :     if (global_zone)
+<span class="lineNum">    1264 </span>            :     {
+<span class="lineNum">    1265 </span>            :         int res = ZLoadProcesstable(pidlist, rootpidlist);
+<span class="lineNum">    1266 </span>            : 
+<span class="lineNum">    1267 </span>            :         if (res == false)
+<span class="lineNum">    1268 </span>            :         {
+<span class="lineNum">    1269 </span>            :             Log(LOG_LEVEL_ERR, &quot;Unable to load solaris zone process table.&quot;);
+<span class="lineNum">    1270 </span>            :             return false;
+<span class="lineNum">    1271 </span>            :         }
+<span class="lineNum">    1272 </span>            :     }
+<span class="lineNum">    1273 </span>            : 
+<span class="lineNum">    1274 </span>            : # endif
+<span class="lineNum">    1275 </span>            : 
+<span class="lineNum">    1276 </span>            :     for (;;)
+<span class="lineNum">    1277 </span>            :     {
+<span class="lineNum">    1278 </span><span class="lineNoCov">          0 :         ssize_t res = CfReadLine(&amp;vbuff, &amp;vbuff_size, prp);</span>
+<span class="lineNum">    1279 </span><span class="lineNoCov">          0 :         if (res == -1)</span>
+<span class="lineNum">    1280 </span>            :         {
+<span class="lineNum">    1281 </span><span class="lineNoCov">          0 :             if (!feof(prp))</span>
+<span class="lineNum">    1282 </span>            :             {
+<span class="lineNum">    1283 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Unable to read process list with command '%s'. (fread: %s)&quot;, pscomm, GetErrorStr());</span>
+<span class="lineNum">    1284 </span><span class="lineNoCov">          0 :                 cf_pclose(prp);</span>
+<span class="lineNum">    1285 </span><span class="lineNoCov">          0 :                 free(vbuff);</span>
+<span class="lineNum">    1286 </span><span class="lineNoCov">          0 :                 return false;</span>
+<span class="lineNum">    1287 </span>            :             }
+<span class="lineNum">    1288 </span>            :             else
+<span class="lineNum">    1289 </span>            :             {
+<span class="lineNum">    1290 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1291 </span>            :             }
+<span class="lineNum">    1292 </span>            :         }
+<span class="lineNum">    1293 </span><span class="lineNoCov">          0 :         Chop(vbuff, vbuff_size);</span>
+<span class="lineNum">    1294 </span>            : 
+<span class="lineNum">    1295 </span>            : # ifdef HAVE_GETZONEID
+<span class="lineNum">    1296 </span>            : 
+<span class="lineNum">    1297 </span>            :         if (global_zone)
+<span class="lineNum">    1298 </span>            :         {
+<span class="lineNum">    1299 </span>            :             if (strstr(vbuff, &quot;PID&quot;) != NULL)
+<span class="lineNum">    1300 </span>            :             {   /* this is the banner so get the column header names for later use*/
+<span class="lineNum">    1301 </span>            :                 GetProcessColumnNames(vbuff, &amp;names[0], start, end);
+<span class="lineNum">    1302 </span>            :             }
+<span class="lineNum">    1303 </span>            :             else
+<span class="lineNum">    1304 </span>            :             {
+<span class="lineNum">    1305 </span>            :                int gpid = ExtractPid(vbuff, names, end);
+<span class="lineNum">    1306 </span>            : 
+<span class="lineNum">    1307 </span>            :                if (!IsGlobalProcess(gpid, pidlist, rootpidlist))
+<span class="lineNum">    1308 </span>            :                {
+<span class="lineNum">    1309 </span>            :                     continue;
+<span class="lineNum">    1310 </span>            :                }
+<span class="lineNum">    1311 </span>            :             }
+<span class="lineNum">    1312 </span>            :         }
+<span class="lineNum">    1313 </span>            : 
+<span class="lineNum">    1314 </span>            : # endif
+<span class="lineNum">    1315 </span><span class="lineNoCov">          0 :         AppendItem(procdata, vbuff, &quot;&quot;);</span>
+<span class="lineNum">    1316 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1317 </span>            : 
+<span class="lineNum">    1318 </span><span class="lineNoCov">          0 :     cf_pclose(prp);</span>
+<span class="lineNum">    1319 </span>            : 
+<span class="lineNum">    1320 </span>            : /* Now save the data */
+<span class="lineNum">    1321 </span><span class="lineNoCov">          0 :     const char* const statedir = GetStateDir();</span>
+<span class="lineNum">    1322 </span>            : 
+<span class="lineNum">    1323 </span><span class="lineNoCov">          0 :     snprintf(vbuff, CF_MAXVARSIZE, &quot;%s%ccf_procs&quot;, statedir, FILE_SEPARATOR);</span>
+<span class="lineNum">    1324 </span><span class="lineNoCov">          0 :     RawSaveItemList(*procdata, vbuff, NewLineMode_Unix);</span>
+<span class="lineNum">    1325 </span>            : 
+<span class="lineNum">    1326 </span>            : # ifdef HAVE_GETZONEID
+<span class="lineNum">    1327 </span>            :     if (global_zone) /* pidlist and rootpidlist are empty if we're not in the global zone */
+<span class="lineNum">    1328 </span>            :     {
+<span class="lineNum">    1329 </span>            :         Item *ip = *procdata;
+<span class="lineNum">    1330 </span>            :         while (ip != NULL)
+<span class="lineNum">    1331 </span>            :         {
+<span class="lineNum">    1332 </span>            :             ZCopyProcessList(&amp;rootprocs, ip, rootpidlist, names, end);
+<span class="lineNum">    1333 </span>            :             ip = ip-&gt;next;
+<span class="lineNum">    1334 </span>            :         }
+<span class="lineNum">    1335 </span>            :         ReverseItemList(rootprocs);
+<span class="lineNum">    1336 </span>            :         ip = *procdata;
+<span class="lineNum">    1337 </span>            :         while (ip != NULL)
+<span class="lineNum">    1338 </span>            :         {
+<span class="lineNum">    1339 </span>            :             ZCopyProcessList(&amp;otherprocs, ip, pidlist, names, end);
+<span class="lineNum">    1340 </span>            :             ip = ip-&gt;next;
+<span class="lineNum">    1341 </span>            :         }
+<span class="lineNum">    1342 </span>            :         ReverseItemList(otherprocs);
+<span class="lineNum">    1343 </span>            :     }
+<span class="lineNum">    1344 </span>            :     else
+<span class="lineNum">    1345 </span>            : # endif
+<span class="lineNum">    1346 </span>            :     {
+<span class="lineNum">    1347 </span><span class="lineNoCov">          0 :         CopyList(&amp;rootprocs, *procdata);</span>
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :         CopyList(&amp;otherprocs, *procdata);</span>
+<span class="lineNum">    1349 </span>            : 
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :         while (DeleteItemNotContaining(&amp;rootprocs, &quot;root&quot;))</span>
+<span class="lineNum">    1351 </span>            :         {
+<span class="lineNum">    1352 </span>            :         }
+<span class="lineNum">    1353 </span>            : 
+<span class="lineNum">    1354 </span><span class="lineNoCov">          0 :         while (DeleteItemContaining(&amp;otherprocs, &quot;root&quot;))</span>
+<span class="lineNum">    1355 </span>            :         {
+<span class="lineNum">    1356 </span>            :         }
+<span class="lineNum">    1357 </span>            :     }
+<span class="lineNum">    1358 </span><span class="lineNoCov">          0 :     if (otherprocs)</span>
+<span class="lineNum">    1359 </span>            :     {
+<span class="lineNum">    1360 </span><span class="lineNoCov">          0 :         PrependItem(&amp;rootprocs, otherprocs-&gt;name, NULL);</span>
+<span class="lineNum">    1361 </span>            :     }
+<span class="lineNum">    1362 </span>            : 
+<span class="lineNum">    1363 </span><span class="lineNoCov">          0 :     snprintf(vbuff, CF_MAXVARSIZE, &quot;%s%ccf_rootprocs&quot;, statedir, FILE_SEPARATOR);</span>
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :     RawSaveItemList(rootprocs, vbuff, NewLineMode_Unix);</span>
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :     DeleteItemList(rootprocs);</span>
+<span class="lineNum">    1366 </span>            : 
+<span class="lineNum">    1367 </span><span class="lineNoCov">          0 :     snprintf(vbuff, CF_MAXVARSIZE, &quot;%s%ccf_otherprocs&quot;, statedir, FILE_SEPARATOR);</span>
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :     RawSaveItemList(otherprocs, vbuff, NewLineMode_Unix);</span>
+<span class="lineNum">    1369 </span><span class="lineNoCov">          0 :     DeleteItemList(otherprocs);</span>
+<span class="lineNum">    1370 </span>            : 
+<span class="lineNum">    1371 </span><span class="lineNoCov">          0 :     free(vbuff);</span>
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">    1373 </span>            : }
+<span class="lineNum">    1374 </span>            : # endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

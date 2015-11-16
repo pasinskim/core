@@ -1,0 +1,258 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/extensions.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - extensions.c<span style="font-size: 80%;"> (source / <a href="extensions.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntry">54</td>
+            <td class="headerCovTableEntryLo">40.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">33.3 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;enterprise_extension.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;known_dirs.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &lt;pthread.h&gt;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : /*
+<span class="lineNum">      33 </span>            :  * A note regarding the loading of the extension plugins:
+<span class="lineNum">      34 </span>            :  *
+<span class="lineNum">      35 </span>            :  * The extension plugin was originally statically linked into each agent,
+<span class="lineNum">      36 </span>            :  * but was then refactored into plugins.
+<span class="lineNum">      37 </span>            :  * Therefore, since it hasn't been written according to plugin guidelines,
+<span class="lineNum">      38 </span>            :  * it is not safe to assume that we can unload it once we have
+<span class="lineNum">      39 </span>            :  * loaded it, since it may allocate resources that are not freed. It is also
+<span class="lineNum">      40 </span>            :  * not safe to assume that we can load it after initialization is complete
+<span class="lineNum">      41 </span>            :  * (for example if the plugin is dropped into the directory after cf-serverd
+<span class="lineNum">      42 </span>            :  * has already been running for some time), because some data structures may
+<span class="lineNum">      43 </span>            :  * not have been initialized.
+<span class="lineNum">      44 </span>            :  *
+<span class="lineNum">      45 </span>            :  * Therefore, the load strategy is as follows:
+<span class="lineNum">      46 </span>            :  *
+<span class="lineNum">      47 </span>            :  * - If we find the plugin immediately, load it, and keep it loaded.
+<span class="lineNum">      48 </span>            :  *
+<span class="lineNum">      49 </span>            :  * - If we don't find the plugin, NEVER attempt to load it again afterwards.
+<span class="lineNum">      50 </span>            :  *
+<span class="lineNum">      51 </span>            :  * - Never unload the plugin.
+<span class="lineNum">      52 </span>            :  *
+<span class="lineNum">      53 </span>            :  * - Any installation/upgrade/removal of the plugin requires daemon restarts.
+<span class="lineNum">      54 </span>            :  *
+<span class="lineNum">      55 </span>            :  * - The exception is for testing (see getenv below).
+<span class="lineNum">      56 </span>            :  */
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : #ifndef BUILTIN_EXTENSIONS
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : static bool enable_extension_libraries = true; /* GLOBAL_X */
+<a name="61"><span class="lineNum">      61 </span>            : static bool attempted_loading = false; /* GLOBAL_X */</a>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 : void extension_libraries_disable()</span>
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     if (attempted_loading)</span>
+<span class="lineNum">      66 </span>            :     {
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;extension_libraries_disable() MUST be called before any call to extension functions&quot;);</span>
+<span class="lineNum">      68 </span>            :     }
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :     enable_extension_libraries = false;</span>
+<a name="70"><span class="lineNum">      70 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineCov">          2 : void *extension_library_open(const char *name)</span>
+<span class="lineNum">      73 </span>            : {
+<span class="lineNum">      74 </span><span class="lineCov">          2 :     if (!enable_extension_libraries)</span>
+<span class="lineNum">      75 </span>            :     {
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">      77 </span>            :     }
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineCov">          2 :     if (getenv(&quot;CFENGINE_TEST_OVERRIDE_EXTENSION_LIBRARY_DO_CLOSE&quot;) == NULL)</span>
+<span class="lineNum">      80 </span>            :     {
+<span class="lineNum">      81 </span>            :         // Only do loading checks if we are not doing tests.
+<span class="lineNum">      82 </span><span class="lineCov">          2 :         attempted_loading = true;</span>
+<span class="lineNum">      83 </span>            :     }
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span><span class="lineCov">          2 :     const char *dirs_to_try[3] = { NULL };</span>
+<span class="lineNum">      86 </span><span class="lineCov">          2 :     const char *dir = getenv(&quot;CFENGINE_TEST_OVERRIDE_EXTENSION_LIBRARY_DIR&quot;);</span>
+<span class="lineNum">      87 </span><span class="lineCov">          2 :     char lib[] = &quot;/lib&quot;;</span>
+<span class="lineNum">      88 </span><span class="lineCov">          2 :     if (dir)</span>
+<span class="lineNum">      89 </span>            :     {
+<span class="lineNum">      90 </span><span class="lineCov">          2 :         lib[0] = '\0';</span>
+<span class="lineNum">      91 </span><span class="lineCov">          2 :         dirs_to_try[0] = dir;</span>
+<span class="lineNum">      92 </span>            :     }
+<span class="lineNum">      93 </span>            :     else
+<span class="lineNum">      94 </span>            :     {
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         dirs_to_try[0] = GetWorkDir();</span>
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :         if (strcmp(WORKDIR, dirs_to_try[0]) != 0)</span>
+<span class="lineNum">      97 </span>            :         {
+<span class="lineNum">      98 </span>            :             // try to load from the real WORKDIR in case GetWorkDir returned the local workdir to the user
+<span class="lineNum">      99 </span>            :             // We try this because enterprise &quot;make install&quot; is in WORKDIR, not per user
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :             dirs_to_try[1] = WORKDIR;</span>
+<span class="lineNum">     101 </span>            :         }
+<span class="lineNum">     102 </span>            :     }
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineCov">          2 :     void *handle = NULL;</span>
+<span class="lineNum">     105 </span><span class="lineCov">          4 :     for (int i = 0; dirs_to_try[i]; i++)</span>
+<span class="lineNum">     106 </span>            :     {
+<span class="lineNum">     107 </span><span class="lineCov">          2 :         char path[strlen(dirs_to_try[i]) + strlen(lib) + strlen(name) + 2];</span>
+<span class="lineNum">     108 </span><span class="lineCov">          2 :         xsnprintf(path, sizeof(path), &quot;%s%s/%s&quot;, dirs_to_try[i], lib, name);</span>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineCov">          2 :         Log(LOG_LEVEL_DEBUG, &quot;Trying to shlib_open extension plugin '%s' from '%s'&quot;, name, path);</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">          2 :         handle = shlib_open(path);</span>
+<span class="lineNum">     113 </span><span class="lineCov">          2 :         if (handle)</span>
+<span class="lineNum">     114 </span>            :         {
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Successfully opened extension plugin '%s' from '%s'&quot;, name, path);</span>
+<span class="lineNum">     116 </span>            :             break;
+<span class="lineNum">     117 </span>            :         }
+<span class="lineNum">     118 </span>            :         else
+<span class="lineNum">     119 </span>            :         {
+<span class="lineNum">     120 </span>            :             const char *error;
+<span class="lineNum">     121 </span><span class="lineCov">          2 :             if (errno == ENOENT)</span>
+<span class="lineNum">     122 </span>            :             {
+<span class="lineNum">     123 </span><span class="lineCov">          2 :                 error = &quot;(not installed)&quot;;</span>
+<span class="lineNum">     124 </span>            :             }
+<span class="lineNum">     125 </span>            :             else
+<span class="lineNum">     126 </span>            :             {
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :                 error = GetErrorStr();</span>
+<span class="lineNum">     128 </span>            :             }
+<span class="lineNum">     129 </span><span class="lineCov">          2 :             Log(LOG_LEVEL_VERBOSE, &quot;Could not open extension plugin '%s' from '%s': %s&quot;, name, path, error);</span>
+<span class="lineNum">     130 </span>            :         }
+<span class="lineNum">     131 </span>            :     }
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineCov">          2 :     if (!handle)</span>
+<span class="lineNum">     134 </span>            :     {
+<span class="lineNum">     135 </span><span class="lineCov">          2 :         return handle;</span>
+<span class="lineNum">     136 </span>            :     }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :     // Version check, to avoid binary incompatible plugins.
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :     const char * (*GetExtensionLibraryVersion)() = shlib_load(handle, &quot;GetExtensionLibraryVersion&quot;);</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     if (!GetExtensionLibraryVersion)</span>
+<span class="lineNum">     141 </span>            :     {
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Could not retrieve version from extension plugin (%s). Not loading the plugin.&quot;, name);</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :         goto close_and_fail;</span>
+<span class="lineNum">     144 </span>            :     }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :     const char *plugin_version = GetExtensionLibraryVersion();</span>
+<span class="lineNum">     147 </span>            :     unsigned int bin_major, bin_minor, bin_patch;
+<span class="lineNum">     148 </span>            :     unsigned int plug_major, plug_minor, plug_patch;
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     if (sscanf(VERSION, &quot;%u.%u.%u&quot;, &amp;bin_major, &amp;bin_minor, &amp;bin_patch) != 3)</span>
+<span class="lineNum">     150 </span>            :     {
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Not able to extract version number from binary (%s). Not loading extension plugin.&quot;, name);</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         goto close_and_fail;</span>
+<span class="lineNum">     153 </span>            :     }
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :     if (sscanf(plugin_version, &quot;%u.%u.%u&quot;, &amp;plug_major, &amp;plug_minor, &amp;plug_patch) != 3)</span>
+<span class="lineNum">     155 </span>            :     {
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Not able to extract version number from plugin (%s). Not loading extension plugin.&quot;, name);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         goto close_and_fail;</span>
+<span class="lineNum">     158 </span>            :     }
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :     if (bin_major != plug_major || bin_minor != plug_minor || bin_patch != plug_patch)</span>
+<span class="lineNum">     161 </span>            :     {
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Extension plugin version does not match CFEngine Community version &quot;</span>
+<span class="lineNum">     163 </span>            :             &quot;(CFEngine Community v%u.%u.%u, Extension (%s) v%u.%u.%u). Refusing to load it.&quot;,
+<span class="lineNum">     164 </span>            :             bin_major, bin_minor, bin_patch, name, plug_major, plug_minor, plug_patch);
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :         goto close_and_fail;</span>
+<span class="lineNum">     166 </span>            :     }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE, &quot;Successfully loaded extension plugin '%s'&quot;, name);</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     return handle;</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : close_and_fail:
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     shlib_close(handle);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :     return NULL;</span>
+<a name="175"><span class="lineNum">     175 </span>            : }</a>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 : void extension_library_close(void *handle)</span>
+<span class="lineNum">     178 </span>            : {
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :     shlib_close(handle);</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            : #endif // !BUILTIN_EXTENSIONS
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

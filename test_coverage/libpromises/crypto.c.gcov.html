@@ -1,0 +1,711 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libpromises/crypto.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libpromises</a> - crypto.c<span style="font-size: 80%;"> (source / <a href="crypto.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">76</td>
+            <td class="headerCovTableEntry">240</td>
+            <td class="headerCovTableEntryLo">31.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntryLo">55.6 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;crypto.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;openssl/err.h&gt;                                        /* ERR_* */
+<span class="lineNum">      28 </span>            : #include &lt;openssl/rand.h&gt;                                       /* RAND_* */
+<span class="lineNum">      29 </span>            : #include &lt;openssl/bn.h&gt;                                         /* BN_* */
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &lt;cf3.defs.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;lastseen.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;files_interfaces.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;files_hashes.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;hashes.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;pipes.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;mutex.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;known_dirs.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;bootstrap.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;misc_lib.h&gt;                   /* UnexpectedError,ProgrammingError */
+<span class="lineNum">      41 </span>            : #include &lt;file_lib.h&gt;
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : #ifdef DARWIN
+<span class="lineNum">      44 </span>            : // On Mac OSX 10.7 and later, majority of functions in /usr/include/openssl/crypto.h
+<span class="lineNum">      45 </span>            : // are deprecated. No known replacement, so shutting up compiler warnings
+<span class="lineNum">      46 </span>            : #pragma GCC diagnostic ignored &quot;-Wdeprecated-declarations&quot;
+<span class="lineNum">      47 </span>            : #endif
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : /* The deprecated is the easy way to setup threads for OpenSSL. */
+<span class="lineNum">      50 </span>            : #ifdef OPENSSL_NO_DEPRECATED
+<span class="lineNum">      51 </span>            : void CRYPTO_set_id_callback(unsigned long (*func)(void));
+<span class="lineNum">      52 </span>            : #endif
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : static void RandomSeed(void);
+<span class="lineNum">      55 </span>            : static void SetupOpenSSLThreadLocks(void);
+<span class="lineNum">      56 </span>            : static void CleanupOpenSSLThreadLocks(void);
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : /* TODO move crypto.[ch] to libutils. Will need to remove all manipulation of
+<span class="lineNum">      59 </span>            :  * lastseen db. */
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : static bool crypto_initialized = false; /* GLOBAL_X */
+<a name="62"><span class="lineNum">      62 </span>            : </a>
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 : const char *CryptoLastErrorString()</span>
+<span class="lineNum">      65 </span>            : {
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     const char *errmsg = ERR_reason_error_string(ERR_get_error());</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     return (errmsg != NULL) ? errmsg : &quot;no error message&quot;;</span>
+<a name="68"><span class="lineNum">      68 </span>            : }</a>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineCov">          4 : void CryptoInitialize()</span>
+<span class="lineNum">      71 </span>            : {
+<span class="lineNum">      72 </span><span class="lineCov">          4 :     if (!crypto_initialized)</span>
+<span class="lineNum">      73 </span>            :     {
+<span class="lineNum">      74 </span><span class="lineCov">          2 :         SetupOpenSSLThreadLocks();</span>
+<span class="lineNum">      75 </span><span class="lineCov">          2 :         OpenSSL_add_all_algorithms();</span>
+<span class="lineNum">      76 </span><span class="lineCov">          2 :         OpenSSL_add_all_digests();</span>
+<span class="lineNum">      77 </span><span class="lineCov">          2 :         ERR_load_crypto_strings();</span>
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span><span class="lineCov">          2 :         RandomSeed();</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineCov">          2 :         crypto_initialized = true;</span>
+<span class="lineNum">      82 </span>            :     }
+<a name="83"><span class="lineNum">      83 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span><span class="lineCov">          4 : void CryptoDeInitialize()</span>
+<span class="lineNum">      86 </span>            : {
+<span class="lineNum">      87 </span><span class="lineCov">          4 :     if (crypto_initialized)</span>
+<span class="lineNum">      88 </span>            :     {
+<span class="lineNum">      89 </span>            :         char randfile[CF_BUFSIZE];
+<span class="lineNum">      90 </span><span class="lineCov">          2 :         snprintf(randfile, CF_BUFSIZE, &quot;%s%crandseed&quot;,</span>
+<span class="lineNum">      91 </span>            :                  GetWorkDir(), FILE_SEPARATOR);
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            :         /* Only write out a seed if the file doesn't exist
+<span class="lineNum">      94 </span>            :          * and we have enough entropy to do so. If RAND_write_File
+<span class="lineNum">      95 </span>            :          * returns a bad value, delete the poor seed.
+<span class="lineNum">      96 </span>            :          */
+<span class="lineNum">      97 </span><span class="lineCov">          2 :         if (access(randfile, R_OK) &amp;&amp; errno == ENOENT &amp;&amp; RAND_write_file(randfile) != 1024)</span>
+<span class="lineNum">      98 </span>            :         {
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_WARNING,</span>
+<span class="lineNum">     100 </span>            :                 &quot;Could not write randomness to '%s'&quot;, randfile);
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :             unlink(randfile); /* do not reuse entropy */</span>
+<span class="lineNum">     102 </span>            :         }
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineCov">          2 :         chmod(randfile, 0600);</span>
+<span class="lineNum">     105 </span><span class="lineCov">          2 :         EVP_cleanup();</span>
+<span class="lineNum">     106 </span><span class="lineCov">          2 :         CleanupOpenSSLThreadLocks();</span>
+<span class="lineNum">     107 </span><span class="lineCov">          2 :         ERR_free_strings();</span>
+<span class="lineNum">     108 </span><span class="lineCov">          2 :         crypto_initialized = false;</span>
+<span class="lineNum">     109 </span>            :     }
+<a name="110"><span class="lineNum">     110 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">          2 : static void RandomSeed(void)</span>
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span>            :     /* 1. Seed the weak C PRNGs. */
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            :     /* Mix various stuff. */
+<span class="lineNum">     117 </span><span class="lineCov">          2 :     pid_t pid = getpid();</span>
+<span class="lineNum">     118 </span><span class="lineCov">          2 :     size_t fqdn_len = strlen(VFQNAME) &gt; 0 ? strlen(VFQNAME) : 1;</span>
+<span class="lineNum">     119 </span><span class="lineCov">          2 :     time_t start_time = CFSTARTTIME;</span>
+<span class="lineNum">     120 </span><span class="lineCov">          2 :     time_t now = time(NULL);</span>
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineCov">          4 :     srand((unsigned) pid      * start_time ^</span>
+<span class="lineNum">     123 </span><span class="lineCov">          2 :           (unsigned) fqdn_len * now);</span>
+<span class="lineNum">     124 </span><span class="lineCov">          4 :     srand48((long)  pid      * start_time ^</span>
+<span class="lineNum">     125 </span><span class="lineCov">          2 :             (long)  fqdn_len * now);</span>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :     /* 2. Seed the strong OpenSSL PRNG. */
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : #ifndef __MINGW32__                                     /* windows may hang */
+<span class="lineNum">     130 </span><span class="lineCov">          2 :     RAND_poll();</span>
+<span class="lineNum">     131 </span>            : #else
+<span class="lineNum">     132 </span>            :     RAND_screen();
+<span class="lineNum">     133 </span>            : #endif
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span><span class="lineCov">          2 :     if (RAND_status() != 1)</span>
+<span class="lineNum">     136 </span>            :     {
+<span class="lineNum">     137 </span>            :         /* randseed file is written on deinitialization of crypto system */
+<span class="lineNum">     138 </span>            :         char randfile[CF_BUFSIZE];
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         snprintf(randfile, CF_BUFSIZE, &quot;%s%crandseed&quot;,</span>
+<span class="lineNum">     140 </span>            :                  GetWorkDir(), FILE_SEPARATOR);
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Looking for a source of entropy in '%s'&quot;,</span>
+<span class="lineNum">     142 </span>            :             randfile);
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         if (RAND_load_file(randfile, -1) != 1024)</span>
+<span class="lineNum">     145 </span>            :         {
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_CRIT,</span>
+<span class="lineNum">     147 </span>            :                 &quot;Could not read randomness from '%s'&quot;, randfile);
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :             unlink(randfile); /* kill randseed if error reading it */</span>
+<span class="lineNum">     149 </span>            :         }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            :         /* If we've used the random seed, then delete */
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         unlink(randfile);</span>
+<span class="lineNum">     153 </span>            :     }
+<span class="lineNum">     154 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : /* PEM functions need the const cast away, but hopefully the default
+<span class="lineNum">     157 </span>            :  * call-back doesn't actually modify its user-data. */
+<span class="lineNum">     158 </span>            : static const char priv_passphrase[] = &quot;Cfengine passphrase&quot;;
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            : /**
+<a name="161"><span class="lineNum">     161 </span>            :  * @return true the error is not so severe that we must stop</a>
+<span class="lineNum">     162 </span>            :  */
+<span class="lineNum">     163 </span><span class="lineCov">          2 : bool LoadSecretKeys(void)</span>
+<span class="lineNum">     164 </span>            : {
+<span class="lineNum">     165 </span>            :     {
+<span class="lineNum">     166 </span><span class="lineCov">          2 :         char *privkeyfile = PrivateKeyFile(GetWorkDir());</span>
+<span class="lineNum">     167 </span><span class="lineCov">          2 :         FILE *fp = fopen(privkeyfile, &quot;r&quot;);</span>
+<span class="lineNum">     168 </span><span class="lineCov">          2 :         if (!fp)</span>
+<span class="lineNum">     169 </span>            :         {
+<span class="lineNum">     170 </span>            :             /* VERBOSE in case it's a custom, local-only installation. */
+<span class="lineNum">     171 </span><span class="lineCov">          2 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     172 </span>            :                 &quot;Couldn't find a private key at '%s', use cf-key to get one. (fopen: %s)&quot;,
+<span class="lineNum">     173 </span>            :                 privkeyfile, GetErrorStr());
+<span class="lineNum">     174 </span><span class="lineCov">          2 :             free(privkeyfile);</span>
+<span class="lineNum">     175 </span><span class="lineCov">          2 :             return false;</span>
+<span class="lineNum">     176 </span>            :         }
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :         PRIVKEY = PEM_read_RSAPrivateKey(fp, NULL, NULL, (void*) priv_passphrase);</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         if (PRIVKEY == NULL)</span>
+<span class="lineNum">     180 </span>            :         {
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     182 </span>            :                 &quot;Error reading private key. (PEM_read_RSAPrivateKey: %s)&quot;,
+<span class="lineNum">     183 </span>            :                 CryptoLastErrorString());
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :             PRIVKEY = NULL;</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :             fclose(fp);</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     187 </span>            :         }
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Loaded private key at '%s'&quot;, privkeyfile);</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :         free(privkeyfile);</span>
+<span class="lineNum">     192 </span>            :     }
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            :     {
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :         char *pubkeyfile = PublicKeyFile(GetWorkDir());</span>
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :         FILE *fp = fopen(pubkeyfile, &quot;r&quot;);</span>
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         if (!fp)</span>
+<span class="lineNum">     198 </span>            :         {
+<span class="lineNum">     199 </span>            :             /* VERBOSE in case it's a custom, local-only installation. */
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     201 </span>            :                 &quot;Couldn't find a public key at '%s', use cf-key to get one (fopen: %s)&quot;,
+<span class="lineNum">     202 </span>            :                 pubkeyfile, GetErrorStr());
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :             free(pubkeyfile);</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :         PUBKEY = PEM_read_RSAPublicKey(fp, NULL, NULL, (void*) priv_passphrase);</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         if (NULL == PUBKEY)</span>
+<span class="lineNum">     209 </span>            :         {
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     211 </span>            :                 &quot;Error reading public key at '%s'. (PEM_read_RSAPublicKey: %s)&quot;,
+<span class="lineNum">     212 </span>            :                 pubkeyfile, CryptoLastErrorString());
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :             fclose(fp);</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :             free(pubkeyfile);</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">     216 </span>            :         }
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Loaded public key '%s'&quot;, pubkeyfile);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         free(pubkeyfile);</span>
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     221 </span>            :     }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     if (NULL != PUBKEY</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         &amp;&amp; ((BN_num_bits(PUBKEY-&gt;e) &lt; 2) || (!BN_is_odd(PUBKEY-&gt;e))))</span>
+<span class="lineNum">     225 </span>            :     {
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;The public key RSA exponent is too small or not odd&quot;);</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     228 </span>            :     }
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="231"><span class="lineNum">     231 </span>            : }</a>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineCov">          2 : void PolicyHubUpdateKeys(const char *policy_server)</span>
+<span class="lineNum">     234 </span>            : {
+<span class="lineNum">     235 </span><span class="lineCov">          2 :     if (GetAmPolicyHub() &amp;&amp; NULL != PUBKEY)</span>
+<span class="lineNum">     236 </span>            :     {
+<span class="lineNum">     237 </span>            :         unsigned char digest[EVP_MAX_MD_SIZE + 1];
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :         const char* const workdir = GetWorkDir();</span>
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :         char dst_public_key_filename[CF_BUFSIZE] = &quot;&quot;;</span>
+<span class="lineNum">     241 </span>            :         {
+<span class="lineNum">     242 </span>            :             char buffer[CF_HOSTKEY_STRING_SIZE];
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :             HashPubKey(PUBKEY, digest, CF_DEFAULT_DIGEST);</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :             snprintf(dst_public_key_filename, sizeof(dst_public_key_filename),</span>
+<span class="lineNum">     245 </span>            :                      &quot;%s/ppkeys/%s-%s.pub&quot;,
+<span class="lineNum">     246 </span>            :                      workdir, &quot;root&quot;,
+<span class="lineNum">     247 </span>            :                      HashPrintSafe(buffer, sizeof(buffer), digest,
+<span class="lineNum">     248 </span>            :                                    CF_DEFAULT_DIGEST, true));
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :             MapName(dst_public_key_filename);</span>
+<span class="lineNum">     250 </span>            :         }
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            :         struct stat sb;
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         if ((stat(dst_public_key_filename, &amp;sb) == -1))</span>
+<span class="lineNum">     254 </span>            :         {
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             char src_public_key_filename[CF_BUFSIZE] = &quot;&quot;;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :             snprintf(src_public_key_filename, CF_MAXVARSIZE, &quot;%s/ppkeys/localhost.pub&quot;, workdir);</span>
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :             MapName(src_public_key_filename);</span>
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            :             // copy localhost.pub to root-HASH.pub on policy server
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :             if (!LinkOrCopy(src_public_key_filename, dst_public_key_filename, false))</span>
+<span class="lineNum">     261 </span>            :             {
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Unable to copy policy server's own public key from '%s' to '%s'&quot;, src_public_key_filename, dst_public_key_filename);</span>
+<span class="lineNum">     263 </span>            :             }
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineNoCov">          0 :             if (policy_server)</span>
+<span class="lineNum">     266 </span>            :             {
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :                 LastSaw(policy_server, digest, LAST_SEEN_ROLE_CONNECT);</span>
+<span class="lineNum">     268 </span>            :             }
+<span class="lineNum">     269 </span>            :         }
+<span class="lineNum">     270 </span>            :     }
+<span class="lineNum">     271 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span>            : /*********************************************************************/
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span>            : /**
+<span class="lineNum">     276 </span>            :  * @brief Search for a key given an IP address, by getting the
+<span class="lineNum">     277 </span>            :  *        key hash value from lastseen db.
+<a name="278"><span class="lineNum">     278 </span>            :  * @return NULL if the key was not found in any form.</a>
+<span class="lineNum">     279 </span>            :  */
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 : RSA *HavePublicKeyByIP(const char *username, const char *ipaddress)</span>
+<span class="lineNum">     281 </span>            : {
+<span class="lineNum">     282 </span>            :     char hash[CF_HOSTKEY_STRING_SIZE];
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span>            :     /* Get the key hash for that address from lastseen db. */
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :     bool found = Address2Hostkey(hash, sizeof(hash), ipaddress);</span>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            :     /* If not found, by passing &quot;&quot; as digest, we effectively look only for
+<span class="lineNum">     288 </span>            :      * the old-style key file, e.g. root-1.2.3.4.pub. */
+<span class="lineNum">     289 </span><span class="lineNoCov">          0 :     return HavePublicKey(username, ipaddress,</span>
+<span class="lineNum">     290 </span>            :                          found ? hash : &quot;&quot;);
+<span class="lineNum">     291 </span>            : }
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            : static const char *const pub_passphrase = &quot;public&quot;;
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : /**
+<span class="lineNum">     296 </span>            :  * @brief Search for a key:
+<span class="lineNum">     297 </span>            :  *        1. username-hash.pub
+<span class="lineNum">     298 </span>            :  *        2. username-ip.pub
+<a name="299"><span class="lineNum">     299 </span>            :  * @return NULL if key not found in any form</a>
+<span class="lineNum">     300 </span>            :  */
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 : RSA *HavePublicKey(const char *username, const char *ipaddress, const char *digest)</span>
+<span class="lineNum">     302 </span>            : {
+<span class="lineNum">     303 </span>            :     char keyname[CF_MAXVARSIZE], newname[CF_BUFSIZE], oldname[CF_BUFSIZE];
+<span class="lineNum">     304 </span>            :     struct stat statbuf;
+<span class="lineNum">     305 </span>            :     FILE *fp;
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :     RSA *newkey = NULL;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     const char* const workdir = GetWorkDir();</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :     snprintf(keyname, CF_MAXVARSIZE, &quot;%s-%s&quot;, username, digest);</span>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     snprintf(newname, CF_BUFSIZE, &quot;%s/ppkeys/%s.pub&quot;, workdir, keyname);</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :     MapName(newname);</span>
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     if (stat(newname, &amp;statbuf) == -1)</span>
+<span class="lineNum">     315 </span>            :     {
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Did not find new key format '%s'&quot;, newname);</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :         snprintf(oldname, CF_BUFSIZE, &quot;%s/ppkeys/%s-%s.pub&quot;,</span>
+<span class="lineNum">     319 </span>            :                  workdir, username, ipaddress);
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         MapName(oldname);</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Trying old style '%s'&quot;, oldname);</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         if (stat(oldname, &amp;statbuf) == -1)</span>
+<span class="lineNum">     324 </span>            :         {
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_DEBUG, &quot;Did not have old-style key '%s'&quot;, oldname);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">     327 </span>            :         }
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         if (strlen(digest) &gt; 0)</span>
+<span class="lineNum">     330 </span>            :         {
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_INFO, &quot;Renaming old key from '%s' to '%s'&quot;, oldname, newname);</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :             if (rename(oldname, newname) != 0)</span>
+<span class="lineNum">     334 </span>            :             {
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Could not rename from old key format '%s' to new '%s'. (rename: %s)&quot;, oldname, newname, GetErrorStr());</span>
+<span class="lineNum">     336 </span>            :             }
+<span class="lineNum">     337 </span>            :         }
+<span class="lineNum">     338 </span>            :         else
+<span class="lineNum">     339 </span>            :         {
+<span class="lineNum">     340 </span>            :             /* We don't know the digest (e.g. because we are a client and have
+<span class="lineNum">     341 </span>            :                no lastseen-map yet), so we're using old file format
+<span class="lineNum">     342 </span>            :                (root-IP.pub). */
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     344 </span>            :                 &quot;We have no digest yet, using old keyfile name: %s&quot;,
+<span class="lineNum">     345 </span>            :                 oldname);
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :             snprintf(newname, sizeof(newname), &quot;%s&quot;, oldname);</span>
+<span class="lineNum">     347 </span>            :         }
+<span class="lineNum">     348 </span>            :     }
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     if ((fp = fopen(newname, &quot;r&quot;)) == NULL)</span>
+<span class="lineNum">     351 </span>            :     {
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Couldn't open public key file '%s' (fopen: %s)&quot;,</span>
+<span class="lineNum">     353 </span>            :             newname, GetErrorStr());
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     355 </span>            :     }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :     if ((newkey = PEM_read_RSAPublicKey(fp, NULL, NULL,</span>
+<span class="lineNum">     358 </span>            :                                         (void *)pub_passphrase)) == NULL)
+<span class="lineNum">     359 </span>            :     {
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     361 </span>            :             &quot;Error reading public key from '%s' (PEM_read_RSAPublicKey: %s)&quot;,
+<span class="lineNum">     362 </span>            :             newname, CryptoLastErrorString());
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     365 </span>            :     }
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :     fclose(fp);</span>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     if ((BN_num_bits(newkey-&gt;e) &lt; 2) || (!BN_is_odd(newkey-&gt;e)))</span>
+<span class="lineNum">     370 </span>            :     {
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;RSA Exponent too small or not odd for key: %s&quot;,</span>
+<span class="lineNum">     372 </span>            :             newname);
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         RSA_free(newkey);</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     375 </span>            :     }
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineNoCov">          0 :     return newkey;</span>
+<span class="lineNum">     378 </span>            : }
+<span class="lineNum">     379 </span>            : 
+<a name="380"><span class="lineNum">     380 </span>            : /*********************************************************************/</a>
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 : bool SavePublicKey(const char *user, const char *digest, const RSA *key)</span>
+<span class="lineNum">     383 </span>            : {
+<span class="lineNum">     384 </span>            :     char keyname[CF_MAXVARSIZE], filename[CF_BUFSIZE];
+<span class="lineNum">     385 </span>            :     struct stat statbuf;
+<span class="lineNum">     386 </span>            :     FILE *fp;
+<span class="lineNum">     387 </span>            :     int ret;
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     ret = snprintf(keyname, sizeof(keyname), &quot;%s-%s&quot;, user, digest);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :     if (ret &gt;= sizeof(keyname))</span>
+<span class="lineNum">     391 </span>            :     {
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;USERNAME-KEY (%s-%s) string too long!&quot;,</span>
+<span class="lineNum">     393 </span>            :             user, digest);
+<span class="lineNum">     394 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     395 </span>            :     }
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :     ret = snprintf(filename, sizeof(filename), &quot;%s/ppkeys/%s.pub&quot;,</span>
+<span class="lineNum">     398 </span>            :                    GetWorkDir(), keyname);
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :     if (ret &gt;= sizeof(filename))</span>
+<span class="lineNum">     400 </span>            :     {
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Filename too long!&quot;);</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     403 </span>            :     }
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :     MapName(filename);</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :     if (stat(filename, &amp;statbuf) != -1)</span>
+<span class="lineNum">     407 </span>            :     {
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE,</span>
+<span class="lineNum">     409 </span>            :             &quot;Public key file '%s' already exists, not rewriting&quot;,
+<span class="lineNum">     410 </span>            :             filename);
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     412 </span>            :     }
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE, &quot;Saving public key to file '%s'&quot;, filename);</span>
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :     if ((fp = fopen(filename, &quot;w&quot;)) == NULL)</span>
+<span class="lineNum">     417 </span>            :     {
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Unable to write a public key '%s'. (fopen: %s)&quot;, filename, GetErrorStr());</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     420 </span>            :     }
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :     if (!PEM_write_RSAPublicKey(fp, key))</span>
+<span class="lineNum">     423 </span>            :     {
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     425 </span>            :             &quot;Error saving public key to '%s'. (PEM_write_RSAPublicKey: %s)&quot;,
+<span class="lineNum">     426 </span>            :             filename, CryptoLastErrorString());
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         fclose(fp);</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     429 </span>            :     }
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :     fclose(fp);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :     return true;</span>
+<a name="433"><span class="lineNum">     433 </span>            : }</a>
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 : int EncryptString(char type, const char *in, char *out, unsigned char *key, int plainlen)</span>
+<span class="lineNum">     436 </span>            : {
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :     int cipherlen = 0, tmplen;</span>
+<span class="lineNum">     438 </span><span class="lineNoCov">          0 :     unsigned char iv[32] =</span>
+<span class="lineNum">     439 </span>            :         { 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8 };
+<span class="lineNum">     440 </span>            :     EVP_CIPHER_CTX ctx;
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :     if (key == NULL)</span>
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;EncryptString: session key == NULL&quot;);</span>
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :     EVP_CIPHER_CTX_init(&amp;ctx);</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :     EVP_EncryptInit_ex(&amp;ctx, CfengineCipher(type), NULL, key, iv);</span>
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     if (!EVP_EncryptUpdate(&amp;ctx, out, &amp;cipherlen, in, plainlen))</span>
+<span class="lineNum">     449 </span>            :     {
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :         EVP_CIPHER_CTX_cleanup(&amp;ctx);</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     452 </span>            :     }
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :     if (!EVP_EncryptFinal_ex(&amp;ctx, out + cipherlen, &amp;tmplen))</span>
+<span class="lineNum">     455 </span>            :     {
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :         EVP_CIPHER_CTX_cleanup(&amp;ctx);</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     458 </span>            :     }
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :     cipherlen += tmplen;</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     EVP_CIPHER_CTX_cleanup(&amp;ctx);</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     return cipherlen;</span>
+<span class="lineNum">     463 </span>            : }
+<span class="lineNum">     464 </span>            : 
+<a name="465"><span class="lineNum">     465 </span>            : /*********************************************************************/</a>
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 : int DecryptString(char type, const char *in, char *out, unsigned char *key, int cipherlen)</span>
+<span class="lineNum">     468 </span>            : {
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :     int plainlen = 0, tmplen;</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :     unsigned char iv[32] =</span>
+<span class="lineNum">     471 </span>            :         { 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8 };
+<span class="lineNum">     472 </span>            :     EVP_CIPHER_CTX ctx;
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :     if (key == NULL)</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :         ProgrammingError(&quot;DecryptString: session key == NULL&quot;);</span>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :     EVP_CIPHER_CTX_init(&amp;ctx);</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :     EVP_DecryptInit_ex(&amp;ctx, CfengineCipher(type), NULL, key, iv);</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :     if (!EVP_DecryptUpdate(&amp;ctx, out, &amp;plainlen, in, cipherlen))</span>
+<span class="lineNum">     481 </span>            :     {
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Failed to decrypt string&quot;);</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :         EVP_CIPHER_CTX_cleanup(&amp;ctx);</span>
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     485 </span>            :     }
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :     if (!EVP_DecryptFinal_ex(&amp;ctx, out + plainlen, &amp;tmplen))</span>
+<span class="lineNum">     488 </span>            :     {
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :         unsigned long err = ERR_get_error();</span>
+<span class="lineNum">     490 </span>            : 
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Failed to decrypt at final of cipher length %d. (EVP_DecryptFinal_ex: %s)&quot;, cipherlen, ERR_error_string(err, NULL));</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         EVP_CIPHER_CTX_cleanup(&amp;ctx);</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">     494 </span>            :     }
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     plainlen += tmplen;</span>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     EVP_CIPHER_CTX_cleanup(&amp;ctx);</span>
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :     return plainlen;</span>
+<span class="lineNum">     501 </span>            : }
+<span class="lineNum">     502 </span>            : 
+<a name="503"><span class="lineNum">     503 </span>            : /*********************************************************************/</a>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 : void DebugBinOut(char *buffer, int len, char *comment)</span>
+<span class="lineNum">     506 </span>            : {
+<span class="lineNum">     507 </span>            :     unsigned char *sp;
+<span class="lineNum">     508 </span>            :     char buf[CF_BUFSIZE];
+<span class="lineNum">     509 </span>            :     char hexStr[3];             // one byte as hex
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :     if (len &gt;= (sizeof(buf) / 2))       // hex uses two chars per byte</span>
+<span class="lineNum">     512 </span>            :     {
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_DEBUG, &quot;Debug binary print is too large (len = %d)&quot;, len);</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     515 </span>            :     }
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     memset(buf, 0, sizeof(buf));</span>
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :     for (sp = buffer; sp &lt; (unsigned char *) (buffer + len); sp++)</span>
+<span class="lineNum">     520 </span>            :     {
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :         xsnprintf(hexStr, sizeof(hexStr), &quot;%2.2x&quot;, (int) *sp);</span>
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :         strcat(buf, hexStr);</span>
+<span class="lineNum">     523 </span>            :     }
+<span class="lineNum">     524 </span>            : 
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_VERBOSE, &quot;BinaryBuffer, %d bytes, comment '%s', buffer '%s'&quot;, len, comment, buf);</span>
+<a name="526"><span class="lineNum">     526 </span>            : }</a>
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 : char *PublicKeyFile(const char *workdir)</span>
+<span class="lineNum">     529 </span>            : {
+<span class="lineNum">     530 </span>            :     char *keyfile;
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :     xasprintf(&amp;keyfile,</span>
+<span class="lineNum">     532 </span>            :               &quot;%s&quot; FILE_SEPARATOR_STR &quot;ppkeys&quot; FILE_SEPARATOR_STR &quot;localhost.pub&quot;, workdir);
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :     return keyfile;</span>
+<a name="534"><span class="lineNum">     534 </span>            : }</a>
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span><span class="lineCov">          2 : char *PrivateKeyFile(const char *workdir)</span>
+<span class="lineNum">     537 </span>            : {
+<span class="lineNum">     538 </span>            :     char *keyfile;
+<span class="lineNum">     539 </span><span class="lineCov">          2 :     xasprintf(&amp;keyfile,</span>
+<span class="lineNum">     540 </span>            :               &quot;%s&quot; FILE_SEPARATOR_STR &quot;ppkeys&quot; FILE_SEPARATOR_STR &quot;localhost.priv&quot;, workdir);
+<span class="lineNum">     541 </span><span class="lineCov">          2 :     return keyfile;</span>
+<span class="lineNum">     542 </span>            : }
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span>            : /*********************************************************************
+<span class="lineNum">     546 </span>            :  * Functions for threadsafe OpenSSL usage                            *
+<span class="lineNum">     547 </span>            :  * Only pthread support - we don't create threads with any other API *
+<span class="lineNum">     548 </span>            :  *********************************************************************/
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span>            : static pthread_mutex_t *cf_openssl_locks = NULL;
+<span class="lineNum">     551 </span>            : 
+<a name="552"><span class="lineNum">     552 </span>            : </a>
+<span class="lineNum">     553 </span>            : #ifndef __MINGW32__
+<span class="lineNum">     554 </span><span class="lineCov">         63 : unsigned long ThreadId_callback(void)</span>
+<span class="lineNum">     555 </span>            : {
+<span class="lineNum">     556 </span><span class="lineCov">         63 :     return (unsigned long) pthread_self();</span>
+<span class="lineNum">     557 </span>            : }
+<a name="558"><span class="lineNum">     558 </span>            : #endif</a>
+<span class="lineNum">     559 </span>            : 
+<span class="lineNum">     560 </span><span class="lineCov">     103730 : static void OpenSSLLock_callback(int mode, int index, char *file, int line)</span>
+<span class="lineNum">     561 </span>            : {
+<span class="lineNum">     562 </span><span class="lineCov">     103730 :     if (mode &amp; CRYPTO_LOCK)</span>
+<span class="lineNum">     563 </span>            :     {
+<span class="lineNum">     564 </span><span class="lineCov">      51865 :         int ret = pthread_mutex_lock(&amp;(cf_openssl_locks[index]));</span>
+<span class="lineNum">     565 </span><span class="lineCov">      51865 :         if (ret != 0)</span>
+<span class="lineNum">     566 </span>            :         {
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     568 </span>            :                 &quot;OpenSSL locking failure at %s:%d! (pthread_mutex_lock: %s)&quot;,
+<span class="lineNum">     569 </span>            :                 file, line, GetErrorStrFromCode(ret));
+<span class="lineNum">     570 </span>            :         }
+<span class="lineNum">     571 </span>            :     }
+<span class="lineNum">     572 </span>            :     else
+<span class="lineNum">     573 </span>            :     {
+<span class="lineNum">     574 </span><span class="lineCov">      51865 :         int ret = pthread_mutex_unlock(&amp;(cf_openssl_locks[index]));</span>
+<span class="lineNum">     575 </span><span class="lineCov">      51865 :         if (ret != 0)</span>
+<span class="lineNum">     576 </span>            :         {
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     578 </span>            :                 &quot;OpenSSL locking failure at %s:%d! (pthread_mutex_unlock: %s)&quot;,
+<span class="lineNum">     579 </span>            :                 file, line, GetErrorStrFromCode(ret));
+<span class="lineNum">     580 </span>            :         }
+<span class="lineNum">     581 </span>            :     }
+<a name="582"><span class="lineNum">     582 </span><span class="lineCov">     103730 : }</span></a>
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span><span class="lineCov">          2 : static void SetupOpenSSLThreadLocks(void)</span>
+<span class="lineNum">     585 </span>            : {
+<span class="lineNum">     586 </span><span class="lineCov">          2 :     const int num_locks = CRYPTO_num_locks();</span>
+<span class="lineNum">     587 </span><span class="lineCov">          2 :     assert(cf_openssl_locks == NULL);</span>
+<span class="lineNum">     588 </span><span class="lineCov">          2 :     cf_openssl_locks = xmalloc(num_locks * sizeof(*cf_openssl_locks));</span>
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span><span class="lineCov">         84 :     for (int i = 0; i &lt; num_locks; i++)</span>
+<span class="lineNum">     591 </span>            :     {
+<span class="lineNum">     592 </span>            :         pthread_mutexattr_t attr;
+<span class="lineNum">     593 </span><span class="lineCov">         82 :         pthread_mutexattr_init(&amp;attr);</span>
+<span class="lineNum">     594 </span><span class="lineCov">         82 :         int ret = pthread_mutexattr_settype(&amp;attr, PTHREAD_MUTEX_ERRORCHECK);</span>
+<span class="lineNum">     595 </span><span class="lineCov">         82 :         if (ret != 0)</span>
+<span class="lineNum">     596 </span>            :         {
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     598 </span>            :                 &quot;Failed to use error-checking mutexes for openssl,&quot;
+<span class="lineNum">     599 </span>            :                 &quot; falling back to normal ones (pthread_mutexattr_settype: %s)&quot;,
+<span class="lineNum">     600 </span>            :                 GetErrorStrFromCode(ret));
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :             pthread_mutexattr_settype(&amp;attr, PTHREAD_MUTEX_NORMAL);</span>
+<span class="lineNum">     602 </span>            :         }
+<span class="lineNum">     603 </span><span class="lineCov">         82 :         ret = pthread_mutex_init(&amp;cf_openssl_locks[i], &amp;attr);</span>
+<span class="lineNum">     604 </span><span class="lineCov">         82 :         if (ret != 0)</span>
+<span class="lineNum">     605 </span>            :         {
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_CRIT,</span>
+<span class="lineNum">     607 </span>            :                 &quot;Failed to use initialise mutexes for openssl&quot;
+<span class="lineNum">     608 </span>            :                 &quot; (pthread_mutex_init: %s)!&quot;,
+<span class="lineNum">     609 </span>            :                 GetErrorStrFromCode(ret));
+<span class="lineNum">     610 </span>            :         }
+<span class="lineNum">     611 </span><span class="lineCov">         82 :         pthread_mutexattr_destroy(&amp;attr);</span>
+<span class="lineNum">     612 </span>            :     }
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span>            : #ifndef __MINGW32__
+<span class="lineNum">     615 </span><span class="lineCov">          2 :     CRYPTO_set_id_callback((unsigned long (*)())ThreadId_callback);</span>
+<span class="lineNum">     616 </span>            : #endif
+<span class="lineNum">     617 </span><span class="lineCov">          2 :     CRYPTO_set_locking_callback((void (*)())OpenSSLLock_callback);</span>
+<a name="618"><span class="lineNum">     618 </span><span class="lineCov">          2 : }</span></a>
+<span class="lineNum">     619 </span>            : 
+<span class="lineNum">     620 </span><span class="lineCov">          2 : static void CleanupOpenSSLThreadLocks(void)</span>
+<span class="lineNum">     621 </span>            : {
+<span class="lineNum">     622 </span><span class="lineCov">          2 :     const int numLocks = CRYPTO_num_locks();</span>
+<span class="lineNum">     623 </span><span class="lineCov">          2 :     CRYPTO_set_locking_callback(NULL);</span>
+<span class="lineNum">     624 </span>            : #ifndef __MINGW32__
+<span class="lineNum">     625 </span><span class="lineCov">          2 :     CRYPTO_set_id_callback(NULL);</span>
+<span class="lineNum">     626 </span>            : #endif
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span><span class="lineCov">         84 :     for (int i = 0; i &lt; numLocks; i++)</span>
+<span class="lineNum">     629 </span>            :     {
+<span class="lineNum">     630 </span><span class="lineCov">         82 :         pthread_mutex_destroy(&amp;(cf_openssl_locks[i]));</span>
+<span class="lineNum">     631 </span>            :     }
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span><span class="lineCov">          2 :     free(cf_openssl_locks);</span>
+<span class="lineNum">     634 </span><span class="lineCov">          2 :     cf_openssl_locks = NULL;</span>
+<span class="lineNum">     635 </span><span class="lineCov">          2 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1996 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - cf-agent/cf-agent.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">cf-agent</a> - cf-agent.c<span style="font-size: 80%;"> (source / <a href="cf-agent.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">238</td>
+            <td class="headerCovTableEntry">775</td>
+            <td class="headerCovTableEntryLo">30.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryLo">68.2 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :    Copyright (C) CFEngine AS
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            :    This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            :    This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :    under the terms of the GNU General Public License as published by the
+<span class="lineNum">       8 </span>            :    Free Software Foundation; version 3.
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            :    This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :    but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      13 </span>            :    GNU General Public License for more details.
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            :   You should have received a copy of the GNU General Public License
+<span class="lineNum">      16 </span>            :   along with this program; if not, write to the Free Software
+<span class="lineNum">      17 </span>            :   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :   To the extent this program is licensed as part of the Enterprise
+<span class="lineNum">      20 </span>            :   versions of CFEngine, the applicable Commercial Open Source License
+<span class="lineNum">      21 </span>            :   (COSL) may apply to this file if you as a licensee so wish it. See
+<span class="lineNum">      22 </span>            :   included file COSL.txt.
+<span class="lineNum">      23 </span>            : */
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #include &lt;platform.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;generic_agent.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &lt;actuator.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;audit.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;eval_context.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;verify_classes.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;verify_databases.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;verify_environments.h&gt;
+<span class="lineNum">      35 </span>            : #include &lt;verify_exec.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;verify_methods.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;verify_processes.h&gt;
+<span class="lineNum">      38 </span>            : #include &lt;verify_packages.h&gt;
+<span class="lineNum">      39 </span>            : #include &lt;verify_users.h&gt;
+<span class="lineNum">      40 </span>            : #include &lt;verify_services.h&gt;
+<span class="lineNum">      41 </span>            : #include &lt;verify_storage.h&gt;
+<span class="lineNum">      42 </span>            : #include &lt;verify_files.h&gt;
+<span class="lineNum">      43 </span>            : #include &lt;verify_files_utils.h&gt;
+<span class="lineNum">      44 </span>            : #include &lt;verify_vars.h&gt;
+<span class="lineNum">      45 </span>            : #include &lt;addr_lib.h&gt;
+<span class="lineNum">      46 </span>            : #include &lt;files_names.h&gt;
+<span class="lineNum">      47 </span>            : #include &lt;files_interfaces.h&gt;
+<span class="lineNum">      48 </span>            : #include &lt;files_repository.h&gt;
+<span class="lineNum">      49 </span>            : #include &lt;files_edit.h&gt;
+<span class="lineNum">      50 </span>            : #include &lt;files_properties.h&gt;
+<span class="lineNum">      51 </span>            : #include &lt;item_lib.h&gt;
+<span class="lineNum">      52 </span>            : #include &lt;vars.h&gt;
+<span class="lineNum">      53 </span>            : #include &lt;conversion.h&gt;
+<span class="lineNum">      54 </span>            : #include &lt;expand.h&gt;
+<span class="lineNum">      55 </span>            : #include &lt;locks.h&gt;
+<span class="lineNum">      56 </span>            : #include &lt;scope.h&gt;
+<span class="lineNum">      57 </span>            : #include &lt;matching.h&gt;
+<span class="lineNum">      58 </span>            : #include &lt;match_scope.h&gt;
+<span class="lineNum">      59 </span>            : #include &lt;instrumentation.h&gt;
+<span class="lineNum">      60 </span>            : #include &lt;promises.h&gt;
+<span class="lineNum">      61 </span>            : #include &lt;unix.h&gt;
+<span class="lineNum">      62 </span>            : #include &lt;attributes.h&gt;
+<span class="lineNum">      63 </span>            : #include &lt;communication.h&gt;
+<span class="lineNum">      64 </span>            : #include &lt;signals.h&gt;
+<span class="lineNum">      65 </span>            : #include &lt;nfs.h&gt;
+<span class="lineNum">      66 </span>            : #include &lt;processes_select.h&gt;
+<span class="lineNum">      67 </span>            : #include &lt;list.h&gt;
+<span class="lineNum">      68 </span>            : #include &lt;fncall.h&gt;
+<span class="lineNum">      69 </span>            : #include &lt;rlist.h&gt;
+<span class="lineNum">      70 </span>            : #include &lt;agent-diagnostics.h&gt;
+<span class="lineNum">      71 </span>            : #include &lt;known_dirs.h&gt;
+<span class="lineNum">      72 </span>            : #include &lt;cf-agent-enterprise-stubs.h&gt;
+<span class="lineNum">      73 </span>            : #include &lt;syslog_client.h&gt;
+<span class="lineNum">      74 </span>            : #include &lt;man.h&gt;
+<span class="lineNum">      75 </span>            : #include &lt;bootstrap.h&gt;
+<span class="lineNum">      76 </span>            : #include &lt;misc_lib.h&gt;
+<span class="lineNum">      77 </span>            : #include &lt;buffer.h&gt;
+<span class="lineNum">      78 </span>            : #include &lt;loading.h&gt;
+<span class="lineNum">      79 </span>            : #include &lt;conn_cache.h&gt;                 /* ConnCache_Init,ConnCache_Destroy */
+<span class="lineNum">      80 </span>            : #include &lt;net.h&gt;
+<span class="lineNum">      81 </span>            : #include &lt;package_module.h&gt;
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : #include &lt;mod_common.h&gt;
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : #ifdef HAVE_AVAHI_CLIENT_CLIENT_H
+<span class="lineNum">      86 </span>            : #ifdef HAVE_AVAHI_COMMON_ADDRESS_H
+<span class="lineNum">      87 </span>            : #include &lt;findhub.h&gt;
+<span class="lineNum">      88 </span>            : #endif
+<span class="lineNum">      89 </span>            : #endif
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            : #include &lt;ornaments.h&gt;
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : extern int PR_KEPT;
+<span class="lineNum">      95 </span>            : extern int PR_REPAIRED;
+<span class="lineNum">      96 </span>            : extern int PR_NOTKEPT;
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            : static bool ALLCLASSESREPORT = false; /* GLOBAL_P */
+<span class="lineNum">      99 </span>            : static bool ALWAYS_VALIDATE = false; /* GLOBAL_P */
+<span class="lineNum">     100 </span>            : static bool CFPARANOID = false; /* GLOBAL_P */
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : static const Rlist *ACCESSLIST = NULL; /* GLOBAL_P */
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : static int CFA_BACKGROUND = 0; /* GLOBAL_X */
+<span class="lineNum">     105 </span>            : static int CFA_BACKGROUND_LIMIT = 1; /* GLOBAL_P */
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : static Item *PROCESSREFRESH = NULL; /* GLOBAL_P */
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            : static const char *const AGENT_TYPESEQUENCE[] =
+<span class="lineNum">     110 </span>            : {
+<span class="lineNum">     111 </span>            :     &quot;meta&quot;,
+<span class="lineNum">     112 </span>            :     &quot;vars&quot;,
+<span class="lineNum">     113 </span>            :     &quot;defaults&quot;,
+<span class="lineNum">     114 </span>            :     &quot;classes&quot;,                  /* Maelstrom order 2 */
+<span class="lineNum">     115 </span>            :     &quot;users&quot;,
+<span class="lineNum">     116 </span>            :     &quot;files&quot;,
+<span class="lineNum">     117 </span>            :     &quot;packages&quot;,
+<span class="lineNum">     118 </span>            :     &quot;guest_environments&quot;,
+<span class="lineNum">     119 </span>            :     &quot;methods&quot;,
+<span class="lineNum">     120 </span>            :     &quot;processes&quot;,
+<span class="lineNum">     121 </span>            :     &quot;services&quot;,
+<span class="lineNum">     122 </span>            :     &quot;commands&quot;,
+<span class="lineNum">     123 </span>            :     &quot;storage&quot;,
+<span class="lineNum">     124 </span>            :     &quot;databases&quot;,
+<span class="lineNum">     125 </span>            :     &quot;reports&quot;,
+<span class="lineNum">     126 </span>            :     NULL
+<span class="lineNum">     127 </span>            : };
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : /*******************************************************************/
+<span class="lineNum">     130 </span>            : /* Agent specific variables                                        */
+<span class="lineNum">     131 </span>            : /*******************************************************************/
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            : static void ThisAgentInit(void);
+<span class="lineNum">     134 </span>            : static GenericAgentConfig *CheckOpts(int argc, char **argv);
+<span class="lineNum">     135 </span>            : static char **TranslateOldBootstrapOptionsSeparate(int *argc_new, char **argv);
+<span class="lineNum">     136 </span>            : static char **TranslateOldBootstrapOptionsConcatenated(int argc, char **argv);
+<span class="lineNum">     137 </span>            : static void FreeStringArray(int size, char **array);
+<span class="lineNum">     138 </span>            : static void CheckAgentAccess(const Rlist *list, const Policy *policy);
+<span class="lineNum">     139 </span>            : static void KeepControlPromises(EvalContext *ctx, const Policy *policy);
+<span class="lineNum">     140 </span>            : static PromiseResult KeepAgentPromise(EvalContext *ctx, const Promise *pp, void *param);
+<span class="lineNum">     141 </span>            : static int NewTypeContext(TypeSequence type);
+<span class="lineNum">     142 </span>            : static void DeleteTypeContext(EvalContext *ctx, TypeSequence type);
+<span class="lineNum">     143 </span>            : static PromiseResult ParallelFindAndVerifyFilesPromises(EvalContext *ctx, const Promise *pp);
+<span class="lineNum">     144 </span>            : static bool VerifyBootstrap(void);
+<span class="lineNum">     145 </span>            : static void KeepPromiseBundles(EvalContext *ctx, const Policy *policy, GenericAgentConfig *config);
+<span class="lineNum">     146 </span>            : static void KeepPromises(EvalContext *ctx, const Policy *policy, GenericAgentConfig *config);
+<span class="lineNum">     147 </span>            : static int NoteBundleCompliance(const Bundle *bundle, int save_pr_kept, int save_pr_repaired, int save_pr_notkept, struct timespec start);
+<span class="lineNum">     148 </span>            : static void AllClassesReport(const EvalContext *ctx);
+<span class="lineNum">     149 </span>            : static bool HasAvahiSupport(void);
+<span class="lineNum">     150 </span>            : static int AutomaticBootstrap(GenericAgentConfig *config);
+<span class="lineNum">     151 </span>            : static void BannerStatus(PromiseResult status, char *type, char *name);
+<span class="lineNum">     152 </span>            : static PromiseResult DefaultVarPromise(EvalContext *ctx, const Promise *pp);
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span>            : /*******************************************************************/
+<span class="lineNum">     155 </span>            : /* Command line options                                            */
+<span class="lineNum">     156 </span>            : /*******************************************************************/
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            : static const char *const CF_AGENT_SHORT_DESCRIPTION =
+<span class="lineNum">     159 </span>            :     &quot;evaluate CFEngine policy code and actuate change to the system.&quot;;
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : static const char *const CF_AGENT_MANPAGE_LONG_DESCRIPTION =
+<span class="lineNum">     162 </span>            :         &quot;cf-agent evaluates policy code and makes changes to the system. Policy bundles are evaluated in the order of the &quot;
+<span class="lineNum">     163 </span>            :         &quot;provided bundlesequence (this is normally specified in the common control body). &quot;
+<span class="lineNum">     164 </span>            :         &quot;For each bundle, cf-agent groups promise statements according to their type. Promise types are then evaluated in a preset &quot;
+<span class="lineNum">     165 </span>            :         &quot;order to ensure fast system convergence to policy.\n&quot;;
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            : static const struct option OPTIONS[] =
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            :     {&quot;bootstrap&quot;, required_argument, 0, 'B'},
+<span class="lineNum">     170 </span>            :     {&quot;bundlesequence&quot;, required_argument, 0, 'b'},
+<span class="lineNum">     171 </span>            :     {&quot;debug&quot;, no_argument, 0, 'd'},
+<span class="lineNum">     172 </span>            :     {&quot;define&quot;, required_argument, 0, 'D'},
+<span class="lineNum">     173 </span>            :     {&quot;self-diagnostics&quot;, optional_argument, 0, 'x'},
+<span class="lineNum">     174 </span>            :     {&quot;dry-run&quot;, no_argument, 0, 'n'},
+<span class="lineNum">     175 </span>            :     {&quot;file&quot;, required_argument, 0, 'f'},
+<span class="lineNum">     176 </span>            :     {&quot;help&quot;, no_argument, 0, 'h'},
+<span class="lineNum">     177 </span>            :     {&quot;inform&quot;, no_argument, 0, 'I'},
+<span class="lineNum">     178 </span>            :     {&quot;negate&quot;, required_argument, 0, 'N'},
+<span class="lineNum">     179 </span>            :     {&quot;no-lock&quot;, no_argument, 0, 'K'},
+<span class="lineNum">     180 </span>            :     {&quot;verbose&quot;, no_argument, 0, 'v'},
+<span class="lineNum">     181 </span>            :     {&quot;version&quot;, no_argument, 0, 'V'},
+<span class="lineNum">     182 </span>            :     {&quot;timing-output&quot;, no_argument, 0, 't'},
+<span class="lineNum">     183 </span>            :     {&quot;trust-server&quot;, optional_argument, 0, 'T'},
+<span class="lineNum">     184 </span>            :     {&quot;color&quot;, optional_argument, 0, 'C'},
+<span class="lineNum">     185 </span>            :     {&quot;no-extensions&quot;, no_argument, 0, 'E'},
+<span class="lineNum">     186 </span>            :     {&quot;timestamp&quot;, no_argument, 0, 'l'},
+<span class="lineNum">     187 </span>            :     {NULL, 0, 0, '\0'}
+<span class="lineNum">     188 </span>            : };
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : static const char *const HINTS[] =
+<span class="lineNum">     191 </span>            : {
+<span class="lineNum">     192 </span>            :     &quot;Bootstrap CFEngine to the given policy server IP, hostname or :avahi (automatic detection)&quot;,
+<span class="lineNum">     193 </span>            :     &quot;Set or override bundlesequence from command line&quot;,
+<span class="lineNum">     194 </span>            :     &quot;Enable debugging output&quot;,
+<span class="lineNum">     195 </span>            :     &quot;Define a list of comma separated classes to be defined at the start of execution&quot;,
+<span class="lineNum">     196 </span>            :     &quot;Run checks to diagnose a CFEngine agent installation&quot;,
+<span class="lineNum">     197 </span>            :     &quot;All talk and no action mode - make no changes, only inform of promises not kept&quot;,
+<span class="lineNum">     198 </span>            :     &quot;Specify an alternative input file than the default&quot;,
+<span class="lineNum">     199 </span>            :     &quot;Print the help message&quot;,
+<span class="lineNum">     200 </span>            :     &quot;Print basic information about changes made to the system, i.e. promises repaired&quot;,
+<span class="lineNum">     201 </span>            :     &quot;Define a list of comma separated classes to be undefined at the start of execution&quot;,
+<span class="lineNum">     202 </span>            :     &quot;Ignore locking constraints during execution (ifelapsed/expireafter) if \&quot;too soon\&quot; to run&quot;,
+<span class="lineNum">     203 </span>            :     &quot;Output verbose information about the behaviour of the agent&quot;,
+<span class="lineNum">     204 </span>            :     &quot;Output the version of the software&quot;,
+<span class="lineNum">     205 </span>            :     &quot;Output timing information on console when in verbose mode&quot;,
+<span class="lineNum">     206 </span>            :     &quot;Possible values: 'yes' (default, trust the server when bootstrapping), 'no' (server key must already be trusted)&quot;,
+<span class="lineNum">     207 </span>            :     &quot;Enable colorized output. Possible values: 'always', 'auto', 'never'. If option is used, the default value is 'auto'&quot;,
+<span class="lineNum">     208 </span>            :     &quot;Disable extension loading (used while upgrading)&quot;,
+<span class="lineNum">     209 </span>            :     &quot;Log timestamps on each line of log output&quot;,
+<span class="lineNum">     210 </span>            :     NULL
+<span class="lineNum">     211 </span>            : };
+<span class="lineNum">     212 </span>            : 
+<a name="213"><span class="lineNum">     213 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineCov">          1 : int main(int argc, char *argv[])</span>
+<span class="lineNum">     216 </span>            : {
+<span class="lineNum">     217 </span>            : #ifdef HAVE_LIBXML2
+<span class="lineNum">     218 </span><span class="lineCov">          1 :         xmlInitParser();</span>
+<span class="lineNum">     219 </span>            : #endif
+<span class="lineNum">     220 </span><span class="lineCov">          1 :     struct timespec start = BeginMeasure();</span>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span><span class="lineCov">          1 :     GenericAgentConfig *config = CheckOpts(argc, argv);</span>
+<span class="lineNum">     223 </span><span class="lineCov">          1 :     EvalContext *ctx = EvalContextNew();</span>
+<span class="lineNum">     224 </span><span class="lineCov">          1 :     GenericAgentConfigApply(ctx, config);</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineCov">          1 :     GenericAgentDiscoverContext(ctx, config);</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineCov">          1 :     Policy *policy = SelectAndLoadPolicy(config, ctx, ALWAYS_VALIDATE, true);</span>
+<span class="lineNum">     229 </span>            :     
+<span class="lineNum">     230 </span><span class="lineCov">          1 :     if (!policy)</span>
+<span class="lineNum">     231 </span>            :     {
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Error reading CFEngine policy. Exiting...&quot;);</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     234 </span>            :     }
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineCov">          1 :     GenericAgentPostLoadInit(ctx);</span>
+<span class="lineNum">     237 </span><span class="lineCov">          1 :     ThisAgentInit();</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineCov">          1 :     BeginAudit();</span>
+<span class="lineNum">     240 </span><span class="lineCov">          1 :     KeepPromises(ctx, policy, config);</span>
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineCov">          1 :     if (ALLCLASSESREPORT)</span>
+<span class="lineNum">     243 </span>            :     {
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :         AllClassesReport(ctx);</span>
+<span class="lineNum">     245 </span>            :     }
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineCov">          1 :     Nova_TrackExecution(config-&gt;input_file);</span>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            :     /* Update packages cache. */
+<span class="lineNum">     250 </span><span class="lineCov">          1 :     UpdatePackagesCache(ctx, false);</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineCov">          1 :     GenerateReports(config, ctx);</span>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineCov">          1 :     PurgeLocks();</span>
+<span class="lineNum">     255 </span><span class="lineCov">          1 :     BackupLockDatabase();</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">          1 :     PolicyDestroy(policy); /* Can we safely do this earlier ? */</span>
+<span class="lineNum">     258 </span><span class="lineCov">          1 :     int ret = 0;</span>
+<span class="lineNum">     259 </span><span class="lineCov">          1 :     if (config-&gt;agent_specific.agent.bootstrap_policy_server &amp;&amp; !VerifyBootstrap())</span>
+<span class="lineNum">     260 </span>            :     {
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         RemovePolicyServerFile(GetWorkDir());</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         WriteAmPolicyHubFile(false);</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         ret = 1;</span>
+<span class="lineNum">     264 </span>            :     }
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineCov">          1 :     EndAudit(ctx, CFA_BACKGROUND);</span>
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineCov">          1 :     Nova_NoteAgentExecutionPerformance(config-&gt;input_file, start);</span>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineCov">          1 :     GenericAgentFinalize(ctx, config);</span>
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            : #ifdef HAVE_LIBXML2
+<span class="lineNum">     273 </span><span class="lineCov">          1 :         xmlCleanupParser();</span>
+<span class="lineNum">     274 </span>            : #endif
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">          1 :     return ret;</span>
+<span class="lineNum">     277 </span>            : }
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            : /*******************************************************************/
+<span class="lineNum">     280 </span>            : /* Level 1                                                         */
+<a name="281"><span class="lineNum">     281 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineCov">          1 : static GenericAgentConfig *CheckOpts(int argc, char **argv)</span>
+<span class="lineNum">     284 </span>            : {
+<span class="lineNum">     285 </span>            :     extern char *optarg;
+<span class="lineNum">     286 </span>            :     int c;
+<span class="lineNum">     287 </span>            :     
+<span class="lineNum">     288 </span><span class="lineCov">          1 :     GenericAgentConfig *config = GenericAgentConfigNewDefault(AGENT_TYPE_AGENT, GetTTYInteractive());</span>
+<span class="lineNum">     289 </span><span class="lineCov">          1 :     bool option_trust_server = false;</span>
+<span class="lineNum">     290 </span>            : ;
+<span class="lineNum">     291 </span>            : /* DEPRECATED:
+<span class="lineNum">     292 </span>            :    --policy-server (-s) is deprecated in community version 3.5.0.
+<span class="lineNum">     293 </span>            :    Support rewrite from some common old bootstrap options (until community version 3.6.0?).
+<span class="lineNum">     294 </span>            :  */
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineCov">          1 :     int argc_new = argc;</span>
+<span class="lineNum">     297 </span><span class="lineCov">          1 :     char **argv_tmp = TranslateOldBootstrapOptionsSeparate(&amp;argc_new, argv);</span>
+<span class="lineNum">     298 </span><span class="lineCov">          1 :     char **argv_new = TranslateOldBootstrapOptionsConcatenated(argc_new, argv_tmp);</span>
+<span class="lineNum">     299 </span><span class="lineCov">          1 :     FreeStringArray(argc_new, argv_tmp);</span>
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            :     /* true if cf-agent is executed by cf-serverd in response to a cf-runagent invocation.
+<span class="lineNum">     302 </span>            :      * In that case, prohibit file-input, no-lock and dry-runs to prevent remote execution of
+<span class="lineNum">     303 </span>            :      * arbitrary policy and DoS attacks.
+<span class="lineNum">     304 </span>            :      */
+<span class="lineNum">     305 </span><span class="lineCov">          1 :     bool cfruncommand = false;</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov">          5 :     while ((c = getopt_long(argc_new, argv_new, &quot;tdvnKIf:D:N:VxMB:b:hC::ElT::&quot;,</span>
+<span class="lineNum">     308 </span>            :                             OPTIONS, NULL))
+<span class="lineNum">     309 </span>            :            != -1)
+<span class="lineNum">     310 </span>            :     {
+<span class="lineNum">     311 </span><span class="lineCov">          3 :         switch (c)</span>
+<span class="lineNum">     312 </span>            :         {
+<span class="lineNum">     313 </span>            :         case 't':
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :             TIMING = true;</span>
+<span class="lineNum">     315 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span>            :         case 'f':
+<span class="lineNum">     318 </span><span class="lineCov">          1 :             GenericAgentConfigSetInputFile(config, GetInputDir(), optarg);</span>
+<span class="lineNum">     319 </span><span class="lineCov">          1 :             MINUSF = true;</span>
+<span class="lineNum">     320 </span><span class="lineCov">          1 :             break;</span>
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span>            :         case 'b':
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :             if (optarg)</span>
+<span class="lineNum">     324 </span>            :             {
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :                 Rlist *bundlesequence = RlistFromSplitString(optarg, ',');</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :                 GenericAgentConfigSetBundleSequence(config, bundlesequence);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :                 RlistDestroy(bundlesequence);</span>
+<span class="lineNum">     328 </span>            :             }
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            :         case 'd':
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :             LogSetGlobalLevel(LOG_LEVEL_DEBUG);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :         case 'B':
+<span class="lineNum">     336 </span>            :             {
+<span class="lineNum">     337 </span><span class="lineNoCov">          0 :                 if (!BootstrapAllowed())</span>
+<span class="lineNum">     338 </span>            :                 {
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_ERR, &quot;Not enough privileges to bootstrap CFEngine&quot;);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                     exit(EXIT_FAILURE);</span>
+<span class="lineNum">     341 </span>            :                 }
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :                 if(strcmp(optarg, &quot;:avahi&quot;) == 0)</span>
+<span class="lineNum">     344 </span>            :                 {
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :                     if(!HasAvahiSupport())</span>
+<span class="lineNum">     346 </span>            :                     {
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :                         Log(LOG_LEVEL_ERR, &quot;Avahi support is not built in, please see options to the configure script and rebuild CFEngine&quot;);</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :                         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     349 </span>            :                     }
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineNoCov">          0 :                     int err = AutomaticBootstrap(config);</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                     if (err &lt; 0)</span>
+<span class="lineNum">     353 </span>            :                     {
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :                         Log(LOG_LEVEL_ERR, &quot;Automatic bootstrap failed, error code '%d'&quot;, err);</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :                         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     356 </span>            :                     }
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     358 </span>            :                 }
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                 if(IsLoopbackAddress(optarg))</span>
+<span class="lineNum">     361 </span>            :                 {
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_ERR, &quot;Cannot bootstrap to a loopback address&quot;);</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :                     exit(EXIT_FAILURE);</span>
+<span class="lineNum">     364 </span>            :                 }
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :                 // temporary assure that network functions are working
+<span class="lineNum">     367 </span>            :                 OpenNetwork();
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                 char mapped_policy_server[CF_MAX_IP_LEN] = &quot;&quot;;</span>
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :                 if (Hostname2IPString(mapped_policy_server, optarg,</span>
+<span class="lineNum">     371 </span>            :                                       sizeof(mapped_policy_server)) == -1)
+<span class="lineNum">     372 </span>            :                 {
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     374 </span>            :                         &quot;Could not resolve hostname '%s', unable to bootstrap&quot;,
+<span class="lineNum">     375 </span>            :                         optarg);
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                     exit(EXIT_FAILURE);</span>
+<span class="lineNum">     377 </span>            :                 }
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span>            :                 CloseNetwork();
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :                 MINUSF = true;</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :                 config-&gt;ignore_locks = true;</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                 GenericAgentConfigSetInputFile(config, GetInputDir(),</span>
+<span class="lineNum">     384 </span>            :                                                &quot;promises.cf&quot;);
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :                 config-&gt;agent_specific.agent.bootstrap_policy_server =</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :                     xstrdup(mapped_policy_server);</span>
+<span class="lineNum">     387 </span>            :             }
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span>            :         case 'K':
+<span class="lineNum">     391 </span><span class="lineCov">          1 :             config-&gt;ignore_locks = true;</span>
+<span class="lineNum">     392 </span><span class="lineCov">          1 :             break;</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            :         case 'D':
+<span class="lineNum">     395 </span>            :             {
+<span class="lineNum">     396 </span><span class="lineCov">          1 :                 StringSet *defined_classes = StringSetFromString(optarg, ',');</span>
+<span class="lineNum">     397 </span><span class="lineCov">          1 :                 cfruncommand = StringSetContains(defined_classes, &quot;cfruncommand&quot;) || cfruncommand;</span>
+<span class="lineNum">     398 </span><span class="lineCov">          1 :                 if (! config-&gt;heap_soft)</span>
+<span class="lineNum">     399 </span>            :                 {
+<span class="lineNum">     400 </span><span class="lineCov">          1 :                     config-&gt;heap_soft = defined_classes;</span>
+<span class="lineNum">     401 </span>            :                 }
+<span class="lineNum">     402 </span>            :                 else
+<span class="lineNum">     403 </span>            :                 {
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :                     StringSetJoin(config-&gt;heap_soft, defined_classes);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :                     free(defined_classes);</span>
+<span class="lineNum">     406 </span>            :                 }
+<span class="lineNum">     407 </span>            :             }
+<span class="lineNum">     408 </span><span class="lineCov">          1 :             break;</span>
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            :         case 'N':
+<span class="lineNum">     411 </span>            :             {
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 StringSet *negated_classes = StringSetFromString(optarg, ',');</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :                 if (! config-&gt;heap_negated)</span>
+<span class="lineNum">     414 </span>            :                 {
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                     config-&gt;heap_negated = negated_classes;</span>
+<span class="lineNum">     416 </span>            :                 }
+<span class="lineNum">     417 </span>            :                 else
+<span class="lineNum">     418 </span>            :                 {
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :                     StringSetJoin(config-&gt;heap_negated, negated_classes);</span>
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :                     free(negated_classes);</span>
+<span class="lineNum">     421 </span>            :                 }
+<span class="lineNum">     422 </span>            :             }
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            :         case 'I':
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :             LogSetGlobalLevel(LOG_LEVEL_INFO);</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span>            :         case 'v':
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :             LogSetGlobalLevel(LOG_LEVEL_VERBOSE);</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span>            :         case 'n':
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :             DONTDO = true;</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :             config-&gt;ignore_locks = true;</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span>            :         case 'V':
+<span class="lineNum">     439 </span>            :             {
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :                 Writer *w = FileWriter(stdout);</span>
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                 GenericAgentWriteVersion(w);</span>
+<span class="lineNum">     442 </span><span class="lineNoCov">          0 :                 FileWriterDetach(w);</span>
+<span class="lineNum">     443 </span>            :             }
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :             exit(EXIT_SUCCESS);</span>
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span>            :         case 'h':
+<span class="lineNum">     447 </span>            :             {
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :                 Writer *w = FileWriter(stdout);</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                 GenericAgentWriteHelp(w, &quot;cf-agent&quot;, OPTIONS, HINTS, true);</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                 FileWriterDetach(w);</span>
+<span class="lineNum">     451 </span>            :             }
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :             exit(EXIT_SUCCESS);</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            :         case 'M':
+<span class="lineNum">     455 </span>            :             {
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                 Writer *out = FileWriter(stdout);</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                 ManPageWrite(out, &quot;cf-agent&quot;, time(NULL),</span>
+<span class="lineNum">     458 </span>            :                              CF_AGENT_SHORT_DESCRIPTION,
+<span class="lineNum">     459 </span>            :                              CF_AGENT_MANPAGE_LONG_DESCRIPTION,
+<span class="lineNum">     460 </span>            :                              OPTIONS, HINTS,
+<span class="lineNum">     461 </span>            :                              true);
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :                 FileWriterDetach(out);</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :                 exit(EXIT_SUCCESS);</span>
+<span class="lineNum">     464 </span>            :             }
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span>            :         case 'x':
+<span class="lineNum">     467 </span>            :             {
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :                 const char *workdir = GetWorkDir();</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                 const char *inputdir = GetInputDir();</span>
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :                 const char *logdir = GetLogDir();</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :                 const char *statedir = GetStateDir();</span>
+<span class="lineNum">     472 </span><span class="lineNoCov">          0 :                 Writer *out = FileWriter(stdout);</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :                 WriterWriteF(out, &quot;self-diagnostics for agent using workdir '%s'\n&quot;, workdir);</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :                 WriterWriteF(out, &quot;self-diagnostics for agent using inputdir '%s'\n&quot;, inputdir);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                 WriterWriteF(out, &quot;self-diagnostics for agent using logdir '%s'\n&quot;, logdir);</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                 WriterWriteF(out, &quot;self-diagnostics for agent using statedir '%s'\n&quot;, statedir);</span>
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                 AgentDiagnosticsRun(workdir, AgentDiagnosticsAllChecks(), out);</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :                 AgentDiagnosticsRunAllChecksNova(workdir, out, &amp;AgentDiagnosticsRun, &amp;AgentDiagnosticsResultNew);</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :                 FileWriterDetach(out);</span>
+<span class="lineNum">     481 </span>            :             }
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :             exit(EXIT_SUCCESS);</span>
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :         case 'C':
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :             if (!GenericAgentConfigParseColor(config, optarg))</span>
+<span class="lineNum">     486 </span>            :             {
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :                 exit(EXIT_FAILURE);</span>
+<span class="lineNum">     488 </span>            :             }
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     490 </span>            : 
+<span class="lineNum">     491 </span>            :         case 'E':
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :             extension_libraries_disable();</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span>            :         case 'l':
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :             LoggingEnableTimestamps(true);</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span>            :         case 'T':
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :             option_trust_server = true;</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            :             /* If the argument is missing, we trust by default. */
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :             if (optarg == NULL || strcmp(optarg, &quot;yes&quot;) == 0)</span>
+<span class="lineNum">     504 </span>            :             {
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                 config-&gt;agent_specific.agent.bootstrap_trust_server = true;</span>
+<span class="lineNum">     506 </span>            :             }
+<span class="lineNum">     507 </span>            :             else
+<span class="lineNum">     508 </span>            :             {
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :                 config-&gt;agent_specific.agent.bootstrap_trust_server = false;</span>
+<span class="lineNum">     510 </span>            :             }
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            :         default:
+<span class="lineNum">     515 </span>            :             {
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :                 Writer *w = FileWriter(stdout);</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :                 GenericAgentWriteHelp(w, &quot;cf-agent&quot;, OPTIONS, HINTS, true);</span>
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                 FileWriterDetach(w);</span>
+<span class="lineNum">     519 </span>            :             }
+<span class="lineNum">     520 </span><span class="lineNoCov">          0 :             exit(EXIT_FAILURE);</span>
+<span class="lineNum">     521 </span>            :         }
+<span class="lineNum">     522 </span>            :     }
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span><span class="lineCov">          2 :     if (!GenericAgentConfigParseArguments(config, argc_new - optind,</span>
+<span class="lineNum">     525 </span><span class="lineCov">          1 :                                           argv_new + optind))</span>
+<span class="lineNum">     526 </span>            :     {
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Too many arguments&quot;);</span>
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     529 </span>            :     }
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span><span class="lineCov">          1 :     if (option_trust_server &amp;&amp;</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :         config-&gt;agent_specific.agent.bootstrap_policy_server == NULL)</span>
+<span class="lineNum">     533 </span>            :     {
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">     535 </span>            :             &quot;Option --trust-server can only be used when bootstrapping&quot;);
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :         exit(EXIT_FAILURE);</span>
+<span class="lineNum">     537 </span>            :     }
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span><span class="lineCov">          1 :     if (cfruncommand)</span>
+<span class="lineNum">     540 </span>            :     {
+<span class="lineNum">     541 </span>            :         /* Do not allow remote cf-agent executions that imply no-lock
+<span class="lineNum">     542 </span>            :          * or execution of a file other that promises.cf.
+<span class="lineNum">     543 </span>            :          */
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :         if (config-&gt;ignore_locks)</span>
+<span class="lineNum">     545 </span>            :         {
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Remote execution cannot ignore locks&quot;);</span>
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :             exit(EXIT_FAILURE);</span>
+<span class="lineNum">     548 </span>            :         }
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :         if (MINUSF) // GenericAgentConfigSetInputFile also sets MINUSF</span>
+<span class="lineNum">     550 </span>            :         {
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Specifying input files is not allowed for remote execution&quot;);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :             exit(EXIT_FAILURE);</span>
+<span class="lineNum">     553 </span>            :         }
+<span class="lineNum">     554 </span>            :     }
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span><span class="lineCov">          1 :     FreeStringArray(argc_new, argv_new);</span>
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span><span class="lineCov">          1 :     return config;</span>
+<span class="lineNum">     559 </span>            : }
+<a name="560"><span class="lineNum">     560 </span>            : </a>
+<span class="lineNum">     561 </span>            : 
+<span class="lineNum">     562 </span><span class="lineCov">          1 : static char **TranslateOldBootstrapOptionsSeparate(int *argc_new, char **argv)</span>
+<span class="lineNum">     563 </span>            : {
+<span class="lineNum">     564 </span>            :     int i;
+<span class="lineNum">     565 </span><span class="lineCov">          1 :     int policy_server_argnum = 0;</span>
+<span class="lineNum">     566 </span><span class="lineCov">          1 :     int server_address_argnum = 0;</span>
+<span class="lineNum">     567 </span><span class="lineCov">          1 :     int bootstrap_argnum = 0;</span>
+<span class="lineNum">     568 </span><span class="lineCov">          1 :     int argc = *argc_new;</span>
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span><span class="lineCov">          6 :     for(i = 0; i &lt; argc; i++)</span>
+<span class="lineNum">     571 </span>            :     {
+<span class="lineNum">     572 </span><span class="lineCov">          5 :         if(strcmp(argv[i], &quot;--policy-server&quot;) == 0 || strcmp(argv[i], &quot;-s&quot;) == 0)</span>
+<span class="lineNum">     573 </span>            :         {
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :             policy_server_argnum = i;</span>
+<span class="lineNum">     575 </span>            :         }
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span><span class="lineCov">          5 :         if(strcmp(argv[i], &quot;--bootstrap&quot;) == 0 || strcmp(argv[i], &quot;-B&quot;) == 0)</span>
+<span class="lineNum">     578 </span>            :         {
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :             bootstrap_argnum = i;</span>
+<span class="lineNum">     580 </span>            :         }
+<span class="lineNum">     581 </span>            :     }
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span><span class="lineCov">          1 :     if(policy_server_argnum &gt; 0)</span>
+<span class="lineNum">     584 </span>            :     {
+<span class="lineNum">     585 </span><span class="lineNoCov">          0 :         if(policy_server_argnum + 1 &lt; argc)</span>
+<span class="lineNum">     586 </span>            :         {
+<span class="lineNum">     587 </span><span class="lineNoCov">          0 :             server_address_argnum = policy_server_argnum + 1;</span>
+<span class="lineNum">     588 </span>            :         }
+<span class="lineNum">     589 </span>            :     }
+<span class="lineNum">     590 </span>            : 
+<span class="lineNum">     591 </span>            :     char **argv_new;
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span><span class="lineCov">          1 :     if(bootstrap_argnum &gt; 0 &amp;&amp; server_address_argnum &gt; 0)</span>
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :     {</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_WARNING, &quot;Deprecated bootstrap options detected. The --policy-server (-s) option is deprecated from CFEngine community version 3.5.0.&quot;</span>
+<span class="lineNum">     596 </span>            :             &quot;Please provide the address argument to --bootstrap (-B) instead. Rewriting your arguments now, but you need to adjust them as this support will be removed soon.&quot;);
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span><span class="lineNoCov">          0 :         *argc_new = argc - 1;  // --policy-server deprecated</span>
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :         argv_new = xcalloc(1, sizeof(char *) * (*argc_new + 1));</span>
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :         int new_i = 0;</span>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :         for(i = 0; i &lt; argc; i++)</span>
+<span class="lineNum">     604 </span>            :         {
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :             if(i == bootstrap_argnum)</span>
+<span class="lineNum">     606 </span>            :             {
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :                 argv_new[new_i++] = xstrdup(argv[bootstrap_argnum]);</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :                 argv_new[new_i++] = xstrdup(argv[server_address_argnum]);</span>
+<span class="lineNum">     609 </span>            :             }
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :             else if(i == server_address_argnum)</span>
+<span class="lineNum">     611 </span>            :             {
+<span class="lineNum">     612 </span>            :                 // skip: handled above
+<span class="lineNum">     613 </span>            :             }
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :             else if(i == policy_server_argnum)</span>
+<span class="lineNum">     615 </span>            :             {
+<span class="lineNum">     616 </span>            :                 // skip: deprecated
+<span class="lineNum">     617 </span>            :             }
+<span class="lineNum">     618 </span>            :             else
+<span class="lineNum">     619 </span>            :             {
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :                 argv_new[new_i++] = xstrdup(argv[i]);</span>
+<span class="lineNum">     621 </span>            :             }
+<span class="lineNum">     622 </span>            :         }
+<span class="lineNum">     623 </span>            :     }
+<span class="lineNum">     624 </span>            :     else
+<span class="lineNum">     625 </span>            :     {
+<span class="lineNum">     626 </span><span class="lineCov">          1 :         argv_new = xcalloc(1, sizeof(char *) * (*argc_new + 1));</span>
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span><span class="lineCov">          6 :         for(i = 0; i &lt; argc; i++)</span>
+<span class="lineNum">     629 </span>            :         {
+<span class="lineNum">     630 </span><span class="lineCov">          5 :             argv_new[i] = xstrdup(argv[i]);</span>
+<span class="lineNum">     631 </span>            :         }
+<span class="lineNum">     632 </span>            :     }
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span><span class="lineCov">          1 :     return argv_new;</span>
+<span class="lineNum">     635 </span>            : }
+<a name="636"><span class="lineNum">     636 </span>            : </a>
+<span class="lineNum">     637 </span>            : 
+<span class="lineNum">     638 </span><span class="lineCov">          1 : static char **TranslateOldBootstrapOptionsConcatenated(int argc, char **argv)</span>
+<span class="lineNum">     639 </span>            : {
+<span class="lineNum">     640 </span><span class="lineCov">          1 :     char **argv_new = xcalloc(1, sizeof(char *) * (argc + 1));</span>
+<span class="lineNum">     641 </span>            : 
+<span class="lineNum">     642 </span><span class="lineCov">          6 :     for(int i = 0; i &lt; argc; i++)</span>
+<span class="lineNum">     643 </span>            :     {
+<span class="lineNum">     644 </span><span class="lineCov">          5 :         if(strcmp(argv[i], &quot;-Bs&quot;) == 0)</span>
+<span class="lineNum">     645 </span>            :         {
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_WARNING, &quot;Deprecated bootstrap options detected. The --policy-server (-s) option is deprecated from CFEngine community version 3.5.0.&quot;</span>
+<span class="lineNum">     647 </span>            :                 &quot;Please provide the address argument to --bootstrap (-B) instead. Rewriting your arguments now, but you need to adjust them as this support will be removed soon.&quot;);
+<span class="lineNum">     648 </span><span class="lineNoCov">          0 :             argv_new[i] = xstrdup(&quot;-B&quot;);</span>
+<span class="lineNum">     649 </span>            :         }
+<span class="lineNum">     650 </span>            :         else
+<span class="lineNum">     651 </span>            :         {
+<span class="lineNum">     652 </span><span class="lineCov">          5 :             argv_new[i] = xstrdup(argv[i]);</span>
+<span class="lineNum">     653 </span>            :         }
+<span class="lineNum">     654 </span>            :     }
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span><span class="lineCov">          1 :     return argv_new;</span>
+<span class="lineNum">     657 </span>            : }
+<a name="658"><span class="lineNum">     658 </span>            : </a>
+<span class="lineNum">     659 </span>            : 
+<span class="lineNum">     660 </span><span class="lineCov">          2 : static void FreeStringArray(int size, char **array)</span>
+<span class="lineNum">     661 </span>            : {
+<span class="lineNum">     662 </span><span class="lineCov">         12 :     for(int i = 0; i &lt; size; i++)</span>
+<span class="lineNum">     663 </span>            :     {
+<span class="lineNum">     664 </span><span class="lineCov">         10 :         free(array[i]);</span>
+<span class="lineNum">     665 </span>            :     }
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span><span class="lineCov">          2 :     free(array);</span>
+<span class="lineNum">     668 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     669 </span>            : 
+<a name="670"><span class="lineNum">     670 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     671 </span>            : 
+<span class="lineNum">     672 </span><span class="lineCov">          1 : static void ThisAgentInit(void)</span>
+<span class="lineNum">     673 </span>            : {
+<span class="lineNum">     674 </span>            :     FILE *fp;
+<span class="lineNum">     675 </span>            :     char filename[CF_BUFSIZE];
+<span class="lineNum">     676 </span>            : 
+<span class="lineNum">     677 </span>            : #ifdef HAVE_SETSID
+<span class="lineNum">     678 </span><span class="lineCov">          1 :     setsid();</span>
+<span class="lineNum">     679 </span>            : #endif
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span><span class="lineCov">          1 :     signal(SIGINT, HandleSignalsForAgent);</span>
+<span class="lineNum">     682 </span><span class="lineCov">          1 :     signal(SIGTERM, HandleSignalsForAgent);</span>
+<span class="lineNum">     683 </span><span class="lineCov">          1 :     signal(SIGHUP, SIG_IGN);</span>
+<span class="lineNum">     684 </span><span class="lineCov">          1 :     signal(SIGPIPE, SIG_IGN);</span>
+<span class="lineNum">     685 </span><span class="lineCov">          1 :     signal(SIGUSR1, HandleSignalsForAgent);</span>
+<span class="lineNum">     686 </span><span class="lineCov">          1 :     signal(SIGUSR2, HandleSignalsForAgent);</span>
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span><span class="lineCov">          1 :     CFA_MAXTHREADS = 30;</span>
+<span class="lineNum">     689 </span><span class="lineCov">          1 :     EDITFILESIZE = 100000;</span>
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span>            : /*
+<span class="lineNum">     692 </span>            :   do not set signal(SIGCHLD,SIG_IGN) in agent near
+<span class="lineNum">     693 </span>            :   popen() - or else pclose will fail to return
+<span class="lineNum">     694 </span>            :   status which we need for setting returns
+<span class="lineNum">     695 </span>            : */
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span><span class="lineCov">          1 :     snprintf(filename, CF_BUFSIZE, &quot;%s/cfagent.%s.log&quot;, GetLogDir(), VSYSNAME.nodename);</span>
+<span class="lineNum">     698 </span><span class="lineCov">          1 :     MapName(filename);</span>
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span><span class="lineCov">          1 :     if ((fp = fopen(filename, &quot;a&quot;)) != NULL)</span>
+<span class="lineNum">     701 </span>            :     {
+<span class="lineNum">     702 </span><span class="lineCov">          1 :         fclose(fp);</span>
+<span class="lineNum">     703 </span>            :     }
+<span class="lineNum">     704 </span><span class="lineCov">          1 : }</span>
+<span class="lineNum">     705 </span>            : 
+<a name="706"><span class="lineNum">     706 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span><span class="lineCov">          1 : static void KeepPromises(EvalContext *ctx, const Policy *policy, GenericAgentConfig *config)</span>
+<span class="lineNum">     709 </span>            : {
+<span class="lineNum">     710 </span><span class="lineCov">          1 :     KeepControlPromises(ctx, policy);</span>
+<span class="lineNum">     711 </span><span class="lineCov">          1 :     KeepPromiseBundles(ctx, policy, config);</span>
+<span class="lineNum">     712 </span><span class="lineCov">          1 : }</span>
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span>            : /*******************************************************************/
+<span class="lineNum">     715 </span>            : /* Level 2                                                         */
+<a name="716"><span class="lineNum">     716 </span>            : /*******************************************************************/</a>
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span><span class="lineCov">          1 : static void KeepControlPromises(EvalContext *ctx, const Policy *policy)</span>
+<span class="lineNum">     719 </span>            : {
+<span class="lineNum">     720 </span><span class="lineCov">          1 :     Seq *constraints = ControlBodyConstraints(policy, AGENT_TYPE_AGENT);</span>
+<span class="lineNum">     721 </span><span class="lineCov">          1 :     if (constraints)</span>
+<span class="lineNum">     722 </span>            :     {
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :         for (size_t i = 0; i &lt; SeqLength(constraints); i++)</span>
+<span class="lineNum">     724 </span>            :         {
+<span class="lineNum">     725 </span><span class="lineNoCov">          0 :             Constraint *cp = SeqAt(constraints, i);</span>
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :             if (!IsDefinedClass(ctx, cp-&gt;classes))</span>
+<span class="lineNum">     728 </span>            :             {
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     730 </span>            :             }
+<span class="lineNum">     731 </span>            : 
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :             if (CommonControlFromString(cp-&gt;lval) != COMMON_CONTROL_MAX)</span>
+<span class="lineNum">     733 </span>            :             {
+<span class="lineNum">     734 </span>            :                 /* Already handled in generic_agent */
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     736 </span>            :             }
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :             VarRef *ref = VarRefParseFromScope(cp-&gt;lval, &quot;control_agent&quot;);</span>
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :             const void *value = EvalContextVariableGet(ctx, ref, NULL);</span>
+<span class="lineNum">     740 </span><span class="lineNoCov">          0 :             VarRefDestroy(ref);</span>
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :             if (!value)</span>
+<span class="lineNum">     742 </span>            :             {
+<span class="lineNum">     743 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Unknown lval '%s' in agent control body&quot;, cp-&gt;lval);</span>
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     745 </span>            :             }
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_MAXCONNECTIONS].lval) == 0)</span>
+<span class="lineNum">     748 </span>            :             {
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :                 CFA_MAXTHREADS = (int) IntFromString(value);</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting maxconnections to %d&quot;, CFA_MAXTHREADS);</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     752 </span>            :             }
+<span class="lineNum">     753 </span>            : 
+<span class="lineNum">     754 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_CHECKSUM_ALERT_TIME].lval) == 0)</span>
+<span class="lineNum">     755 </span>            :             {
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :                 CF_PERSISTENCE = (int) IntFromString(value);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting checksum_alert_time to %d&quot;, CF_PERSISTENCE);</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     759 </span>            :             }
+<span class="lineNum">     760 </span>            : 
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_AGENTFACILITY].lval) == 0)</span>
+<span class="lineNum">     762 </span>            :             {
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :                 SetFacility(value);</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     765 </span>            :             }
+<span class="lineNum">     766 </span>            : 
+<span class="lineNum">     767 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_AGENTACCESS].lval) == 0)</span>
+<span class="lineNum">     768 </span>            :             {
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :                 ACCESSLIST = value;</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :                 CheckAgentAccess(ACCESSLIST, policy);</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     772 </span>            :             }
+<span class="lineNum">     773 </span>            : 
+<span class="lineNum">     774 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_REFRESH_PROCESSES].lval) == 0)</span>
+<span class="lineNum">     775 </span>            :             {
+<span class="lineNum">     776 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting refresh_processes when starting to...&quot;);</span>
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :                 for (const Rlist *rp = value; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     778 </span>            :                 {
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_VERBOSE, &quot;%s&quot;, RlistScalarValue(rp));</span>
+<span class="lineNum">     780 </span>            :                     // TODO: why is this only done in verbose mode?
+<span class="lineNum">     781 </span>            :                     // original commit says 'optimization'.
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :                     if (LogGetGlobalLevel() &gt;= LOG_LEVEL_VERBOSE)</span>
+<span class="lineNum">     783 </span>            :                     {
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :                         PrependItem(&amp;PROCESSREFRESH, RlistScalarValue(rp), NULL);</span>
+<span class="lineNum">     785 </span>            :                     }
+<span class="lineNum">     786 </span>            :                 }
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     788 </span>            :             }
+<span class="lineNum">     789 </span>            : 
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_ABORTCLASSES].lval) == 0)</span>
+<span class="lineNum">     791 </span>            :             {
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting abort classes from ...&quot;);</span>
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :                 for (const Rlist *rp = value; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     795 </span>            :                 {
+<span class="lineNum">     796 </span><span class="lineNoCov">          0 :                     char name[CF_MAXVARSIZE] = &quot;&quot;;</span>
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span><span class="lineNoCov">          0 :                     strlcpy(name, RlistScalarValue(rp), CF_MAXVARSIZE);</span>
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :                     EvalContextHeapAddAbort(ctx, name, cp-&gt;classes);</span>
+<span class="lineNum">     801 </span>            :                 }
+<span class="lineNum">     802 </span>            : 
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     804 </span>            :             }
+<span class="lineNum">     805 </span>            : 
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_ABORTBUNDLECLASSES].lval) == 0)</span>
+<span class="lineNum">     807 </span>            :             {
+<span class="lineNum">     808 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting abort bundle classes from ...&quot;);</span>
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span><span class="lineNoCov">          0 :                 for (const Rlist *rp = value; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     811 </span>            :                 {
+<span class="lineNum">     812 </span><span class="lineNoCov">          0 :                     char name[CF_MAXVARSIZE] = &quot;&quot;;</span>
+<span class="lineNum">     813 </span><span class="lineNoCov">          0 :                     strlcpy(name, RlistScalarValue(rp), CF_MAXVARSIZE);</span>
+<span class="lineNum">     814 </span>            : 
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :                     EvalContextHeapAddAbortCurrentBundle(ctx, name, cp-&gt;classes);</span>
+<span class="lineNum">     816 </span>            :                 }
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     819 </span>            :             }
+<span class="lineNum">     820 </span>            : 
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_ADDCLASSES].lval) == 0)</span>
+<span class="lineNum">     822 </span>            :             {
+<span class="lineNum">     823 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Add classes ...&quot;);</span>
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :                 for (const Rlist *rp = value; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     826 </span>            :                 {
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_VERBOSE, &quot;... %s&quot;, RlistScalarValue(rp));</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :                     EvalContextClassPutSoft(ctx, RlistScalarValue(rp), CONTEXT_SCOPE_NAMESPACE, &quot;source=environment&quot;);</span>
+<span class="lineNum">     829 </span>            :                 }
+<span class="lineNum">     830 </span>            : 
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     832 </span>            :             }
+<span class="lineNum">     833 </span>            : 
+<span class="lineNum">     834 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_ALWAYSVALIDATE].lval) == 0)</span>
+<span class="lineNum">     835 </span>            :             {
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :                 ALWAYS_VALIDATE = BooleanFromString(value);</span>
+<span class="lineNum">     837 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting alwaysvalidate to '%s'&quot;, ALWAYS_VALIDATE ? &quot;true&quot; : &quot;false&quot;);</span>
+<span class="lineNum">     838 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     839 </span>            :             }
+<span class="lineNum">     840 </span>            : 
+<span class="lineNum">     841 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_ALLCLASSESREPORT].lval) == 0)</span>
+<span class="lineNum">     842 </span>            :             {
+<span class="lineNum">     843 </span><span class="lineNoCov">          0 :                 ALLCLASSESREPORT = BooleanFromString(value);</span>
+<span class="lineNum">     844 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting allclassesreport to '%s'&quot;, ALLCLASSESREPORT ? &quot;true&quot; : &quot;false&quot;);</span>
+<span class="lineNum">     845 </span>            :             }
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_SECUREINPUT].lval) == 0)</span>
+<span class="lineNum">     848 </span>            :             {
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :                 CFPARANOID = BooleanFromString(value);</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting secure input to '%s'&quot;, CFPARANOID ? &quot;true&quot; : &quot;false&quot;);</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     852 </span>            :             }
+<span class="lineNum">     853 </span>            : 
+<span class="lineNum">     854 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_BINDTOINTERFACE].lval) == 0)</span>
+<span class="lineNum">     855 </span>            :             {
+<span class="lineNum">     856 </span><span class="lineNoCov">          0 :                 strlcpy(BINDINTERFACE, value, sizeof(BINDINTERFACE));</span>
+<span class="lineNum">     857 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting bindtointerface to '%s'&quot;, BINDINTERFACE);</span>
+<span class="lineNum">     858 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     859 </span>            :             }
+<span class="lineNum">     860 </span>            : 
+<span class="lineNum">     861 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_HASHUPDATES].lval) == 0)</span>
+<span class="lineNum">     862 </span>            :             {
+<span class="lineNum">     863 </span><span class="lineNoCov">          0 :                 bool enabled = BooleanFromString(value);</span>
+<span class="lineNum">     864 </span>            : 
+<span class="lineNum">     865 </span><span class="lineNoCov">          0 :                 SetChecksumUpdatesDefault(ctx, enabled);</span>
+<span class="lineNum">     866 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting checksum updates to '%s'&quot;, enabled ? &quot;true&quot; : &quot;false&quot;);</span>
+<span class="lineNum">     867 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     868 </span>            :             }
+<span class="lineNum">     869 </span>            : 
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_CHILDLIBPATH].lval) == 0)</span>
+<span class="lineNum">     871 </span>            :             {
+<span class="lineNum">     872 </span>            :                 char output[CF_BUFSIZE];
+<span class="lineNum">     873 </span>            : 
+<span class="lineNum">     874 </span><span class="lineNoCov">          0 :                 snprintf(output, CF_BUFSIZE, &quot;Setting LD_LIBRARY_PATH to '%s'&quot;, (const char *)value);</span>
+<span class="lineNum">     875 </span><span class="lineNoCov">          0 :                 if (putenv(xstrdup(output)) == 0)</span>
+<span class="lineNum">     876 </span>            :                 {
+<span class="lineNum">     877 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_VERBOSE, &quot;Setting '%s'&quot;, output);</span>
+<span class="lineNum">     878 </span>            :                 }
+<span class="lineNum">     879 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     880 </span>            :             }
+<span class="lineNum">     881 </span>            : 
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_DEFAULTCOPYTYPE].lval) == 0)</span>
+<span class="lineNum">     883 </span>            :             {
+<span class="lineNum">     884 </span><span class="lineNoCov">          0 :                 DEFAULT_COPYTYPE = value;</span>
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting defaultcopytype to '%s'&quot;, DEFAULT_COPYTYPE);</span>
+<span class="lineNum">     886 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     887 </span>            :             }
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_FSINGLECOPY].lval) == 0)</span>
+<span class="lineNum">     890 </span>            :             {
+<span class="lineNum">     891 </span><span class="lineNoCov">          0 :                 SINGLE_COPY_LIST = value;</span>
+<span class="lineNum">     892 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting file single copy list&quot;);</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     894 </span>            :             }
+<span class="lineNum">     895 </span>            : 
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_FAUTODEFINE].lval) == 0)</span>
+<span class="lineNum">     897 </span>            :             {
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 :                 SetFileAutoDefineList(value);</span>
+<span class="lineNum">     899 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting file auto define list&quot;);</span>
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     901 </span>            :             }
+<span class="lineNum">     902 </span>            : 
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_DRYRUN].lval) == 0)</span>
+<span class="lineNum">     904 </span>            :             {
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :                 DONTDO = BooleanFromString(value);</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting dryrun to %c&quot;, DONTDO);</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     908 </span>            :             }
+<span class="lineNum">     909 </span>            : 
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_INFORM].lval) == 0)</span>
+<span class="lineNum">     911 </span>            :             {
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :                 bool inform = BooleanFromString(value);</span>
+<span class="lineNum">     913 </span><span class="lineNoCov">          0 :                 if (inform)</span>
+<span class="lineNum">     914 </span>            :                 {
+<span class="lineNum">     915 </span><span class="lineNoCov">          0 :                     LogSetGlobalLevel(MAX(LOG_LEVEL_INFO, LogGetGlobalLevel()));</span>
+<span class="lineNum">     916 </span>            :                 }
+<span class="lineNum">     917 </span>            :                 else
+<span class="lineNum">     918 </span>            :                 {
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :                     if (LogGetGlobalLevel() &gt;= LOG_LEVEL_INFO)</span>
+<span class="lineNum">     920 </span>            :                     {
+<span class="lineNum">     921 </span><span class="lineNoCov">          0 :                         LogSetGlobalLevel(LOG_LEVEL_NOTICE);</span>
+<span class="lineNum">     922 </span>            :                     }
+<span class="lineNum">     923 </span>            :                 }
+<span class="lineNum">     924 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;body agent control, inform =&gt; '%s', sets new log level to '%s'&quot;,</span>
+<span class="lineNum">     925 </span>            :                     inform ? &quot;true&quot; : &quot;false&quot;, LogLevelToString(LogGetGlobalLevel()));
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     927 </span>            :             }
+<span class="lineNum">     928 </span>            : 
+<span class="lineNum">     929 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_VERBOSE].lval) == 0)</span>
+<span class="lineNum">     930 </span>            :             {
+<span class="lineNum">     931 </span><span class="lineNoCov">          0 :                 bool verbose = BooleanFromString(value);</span>
+<span class="lineNum">     932 </span><span class="lineNoCov">          0 :                 if (verbose)</span>
+<span class="lineNum">     933 </span>            :                 {
+<span class="lineNum">     934 </span><span class="lineNoCov">          0 :                     LogSetGlobalLevel(MAX(LOG_LEVEL_VERBOSE, LogGetGlobalLevel()));</span>
+<span class="lineNum">     935 </span>            :                 }
+<span class="lineNum">     936 </span>            :                 else
+<span class="lineNum">     937 </span>            :                 {
+<span class="lineNum">     938 </span><span class="lineNoCov">          0 :                     if (LogGetGlobalLevel() &gt;= LOG_LEVEL_VERBOSE)</span>
+<span class="lineNum">     939 </span>            :                     {
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 :                         LogSetGlobalLevel(LOG_LEVEL_INFO);</span>
+<span class="lineNum">     941 </span>            :                     }
+<span class="lineNum">     942 </span>            :                 }
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;body agent control, verbose =&gt; '%s', sets new log level to '%s'&quot;,</span>
+<span class="lineNum">     944 </span>            :                     verbose ? &quot;true&quot; : &quot;false&quot;, LogLevelToString(LogGetGlobalLevel()));
+<span class="lineNum">     945 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     946 </span>            :             }
+<span class="lineNum">     947 </span>            : 
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_REPOSITORY].lval) == 0)</span>
+<span class="lineNum">     949 </span>            :             {
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :                 SetRepositoryLocation(value);</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting repository to '%s'&quot;, (const char *)value);</span>
+<span class="lineNum">     952 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     953 </span>            :             }
+<span class="lineNum">     954 </span>            : 
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_SKIPIDENTIFY].lval) == 0)</span>
+<span class="lineNum">     956 </span>            :             {
+<span class="lineNum">     957 </span><span class="lineNoCov">          0 :                 bool enabled = BooleanFromString(value);</span>
+<span class="lineNum">     958 </span>            : 
+<span class="lineNum">     959 </span><span class="lineNoCov">          0 :                 SetSkipIdentify(enabled);</span>
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting skipidentify to '%s'&quot;, enabled ? &quot;true&quot; : &quot;false&quot;);</span>
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     962 </span>            :             }
+<span class="lineNum">     963 </span>            : 
+<span class="lineNum">     964 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_SUSPICIOUSNAMES].lval) == 0)</span>
+<span class="lineNum">     965 </span>            :             {
+<span class="lineNum">     966 </span><span class="lineNoCov">          0 :                 for (const Rlist *rp = value; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">     967 </span>            :                 {
+<span class="lineNum">     968 </span><span class="lineNoCov">          0 :                     AddFilenameToListOfSuspicious(RlistScalarValue(rp));</span>
+<span class="lineNum">     969 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_VERBOSE, &quot;Considering '%s' as suspicious file&quot;, RlistScalarValue(rp));</span>
+<span class="lineNum">     970 </span>            :                 }
+<span class="lineNum">     971 </span>            : 
+<span class="lineNum">     972 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     973 </span>            :             }
+<span class="lineNum">     974 </span>            : 
+<span class="lineNum">     975 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_REPCHAR].lval) == 0)</span>
+<span class="lineNum">     976 </span>            :             {
+<span class="lineNum">     977 </span><span class="lineNoCov">          0 :                 char c = *(char *)value;</span>
+<span class="lineNum">     978 </span>            : 
+<span class="lineNum">     979 </span><span class="lineNoCov">          0 :                 SetRepositoryChar(c);</span>
+<span class="lineNum">     980 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting repchar to '%c'&quot;, c);</span>
+<span class="lineNum">     981 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     982 </span>            :             }
+<span class="lineNum">     983 </span>            : 
+<span class="lineNum">     984 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_MOUNTFILESYSTEMS].lval) == 0)</span>
+<span class="lineNum">     985 </span>            :             {
+<span class="lineNum">     986 </span><span class="lineNoCov">          0 :                 CF_MOUNTALL = BooleanFromString(value);</span>
+<span class="lineNum">     987 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting mountfilesystems to '%s'&quot;, CF_MOUNTALL ? &quot;true&quot; : &quot;false&quot;);</span>
+<span class="lineNum">     988 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     989 </span>            :             }
+<span class="lineNum">     990 </span>            : 
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_EDITFILESIZE].lval) == 0)</span>
+<span class="lineNum">     992 </span>            :             {
+<span class="lineNum">     993 </span><span class="lineNoCov">          0 :                 EDITFILESIZE = IntFromString(value);</span>
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting edit file size to %d&quot;, EDITFILESIZE);</span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     996 </span>            :             }
+<span class="lineNum">     997 </span>            : 
+<span class="lineNum">     998 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_IFELAPSED].lval) == 0)</span>
+<span class="lineNum">     999 </span>            :             {
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :                 VIFELAPSED = IntFromString(value);</span>
+<span class="lineNum">    1001 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting ifelapsed to %d&quot;, VIFELAPSED);</span>
+<span class="lineNum">    1002 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1003 </span>            :             }
+<span class="lineNum">    1004 </span>            : 
+<span class="lineNum">    1005 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_EXPIREAFTER].lval) == 0)</span>
+<span class="lineNum">    1006 </span>            :             {
+<span class="lineNum">    1007 </span><span class="lineNoCov">          0 :                 VEXPIREAFTER = IntFromString(value);</span>
+<span class="lineNum">    1008 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting expireafter to %d&quot;, VEXPIREAFTER);</span>
+<span class="lineNum">    1009 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1010 </span>            :             }
+<span class="lineNum">    1011 </span>            : 
+<span class="lineNum">    1012 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_TIMEOUT].lval) == 0)</span>
+<span class="lineNum">    1013 </span>            :             {
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :                 CONNTIMEOUT = IntFromString(value);</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting timeout to %jd&quot;, (intmax_t) CONNTIMEOUT);</span>
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1017 </span>            :             }
+<span class="lineNum">    1018 </span>            : 
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_MAX_CHILDREN].lval) == 0)</span>
+<span class="lineNum">    1020 </span>            :             {
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :                 CFA_BACKGROUND_LIMIT = IntFromString(value);</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting max_children to %d&quot;, CFA_BACKGROUND_LIMIT);</span>
+<span class="lineNum">    1023 </span><span class="lineNoCov">          0 :                 if (CFA_BACKGROUND_LIMIT &gt; 10)</span>
+<span class="lineNum">    1024 </span>            :                 {
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_ERR, &quot;Silly value for max_children in agent control promise (%d &gt; 10)&quot;,</span>
+<span class="lineNum">    1026 </span>            :                           CFA_BACKGROUND_LIMIT);
+<span class="lineNum">    1027 </span><span class="lineNoCov">          0 :                     CFA_BACKGROUND_LIMIT = 1;</span>
+<span class="lineNum">    1028 </span>            :                 }
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1030 </span>            :             }
+<span class="lineNum">    1031 </span>            : 
+<span class="lineNum">    1032 </span><span class="lineNoCov">          0 :             if (strcmp(cp-&gt;lval, CFA_CONTROLBODY[AGENT_CONTROL_ENVIRONMENT].lval) == 0)</span>
+<span class="lineNum">    1033 </span>            :             {
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Setting environment variables from ...&quot;);</span>
+<span class="lineNum">    1035 </span>            : 
+<span class="lineNum">    1036 </span><span class="lineNoCov">          0 :                 for (const Rlist *rp = value; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">    1037 </span>            :                 {
+<span class="lineNum">    1038 </span><span class="lineNoCov">          0 :                     assert(strchr(RlistScalarValue(rp), '=')); /* Valid for putenv() */</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :                     if (putenv(xstrdup(RlistScalarValue(rp))) != 0)</span>
+<span class="lineNum">    1040 </span>            :                     {
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :                         Log(LOG_LEVEL_ERR, &quot;Failed to set environment variable '%s'. (putenv: %s)&quot;,</span>
+<span class="lineNum">    1042 </span>            :                             RlistScalarValue(rp), GetErrorStr());
+<span class="lineNum">    1043 </span>            :                     }
+<span class="lineNum">    1044 </span>            :                 }
+<span class="lineNum">    1045 </span>            : 
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1047 </span>            :             }
+<span class="lineNum">    1048 </span>            :         }
+<span class="lineNum">    1049 </span>            :     }
+<span class="lineNum">    1050 </span>            : 
+<span class="lineNum">    1051 </span><span class="lineCov">          1 :     const void *value = NULL;</span>
+<span class="lineNum">    1052 </span><span class="lineCov">          1 :     if ((value = EvalContextVariableControlCommonGet(ctx, COMMON_CONTROL_LASTSEEN_EXPIRE_AFTER)))</span>
+<span class="lineNum">    1053 </span>            :     {
+<span class="lineNum">    1054 </span><span class="lineNoCov">          0 :         LASTSEENEXPIREAFTER = IntFromString(value) * 60;</span>
+<span class="lineNum">    1055 </span>            :     }
+<span class="lineNum">    1056 </span>            : 
+<span class="lineNum">    1057 </span><span class="lineCov">          1 :     if ((value = EvalContextVariableControlCommonGet(ctx, COMMON_CONTROL_FIPS_MODE)))</span>
+<span class="lineNum">    1058 </span>            :     {
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :         FIPS_MODE = BooleanFromString(value);</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Setting FIPS mode to '%s'&quot;, FIPS_MODE ? &quot;true&quot; : &quot;false&quot;);</span>
+<span class="lineNum">    1061 </span>            :     }
+<span class="lineNum">    1062 </span>            : 
+<span class="lineNum">    1063 </span><span class="lineCov">          1 :     if ((value = EvalContextVariableControlCommonGet(ctx, COMMON_CONTROL_SYSLOG_PORT)))</span>
+<span class="lineNum">    1064 </span>            :     {
+<span class="lineNum">    1065 </span><span class="lineNoCov">          0 :         SetSyslogPort(IntFromString(value));</span>
+<span class="lineNum">    1066 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;Setting syslog_port to '%s'&quot;, (const char *)value);</span>
+<span class="lineNum">    1067 </span>            :     }
+<span class="lineNum">    1068 </span>            : 
+<span class="lineNum">    1069 </span><span class="lineCov">          1 :     if ((value = EvalContextVariableControlCommonGet(ctx, COMMON_CONTROL_SYSLOG_HOST)))</span>
+<span class="lineNum">    1070 </span>            :     {
+<span class="lineNum">    1071 </span>            :         /* Don't resolve syslog_host now, better do it per log request. */
+<span class="lineNum">    1072 </span><span class="lineNoCov">          0 :         if (!SetSyslogHost(value))</span>
+<span class="lineNum">    1073 </span>            :         {
+<span class="lineNum">    1074 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,</span>
+<span class="lineNum">    1075 </span>            :                   &quot;Failed to set syslog_host to '%s', too long&quot;, (const char *)value);
+<span class="lineNum">    1076 </span>            :         }
+<span class="lineNum">    1077 </span>            :         else
+<span class="lineNum">    1078 </span>            :         {
+<span class="lineNum">    1079 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Setting syslog_host to '%s'&quot;, (const char *)value);</span>
+<span class="lineNum">    1080 </span>            :         }
+<span class="lineNum">    1081 </span>            :     }
+<span class="lineNum">    1082 </span>            : 
+<span class="lineNum">    1083 </span><span class="lineCov">          1 :     if ((value = EvalContextVariableControlCommonGet(ctx, COMMON_CONTROL_BWLIMIT)))</span>
+<span class="lineNum">    1084 </span>            :     {
+<span class="lineNum">    1085 </span>            :         double bval;
+<span class="lineNum">    1086 </span><span class="lineNoCov">          0 :         if (DoubleFromString(value, &amp;bval))</span>
+<span class="lineNum">    1087 </span>            :         {
+<span class="lineNum">    1088 </span><span class="lineNoCov">          0 :             bwlimit_kbytes = (uint32_t) ( bval / 1000.0);</span>
+<span class="lineNum">    1089 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Setting rate limit to %d kBytes/sec&quot;, bwlimit_kbytes);</span>
+<span class="lineNum">    1090 </span>            :         }
+<span class="lineNum">    1091 </span>            :     }
+<span class="lineNum">    1092 </span><span class="lineCov">          1 :     Nova_Initialize(ctx);</span>
+<span class="lineNum">    1093 </span><span class="lineCov">          1 : }</span>
+<span class="lineNum">    1094 </span>            : 
+<a name="1095"><span class="lineNum">    1095 </span>            : /*********************************************************************/</a>
+<span class="lineNum">    1096 </span>            : 
+<span class="lineNum">    1097 </span><span class="lineCov">          1 : static void KeepPromiseBundles(EvalContext *ctx, const Policy *policy, GenericAgentConfig *config)</span>
+<span class="lineNum">    1098 </span>            : {
+<span class="lineNum">    1099 </span><span class="lineCov">          1 :     Rlist *bundlesequence = NULL;</span>
+<span class="lineNum">    1100 </span>            : 
+<span class="lineNum">    1101 </span><span class="lineCov">          1 :     Banner(&quot;Begin policy/promise evaluation&quot;);</span>
+<span class="lineNum">    1102 </span>            : 
+<span class="lineNum">    1103 </span><span class="lineCov">          1 :     if (config-&gt;bundlesequence)</span>
+<span class="lineNum">    1104 </span>            :     {
+<span class="lineNum">    1105 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Using command line specified bundlesequence&quot;);</span>
+<span class="lineNum">    1106 </span><span class="lineNoCov">          0 :         bundlesequence = config-&gt;bundlesequence;</span>
+<span class="lineNum">    1107 </span>            :     }
+<span class="lineNum">    1108 </span><span class="lineCov">          1 :     else if (!(bundlesequence = (Rlist *)EvalContextVariableControlCommonGet(ctx, COMMON_CONTROL_BUNDLESEQUENCE)))</span>
+<span class="lineNum">    1109 </span>            :     {
+<span class="lineNum">    1110 </span><span class="lineNoCov">          0 :         RlistAppendScalar(&amp;bundlesequence, &quot;main&quot;);</span>
+<span class="lineNum">    1111 </span>            :     }
+<span class="lineNum">    1112 </span>            : 
+<span class="lineNum">    1113 </span><span class="lineCov">          1 :     bool ok = true;</span>
+<span class="lineNum">    1114 </span><span class="lineCov">          2 :     for (const Rlist *rp = bundlesequence; rp; rp = rp-&gt;next)</span>
+<span class="lineNum">    1115 </span>            :     {
+<span class="lineNum">    1116 </span><span class="lineCov">          1 :         const char *name = NULL;</span>
+<span class="lineNum">    1117 </span>            : 
+<span class="lineNum">    1118 </span><span class="lineCov">          1 :         switch (rp-&gt;val.type)</span>
+<span class="lineNum">    1119 </span>            :         {
+<span class="lineNum">    1120 </span>            :         case RVAL_TYPE_SCALAR:
+<span class="lineNum">    1121 </span><span class="lineCov">          1 :             name = RlistScalarValue(rp);</span>
+<span class="lineNum">    1122 </span><span class="lineCov">          1 :             if (strcmp(name, CF_NULL_VALUE) == 0)</span>
+<span class="lineNum">    1123 </span>            :             {
+<span class="lineNum">    1124 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1125 </span>            :             }
+<span class="lineNum">    1126 </span>            : 
+<span class="lineNum">    1127 </span><span class="lineCov">          1 :             break;</span>
+<span class="lineNum">    1128 </span>            :         case RVAL_TYPE_FNCALL:
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :             name = RlistFnCallValue(rp)-&gt;name;</span>
+<span class="lineNum">    1130 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">    1131 </span>            : 
+<span class="lineNum">    1132 </span>            :         default:
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :             name = NULL;</span>
+<span class="lineNum">    1134 </span>            :             {
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :                 Writer *w = StringWriter();</span>
+<span class="lineNum">    1136 </span><span class="lineNoCov">          0 :                 WriterWrite(w, &quot;Illegal item found in bundlesequence: &quot;);</span>
+<span class="lineNum">    1137 </span><span class="lineNoCov">          0 :                 RvalWrite(w, rp-&gt;val);</span>
+<span class="lineNum">    1138 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;%s&quot;, StringWriterData(w));</span>
+<span class="lineNum">    1139 </span><span class="lineNoCov">          0 :                 WriterClose(w);</span>
+<span class="lineNum">    1140 </span>            :             }
+<span class="lineNum">    1141 </span><span class="lineNoCov">          0 :             ok = false;</span>
+<span class="lineNum">    1142 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">    1143 </span>            :         }
+<span class="lineNum">    1144 </span>            : 
+<span class="lineNum">    1145 </span><span class="lineCov">          1 :         if (!config-&gt;ignore_missing_bundles)</span>
+<span class="lineNum">    1146 </span>            :         {
+<span class="lineNum">    1147 </span><span class="lineCov">          1 :             const Bundle *bp = EvalContextResolveBundleExpression(ctx, policy, name, &quot;agent&quot;);</span>
+<span class="lineNum">    1148 </span><span class="lineCov">          1 :             if (!bp)</span>
+<span class="lineNum">    1149 </span>            :             {
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :                 bp = EvalContextResolveBundleExpression(ctx, policy, name, &quot;common&quot;);</span>
+<span class="lineNum">    1151 </span>            :             }
+<span class="lineNum">    1152 </span>            : 
+<span class="lineNum">    1153 </span><span class="lineCov">          1 :             if (!bp)</span>
+<span class="lineNum">    1154 </span>            :             {
+<span class="lineNum">    1155 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_ERR, &quot;Bundle '%s' listed in the bundlesequence was not found&quot;, name);</span>
+<span class="lineNum">    1156 </span><span class="lineNoCov">          0 :                 ok = false;</span>
+<span class="lineNum">    1157 </span>            :             }
+<span class="lineNum">    1158 </span>            :         }
+<span class="lineNum">    1159 </span>            :     }
+<span class="lineNum">    1160 </span>            : 
+<span class="lineNum">    1161 </span><span class="lineCov">          1 :     if (!ok)</span>
+<span class="lineNum">    1162 </span>            :     {
+<span class="lineNum">    1163 </span><span class="lineNoCov">          0 :         FatalError(ctx, &quot;Errors in agent bundles&quot;);</span>
+<span class="lineNum">    1164 </span>            :     }
+<span class="lineNum">    1165 </span>            : 
+<span class="lineNum">    1166 </span><span class="lineCov">          1 :     Writer *w = StringWriter();</span>
+<span class="lineNum">    1167 </span><span class="lineCov">          1 :     WriterWrite(w, &quot;Using bundlesequence =&gt; &quot;);</span>
+<span class="lineNum">    1168 </span><span class="lineCov">          1 :     RlistWrite(w, bundlesequence);</span>
+<span class="lineNum">    1169 </span><span class="lineCov">          1 :     Log(LOG_LEVEL_VERBOSE, &quot;%s&quot;, StringWriterData(w));</span>
+<span class="lineNum">    1170 </span><span class="lineCov">          1 :     WriterClose(w);</span>
+<span class="lineNum">    1171 </span>            : 
+<span class="lineNum">    1172 </span>            : /* If all is okay, go ahead and evaluate */
+<span class="lineNum">    1173 </span>            : 
+<span class="lineNum">    1174 </span><span class="lineCov">          2 :     for (const Rlist *rp = bundlesequence; rp; rp = rp-&gt;next)</span>
+<span class="lineNum">    1175 </span>            :     {
+<span class="lineNum">    1176 </span><span class="lineCov">          1 :         const char *name = NULL;</span>
+<span class="lineNum">    1177 </span><span class="lineCov">          1 :         const Rlist *args = NULL;</span>
+<span class="lineNum">    1178 </span>            : 
+<span class="lineNum">    1179 </span><span class="lineCov">          1 :         switch (rp-&gt;val.type)</span>
+<span class="lineNum">    1180 </span>            :         {
+<span class="lineNum">    1181 </span>            :         case RVAL_TYPE_FNCALL:
+<span class="lineNum">    1182 </span><span class="lineNoCov">          0 :             name = RlistFnCallValue(rp)-&gt;name;</span>
+<span class="lineNum">    1183 </span><span class="lineNoCov">          0 :             args = RlistFnCallValue(rp)-&gt;args;</span>
+<span class="lineNum">    1184 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">    1185 </span>            :         default:
+<span class="lineNum">    1186 </span><span class="lineCov">          1 :             name = RlistScalarValue(rp);</span>
+<span class="lineNum">    1187 </span><span class="lineCov">          1 :             args = NULL;</span>
+<span class="lineNum">    1188 </span><span class="lineCov">          1 :             break;</span>
+<span class="lineNum">    1189 </span>            :         }
+<span class="lineNum">    1190 </span><span class="lineCov">          1 :         if (!strcmp(name, CF_NULL_VALUE))</span>
+<span class="lineNum">    1191 </span>            :         {
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">    1193 </span>            :         }
+<span class="lineNum">    1194 </span>            : 
+<span class="lineNum">    1195 </span><span class="lineCov">          1 :         EvalContextSetBundleArgs(ctx, args);</span>
+<span class="lineNum">    1196 </span>            : 
+<span class="lineNum">    1197 </span><span class="lineCov">          1 :         const Bundle *bp = EvalContextResolveBundleExpression(ctx, policy, name, &quot;agent&quot;);</span>
+<span class="lineNum">    1198 </span><span class="lineCov">          1 :         if (!bp)</span>
+<span class="lineNum">    1199 </span>            :         {
+<span class="lineNum">    1200 </span><span class="lineNoCov">          0 :             bp = EvalContextResolveBundleExpression(ctx, policy, name, &quot;common&quot;);</span>
+<span class="lineNum">    1201 </span>            :         }
+<span class="lineNum">    1202 </span>            : 
+<span class="lineNum">    1203 </span><span class="lineCov">          1 :         if (bp)</span>
+<span class="lineNum">    1204 </span>            :         {
+<span class="lineNum">    1205 </span><span class="lineCov">          1 :             BundleBanner(bp,args);</span>
+<span class="lineNum">    1206 </span><span class="lineCov">          1 :             EvalContextStackPushBundleFrame(ctx, bp, args, false);</span>
+<span class="lineNum">    1207 </span><span class="lineCov">          1 :             ScheduleAgentOperations(ctx, bp);</span>
+<span class="lineNum">    1208 </span><span class="lineCov">          1 :             EvalContextStackPopFrame(ctx);</span>
+<span class="lineNum">    1209 </span><span class="lineCov">          1 :             EndBundleBanner(bp);</span>
+<span class="lineNum">    1210 </span>            :         }
+<span class="lineNum">    1211 </span>            :         else
+<span class="lineNum">    1212 </span>            :         {
+<span class="lineNum">    1213 </span><span class="lineNoCov">          0 :             if (config-&gt;ignore_missing_bundles)</span>
+<span class="lineNum">    1214 </span>            :             {
+<span class="lineNum">    1215 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Ignoring missing bundle '%s'&quot;, name);</span>
+<span class="lineNum">    1216 </span>            :             }
+<span class="lineNum">    1217 </span>            :             else
+<span class="lineNum">    1218 </span>            :             {
+<span class="lineNum">    1219 </span><span class="lineNoCov">          0 :                 FatalError(ctx, &quot;Bundlesequence contained unknown bundle reference '%s'&quot;, name);</span>
+<span class="lineNum">    1220 </span>            :             }
+<span class="lineNum">    1221 </span>            :         }
+<span class="lineNum">    1222 </span>            :     }
+<a name="1223"><span class="lineNum">    1223 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">    1224 </span>            : 
+<span class="lineNum">    1225 </span><span class="lineNoCov">          0 : static void AllClassesReport(const EvalContext *ctx)</span>
+<span class="lineNum">    1226 </span>            : {
+<span class="lineNum">    1227 </span>            :     char context_report_file[CF_BUFSIZE];
+<span class="lineNum">    1228 </span><span class="lineNoCov">          0 :     snprintf(context_report_file, CF_BUFSIZE, &quot;%s%callclasses.txt&quot;, GetStateDir(), FILE_SEPARATOR);</span>
+<span class="lineNum">    1229 </span>            : 
+<span class="lineNum">    1230 </span><span class="lineNoCov">          0 :     FILE *fp = NULL;</span>
+<span class="lineNum">    1231 </span><span class="lineNoCov">          0 :     if ((fp = fopen(context_report_file, &quot;w&quot;)) == NULL)</span>
+<span class="lineNum">    1232 </span>            :     {
+<span class="lineNum">    1233 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_INFO, &quot;Could not open allclasses cache file '%s' (fopen: %s)&quot;, context_report_file, GetErrorStr());</span>
+<span class="lineNum">    1234 </span>            :     }
+<span class="lineNum">    1235 </span>            :     else
+<span class="lineNum">    1236 </span>            :     {
+<span class="lineNum">    1237 </span><span class="lineNoCov">          0 :         Writer *writer = FileWriter(fp);</span>
+<span class="lineNum">    1238 </span><span class="lineNoCov">          0 :         ClassTableIterator *iter = EvalContextClassTableIteratorNewGlobal(ctx, NULL, true, true);</span>
+<span class="lineNum">    1239 </span><span class="lineNoCov">          0 :         Class *cls = NULL;</span>
+<span class="lineNum">    1240 </span><span class="lineNoCov">          0 :         while ((cls = ClassTableIteratorNext(iter)))</span>
+<span class="lineNum">    1241 </span>            :         {
+<span class="lineNum">    1242 </span><span class="lineNoCov">          0 :             char *expr = ClassRefToString(cls-&gt;ns, cls-&gt;name);</span>
+<span class="lineNum">    1243 </span><span class="lineNoCov">          0 :             WriterWriteF(writer, &quot;%s\n&quot;, expr);</span>
+<span class="lineNum">    1244 </span><span class="lineNoCov">          0 :             free(expr);</span>
+<span class="lineNum">    1245 </span>            :         }
+<span class="lineNum">    1246 </span><span class="lineNoCov">          0 :         ClassTableIteratorDestroy(iter);</span>
+<span class="lineNum">    1247 </span><span class="lineNoCov">          0 :         WriterClose(writer);</span>
+<span class="lineNum">    1248 </span>            :     }
+<a name="1249"><span class="lineNum">    1249 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1250 </span>            : 
+<span class="lineNum">    1251 </span><span class="lineCov">          1 : PromiseResult ScheduleAgentOperations(EvalContext *ctx, const Bundle *bp)</span>
+<span class="lineNum">    1252 </span>            : // NB - this function can be called recursively through &quot;methods&quot;
+<span class="lineNum">    1253 </span>            : {
+<span class="lineNum">    1254 </span><span class="lineCov">          1 :     int save_pr_kept = PR_KEPT;</span>
+<span class="lineNum">    1255 </span><span class="lineCov">          1 :     int save_pr_repaired = PR_REPAIRED;</span>
+<span class="lineNum">    1256 </span><span class="lineCov">          1 :     int save_pr_notkept = PR_NOTKEPT;</span>
+<span class="lineNum">    1257 </span><span class="lineCov">          1 :     struct timespec start = BeginMeasure();</span>
+<span class="lineNum">    1258 </span>            : 
+<span class="lineNum">    1259 </span><span class="lineCov">          1 :     if (PROCESSREFRESH == NULL || (PROCESSREFRESH &amp;&amp; IsRegexItemIn(ctx, PROCESSREFRESH, bp-&gt;name)))</span>
+<span class="lineNum">    1260 </span>            :     {
+<span class="lineNum">    1261 </span><span class="lineCov">          1 :         DeleteItemList(PROCESSTABLE);</span>
+<span class="lineNum">    1262 </span><span class="lineCov">          1 :         PROCESSTABLE = NULL;</span>
+<span class="lineNum">    1263 </span>            :     }
+<span class="lineNum">    1264 </span>            : 
+<span class="lineNum">    1265 </span><span class="lineCov">          1 :     PromiseResult result = PROMISE_RESULT_SKIPPED;</span>
+<span class="lineNum">    1266 </span>            : 
+<span class="lineNum">    1267 </span><span class="lineCov">          4 :     for (int pass = 1; pass &lt; CF_DONEPASSES; pass++)</span>
+<span class="lineNum">    1268 </span>            :     {
+<span class="lineNum">    1269 </span><span class="lineCov">         48 :         for (TypeSequence type = 0; AGENT_TYPESEQUENCE[type] != NULL; type++)</span>
+<span class="lineNum">    1270 </span>            :         {
+<span class="lineNum">    1271 </span><span class="lineCov">         45 :             const PromiseType *sp = BundleGetPromiseType((Bundle *)bp, AGENT_TYPESEQUENCE[type]);</span>
+<span class="lineNum">    1272 </span>            : 
+<span class="lineNum">    1273 </span><span class="lineCov">         45 :             if (!sp || SeqLength(sp-&gt;promises) == 0)</span>
+<span class="lineNum">    1274 </span>            :             {
+<span class="lineNum">    1275 </span><span class="lineCov">         39 :                 continue;</span>
+<span class="lineNum">    1276 </span>            :             }
+<span class="lineNum">    1277 </span>            : 
+<span class="lineNum">    1278 </span><span class="lineCov">          6 :             if (!NewTypeContext(type))</span>
+<span class="lineNum">    1279 </span>            :             {
+<span class="lineNum">    1280 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">    1281 </span>            :             }
+<span class="lineNum">    1282 </span>            : 
+<span class="lineNum">    1283 </span><span class="lineCov">          6 :             SpecialTypeBanner(type, pass);</span>
+<span class="lineNum">    1284 </span><span class="lineCov">          6 :             EvalContextStackPushPromiseTypeFrame(ctx, sp);</span>
+<span class="lineNum">    1285 </span>            : 
+<span class="lineNum">    1286 </span><span class="lineCov">         21 :             for (size_t ppi = 0; ppi &lt; SeqLength(sp-&gt;promises); ppi++)</span>
+<span class="lineNum">    1287 </span>            :             {
+<span class="lineNum">    1288 </span><span class="lineCov">         15 :                 Promise *pp = SeqAt(sp-&gt;promises, ppi);</span>
+<span class="lineNum">    1289 </span>            : 
+<span class="lineNum">    1290 </span><span class="lineCov">         15 :                 EvalContextSetPass(ctx, pass);</span>
+<span class="lineNum">    1291 </span>            : 
+<span class="lineNum">    1292 </span><span class="lineCov">         15 :                 PromiseResult promise_result = ExpandPromise(ctx, pp, KeepAgentPromise, NULL);</span>
+<span class="lineNum">    1293 </span><span class="lineCov">         15 :                 result = PromiseResultUpdate(result, promise_result);</span>
+<span class="lineNum">    1294 </span>            : 
+<span class="lineNum">    1295 </span><span class="lineCov">         15 :                 if (Abort(ctx))</span>
+<span class="lineNum">    1296 </span>            :                 {
+<span class="lineNum">    1297 </span><span class="lineNoCov">          0 :                     DeleteTypeContext(ctx, type);</span>
+<span class="lineNum">    1298 </span><span class="lineNoCov">          0 :                     EvalContextStackPopFrame(ctx);</span>
+<span class="lineNum">    1299 </span><span class="lineNoCov">          0 :                     NoteBundleCompliance(bp, save_pr_kept, save_pr_repaired, save_pr_notkept, start);</span>
+<span class="lineNum">    1300 </span><span class="lineNoCov">          0 :                     return result;</span>
+<span class="lineNum">    1301 </span>            :                 }
+<span class="lineNum">    1302 </span>            :             }
+<span class="lineNum">    1303 </span>            : 
+<span class="lineNum">    1304 </span><span class="lineCov">          6 :             DeleteTypeContext(ctx, type);</span>
+<span class="lineNum">    1305 </span><span class="lineCov">          6 :             EvalContextStackPopFrame(ctx);</span>
+<span class="lineNum">    1306 </span>            : 
+<span class="lineNum">    1307 </span><span class="lineCov">          6 :             if (type == TYPE_SEQUENCE_CONTEXTS)</span>
+<span class="lineNum">    1308 </span>            :             {
+<span class="lineNum">    1309 </span><span class="lineNoCov">          0 :                 BundleResolve(ctx, bp);</span>
+<span class="lineNum">    1310 </span><span class="lineNoCov">          0 :                 BundleResolvePromiseType(ctx, bp, &quot;defaults&quot;, (PromiseActuator*)DefaultVarPromise);</span>
+<span class="lineNum">    1311 </span>            :             }
+<span class="lineNum">    1312 </span>            :         }
+<span class="lineNum">    1313 </span>            :     }
+<span class="lineNum">    1314 </span>            : 
+<span class="lineNum">    1315 </span><span class="lineCov">          1 :     NoteBundleCompliance(bp, save_pr_kept, save_pr_repaired, save_pr_notkept, start);</span>
+<span class="lineNum">    1316 </span><span class="lineCov">          1 :     return result;</span>
+<span class="lineNum">    1317 </span>            : }
+<span class="lineNum">    1318 </span>            : 
+<span class="lineNum">    1319 </span>            : /*********************************************************************/
+<span class="lineNum">    1320 </span>            : 
+<span class="lineNum">    1321 </span>            : #ifdef __MINGW32__
+<span class="lineNum">    1322 </span>            : 
+<span class="lineNum">    1323 </span>            : static void CheckAgentAccess(const Rlist *list, const Policy *policy)
+<span class="lineNum">    1324 </span>            : {
+<span class="lineNum">    1325 </span>            : }
+<span class="lineNum">    1326 </span>            : 
+<a name="1327"><span class="lineNum">    1327 </span>            : #else</a>
+<span class="lineNum">    1328 </span>            : 
+<span class="lineNum">    1329 </span><span class="lineNoCov">          0 : static void CheckAgentAccess(const Rlist *list, const Policy *policy)</span>
+<span class="lineNum">    1330 </span>            : {
+<span class="lineNum">    1331 </span><span class="lineNoCov">          0 :     uid_t uid = getuid();</span>
+<span class="lineNum">    1332 </span>            : 
+<span class="lineNum">    1333 </span><span class="lineNoCov">          0 :     for (const Rlist *rp = list; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">    1334 </span>            :     {
+<span class="lineNum">    1335 </span><span class="lineNoCov">          0 :         if (Str2Uid(RlistScalarValue(rp), NULL, NULL) == uid)</span>
+<span class="lineNum">    1336 </span>            :         {
+<span class="lineNum">    1337 </span><span class="lineNoCov">          0 :             return;</span>
+<span class="lineNum">    1338 </span>            :         }
+<span class="lineNum">    1339 </span>            :     }
+<span class="lineNum">    1340 </span>            : 
+<span class="lineNum">    1341 </span>            :     {
+<span class="lineNum">    1342 </span><span class="lineNoCov">          0 :         StringSet *input_files = PolicySourceFiles(policy);</span>
+<span class="lineNum">    1343 </span><span class="lineNoCov">          0 :         StringSetIterator iter = StringSetIteratorInit(input_files);</span>
+<span class="lineNum">    1344 </span><span class="lineNoCov">          0 :         const char *input_file = NULL;</span>
+<span class="lineNum">    1345 </span><span class="lineNoCov">          0 :         while ((input_file = StringSetIteratorNext(&amp;iter)))</span>
+<span class="lineNum">    1346 </span>            :         {
+<span class="lineNum">    1347 </span>            :             struct stat sb;
+<span class="lineNum">    1348 </span><span class="lineNoCov">          0 :             stat(input_file, &amp;sb);</span>
+<span class="lineNum">    1349 </span>            : 
+<span class="lineNum">    1350 </span><span class="lineNoCov">          0 :             if (ACCESSLIST)</span>
+<span class="lineNum">    1351 </span>            :             {
+<span class="lineNum">    1352 </span><span class="lineNoCov">          0 :                 bool access = false;</span>
+<span class="lineNum">    1353 </span><span class="lineNoCov">          0 :                 for (const Rlist *rp2 = ACCESSLIST; rp2 != NULL; rp2 = rp2-&gt;next)</span>
+<span class="lineNum">    1354 </span>            :                 {
+<span class="lineNum">    1355 </span><span class="lineNoCov">          0 :                     if (Str2Uid(RlistScalarValue(rp2), NULL, NULL) == sb.st_uid)</span>
+<span class="lineNum">    1356 </span>            :                     {
+<span class="lineNum">    1357 </span><span class="lineNoCov">          0 :                         access = true;</span>
+<span class="lineNum">    1358 </span><span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">    1359 </span>            :                     }
+<span class="lineNum">    1360 </span>            :                 }
+<span class="lineNum">    1361 </span>            : 
+<span class="lineNum">    1362 </span><span class="lineNoCov">          0 :                 if (!access)</span>
+<span class="lineNum">    1363 </span>            :                 {
+<span class="lineNum">    1364 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_ERR, &quot;File '%s' is not owned by an authorized user (security exception)&quot;, input_file);</span>
+<span class="lineNum">    1365 </span><span class="lineNoCov">          0 :                     exit(EXIT_FAILURE);</span>
+<span class="lineNum">    1366 </span>            :                 }
+<span class="lineNum">    1367 </span>            :             }
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :             else if (CFPARANOID &amp;&amp; IsPrivileged())</span>
+<span class="lineNum">    1369 </span>            :             {
+<span class="lineNum">    1370 </span><span class="lineNoCov">          0 :                 if (sb.st_uid != getuid())</span>
+<span class="lineNum">    1371 </span>            :                 {
+<span class="lineNum">    1372 </span><span class="lineNoCov">          0 :                     Log(LOG_LEVEL_ERR, &quot;File '%s' is not owned by uid %ju (security exception)&quot;, input_file,</span>
+<span class="lineNum">    1373 </span><span class="lineNoCov">          0 :                           (uintmax_t)getuid());</span>
+<span class="lineNum">    1374 </span><span class="lineNoCov">          0 :                     exit(EXIT_FAILURE);</span>
+<span class="lineNum">    1375 </span>            :                 }
+<span class="lineNum">    1376 </span>            :             }
+<span class="lineNum">    1377 </span>            :         }
+<span class="lineNum">    1378 </span>            : 
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :         StringSetDestroy(input_files);</span>
+<span class="lineNum">    1380 </span>            :     }
+<span class="lineNum">    1381 </span>            : 
+<span class="lineNum">    1382 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_ERR, &quot;You are denied access to run this policy&quot;);</span>
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :     exit(EXIT_FAILURE);</span>
+<span class="lineNum">    1384 </span>            : }
+<span class="lineNum">    1385 </span>            : #endif /* !__MINGW32__ */
+<span class="lineNum">    1386 </span>            : 
+<a name="1387"><span class="lineNum">    1387 </span>            : /*********************************************************************/</a>
+<span class="lineNum">    1388 </span>            : 
+<span class="lineNum">    1389 </span><span class="lineNoCov">          0 : static PromiseResult DefaultVarPromise(EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1390 </span>            : {
+<span class="lineNum">    1391 </span><span class="lineNoCov">          0 :     char *regex = PromiseGetConstraintAsRval(pp, &quot;if_match_regex&quot;, RVAL_TYPE_SCALAR);</span>
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :     bool okay = true;</span>
+<span class="lineNum">    1393 </span>            : 
+<span class="lineNum">    1394 </span>            : 
+<span class="lineNum">    1395 </span><span class="lineNoCov">          0 :     DataType value_type = CF_DATA_TYPE_NONE;</span>
+<span class="lineNum">    1396 </span><span class="lineNoCov">          0 :     const void *value = NULL;</span>
+<span class="lineNum">    1397 </span>            :     {
+<span class="lineNum">    1398 </span><span class="lineNoCov">          0 :         VarRef *ref = VarRefParseFromScope(pp-&gt;promiser, &quot;this&quot;);</span>
+<span class="lineNum">    1399 </span><span class="lineNoCov">          0 :         value = EvalContextVariableGet(ctx, ref, &amp;value_type);</span>
+<span class="lineNum">    1400 </span><span class="lineNoCov">          0 :         VarRefDestroy(ref);</span>
+<span class="lineNum">    1401 </span>            :     }
+<span class="lineNum">    1402 </span>            : 
+<span class="lineNum">    1403 </span><span class="lineNoCov">          0 :     switch (value_type)</span>
+<span class="lineNum">    1404 </span>            :     {
+<span class="lineNum">    1405 </span>            :     case CF_DATA_TYPE_STRING:
+<span class="lineNum">    1406 </span>            :     case CF_DATA_TYPE_INT:
+<span class="lineNum">    1407 </span>            :     case CF_DATA_TYPE_REAL:
+<span class="lineNum">    1408 </span><span class="lineNoCov">          0 :         if (regex &amp;&amp; !FullTextMatch(ctx, regex, value))</span>
+<span class="lineNum">    1409 </span>            :         {
+<span class="lineNum">    1410 </span><span class="lineNoCov">          0 :             return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1411 </span>            :         }
+<span class="lineNum">    1412 </span>            : 
+<span class="lineNum">    1413 </span><span class="lineNoCov">          0 :         if (regex == NULL)</span>
+<span class="lineNum">    1414 </span>            :         {
+<span class="lineNum">    1415 </span><span class="lineNoCov">          0 :             return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1416 </span>            :         }
+<span class="lineNum">    1417 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1418 </span>            : 
+<span class="lineNum">    1419 </span>            :     case CF_DATA_TYPE_STRING_LIST:
+<span class="lineNum">    1420 </span>            :     case CF_DATA_TYPE_INT_LIST:
+<span class="lineNum">    1421 </span>            :     case CF_DATA_TYPE_REAL_LIST:
+<span class="lineNum">    1422 </span><span class="lineNoCov">          0 :         if (regex)</span>
+<span class="lineNum">    1423 </span>            :         {
+<span class="lineNum">    1424 </span><span class="lineNoCov">          0 :             for (const Rlist *rp = value; rp != NULL; rp = rp-&gt;next)</span>
+<span class="lineNum">    1425 </span>            :             {
+<span class="lineNum">    1426 </span><span class="lineNoCov">          0 :                 if (FullTextMatch(ctx, regex, RlistScalarValue(rp)))</span>
+<span class="lineNum">    1427 </span>            :                 {
+<span class="lineNum">    1428 </span><span class="lineNoCov">          0 :                     okay = false;</span>
+<span class="lineNum">    1429 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">    1430 </span>            :                 }
+<span class="lineNum">    1431 </span>            :             }
+<span class="lineNum">    1432 </span>            : 
+<span class="lineNum">    1433 </span><span class="lineNoCov">          0 :             if (okay)</span>
+<span class="lineNum">    1434 </span>            :             {
+<span class="lineNum">    1435 </span><span class="lineNoCov">          0 :                 return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1436 </span>            :             }
+<span class="lineNum">    1437 </span>            :         }
+<span class="lineNum">    1438 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1439 </span>            : 
+<span class="lineNum">    1440 </span>            :     default:
+<span class="lineNum">    1441 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1442 </span>            :     }
+<span class="lineNum">    1443 </span>            : 
+<span class="lineNum">    1444 </span>            :     {
+<span class="lineNum">    1445 </span><span class="lineNoCov">          0 :         VarRef *ref = VarRefParseFromBundle(pp-&gt;promiser, PromiseGetBundle(pp));</span>
+<span class="lineNum">    1446 </span><span class="lineNoCov">          0 :         EvalContextVariableRemove(ctx, ref);</span>
+<span class="lineNum">    1447 </span><span class="lineNoCov">          0 :         VarRefDestroy(ref);</span>
+<span class="lineNum">    1448 </span>            :     }
+<span class="lineNum">    1449 </span>            : 
+<span class="lineNum">    1450 </span><span class="lineNoCov">          0 :     return VerifyVarPromise(ctx, pp, true);</span>
+<a name="1451"><span class="lineNum">    1451 </span>            : }</a>
+<span class="lineNum">    1452 </span>            : 
+<span class="lineNum">    1453 </span><span class="lineCov">   14929980 : static PromiseResult KeepAgentPromise(EvalContext *ctx, const Promise *pp, ARG_UNUSED void *param)</span>
+<span class="lineNum">    1454 </span>            : {
+<span class="lineNum">    1455 </span><span class="lineCov">   14929980 :     assert(param == NULL);</span>
+<span class="lineNum">    1456 </span><span class="lineCov">   14929980 :     struct timespec start = BeginMeasure();</span>
+<span class="lineNum">    1457 </span><span class="lineCov">   14929980 :     PromiseResult result = PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1458 </span>            : 
+<span class="lineNum">    1459 </span><span class="lineCov">   14929980 :     if (strcmp(&quot;meta&quot;, pp-&gt;parent_promise_type-&gt;name) == 0 || strcmp(&quot;vars&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1460 </span>            :     {
+<span class="lineNum">    1461 </span><span class="lineCov">         60 :         result = VerifyVarPromise(ctx, pp, true);</span>
+<span class="lineNum">    1462 </span><span class="lineCov">        120 :         if (result != PROMISE_RESULT_FAIL)</span>
+<span class="lineNum">    1463 </span>            :         {
+<span class="lineNum">    1464 </span><span class="lineCov">         60 :             Log(LOG_LEVEL_VERBOSE, &quot;V:     Computing value of \&quot;%s\&quot;&quot;, pp-&gt;promiser);</span>
+<span class="lineNum">    1465 </span>            :         }
+<span class="lineNum">    1466 </span>            :     }
+<span class="lineNum">    1467 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;defaults&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1468 </span>            :     {
+<span class="lineNum">    1469 </span><span class="lineNoCov">          0 :         result = DefaultVarPromise(ctx, pp);</span>
+<span class="lineNum">    1470 </span>            :     }
+<span class="lineNum">    1471 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;classes&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1472 </span>            :     {
+<span class="lineNum">    1473 </span><span class="lineNoCov">          0 :         result = VerifyClassPromise(ctx, pp, NULL);</span>
+<span class="lineNum">    1474 </span>            :     }
+<span class="lineNum">    1475 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;processes&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1476 </span>            :     {
+<span class="lineNum">    1477 </span><span class="lineNoCov">          0 :         result = VerifyProcessesPromise(ctx, pp);</span>
+<span class="lineNum">    1478 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1479 </span>            :         {
+<span class="lineNum">    1480 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1481 </span>            :         }
+<span class="lineNum">    1482 </span>            :     }
+<span class="lineNum">    1483 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;storage&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1484 </span>            :     {
+<span class="lineNum">    1485 </span><span class="lineNoCov">          0 :         result = FindAndVerifyStoragePromises(ctx, pp);</span>
+<span class="lineNum">    1486 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1487 </span>            :         {
+<span class="lineNum">    1488 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1489 </span>            :         }
+<span class="lineNum">    1490 </span>            :     }
+<span class="lineNum">    1491 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;packages&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1492 </span>            :     {
+<span class="lineNum">    1493 </span><span class="lineNoCov">          0 :         result = VerifyPackagesPromise(ctx, pp);</span>
+<span class="lineNum">    1494 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1495 </span>            :         {
+<span class="lineNum">    1496 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1497 </span>            :         }
+<span class="lineNum">    1498 </span>            :     }
+<span class="lineNum">    1499 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;users&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1500 </span>            :     {
+<span class="lineNum">    1501 </span><span class="lineNoCov">          0 :         result = VerifyUsersPromise(ctx, pp);</span>
+<span class="lineNum">    1502 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1503 </span>            :         {
+<span class="lineNum">    1504 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1505 </span>            :         }
+<span class="lineNum">    1506 </span>            :     }
+<span class="lineNum">    1507 </span>            : 
+<span class="lineNum">    1508 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;files&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1509 </span>            :     {
+<span class="lineNum">    1510 </span><span class="lineNoCov">          0 :         result = ParallelFindAndVerifyFilesPromises(ctx, pp);</span>
+<span class="lineNum">    1511 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1512 </span>            :         {
+<span class="lineNum">    1513 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1514 </span>            :         }
+<span class="lineNum">    1515 </span>            :     }
+<span class="lineNum">    1516 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;commands&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1517 </span>            :     {
+<span class="lineNum">    1518 </span><span class="lineNoCov">          0 :         result = VerifyExecPromise(ctx, pp);</span>
+<span class="lineNum">    1519 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1520 </span>            :         {
+<span class="lineNum">    1521 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1522 </span>            :         }
+<span class="lineNum">    1523 </span>            :     }
+<span class="lineNum">    1524 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;databases&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1525 </span>            :     {
+<span class="lineNum">    1526 </span><span class="lineNoCov">          0 :         result = VerifyDatabasePromises(ctx, pp);</span>
+<span class="lineNum">    1527 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1528 </span>            :         {
+<span class="lineNum">    1529 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1530 </span>            :         }
+<span class="lineNum">    1531 </span>            :     }
+<span class="lineNum">    1532 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;methods&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1533 </span>            :     {
+<span class="lineNum">    1534 </span><span class="lineNoCov">          0 :         result = VerifyMethodsPromise(ctx, pp);</span>
+<span class="lineNum">    1535 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1536 </span>            :         {
+<span class="lineNum">    1537 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1538 </span>            :         }
+<span class="lineNum">    1539 </span>            :     }
+<span class="lineNum">    1540 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;services&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1541 </span>            :     {
+<span class="lineNum">    1542 </span><span class="lineNoCov">          0 :         result = VerifyServicesPromise(ctx, pp);</span>
+<span class="lineNum">    1543 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1544 </span>            :         {
+<span class="lineNum">    1545 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1546 </span>            :         }
+<span class="lineNum">    1547 </span>            :     }
+<span class="lineNum">    1548 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;guest_environments&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1549 </span>            :     {
+<span class="lineNum">    1550 </span><span class="lineNoCov">          0 :         result = VerifyEnvironmentsPromise(ctx, pp);</span>
+<span class="lineNum">    1551 </span><span class="lineNoCov">          0 :         if (result != PROMISE_RESULT_SKIPPED)</span>
+<span class="lineNum">    1552 </span>            :         {
+<span class="lineNum">    1553 </span><span class="lineNoCov">          0 :             EndMeasurePromise(start, pp);</span>
+<span class="lineNum">    1554 </span>            :         }
+<span class="lineNum">    1555 </span>            :     }
+<span class="lineNum">    1556 </span><span class="lineCov">   14929920 :     else if (strcmp(&quot;reports&quot;, pp-&gt;parent_promise_type-&gt;name) == 0)</span>
+<span class="lineNum">    1557 </span>            :     {
+<span class="lineNum">    1558 </span><span class="lineCov">   14929920 :         result = VerifyReportPromise(ctx, pp);</span>
+<span class="lineNum">    1559 </span>            :     }
+<span class="lineNum">    1560 </span>            :     else
+<span class="lineNum">    1561 </span>            :     {
+<span class="lineNum">    1562 </span><span class="lineNoCov">          0 :         result = PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1563 </span>            :     }
+<span class="lineNum">    1564 </span>            : 
+<span class="lineNum">    1565 </span><span class="lineCov">   14929980 :     BannerStatus(result, pp-&gt;parent_promise_type-&gt;name, pp-&gt;promiser);</span>
+<span class="lineNum">    1566 </span><span class="lineCov">   14929980 :     EvalContextLogPromiseIterationOutcome(ctx, pp, result);</span>
+<span class="lineNum">    1567 </span><span class="lineCov">   14929980 :     return result;</span>
+<span class="lineNum">    1568 </span>            : }
+<a name="1569"><span class="lineNum">    1569 </span>            : </a>
+<span class="lineNum">    1570 </span>            : 
+<span class="lineNum">    1571 </span><span class="lineCov">   14929980 : static void BannerStatus(PromiseResult status, char *type, char *name)</span>
+<span class="lineNum">    1572 </span>            : {
+<span class="lineNum">    1573 </span><span class="lineCov">   14929980 :     if ((strcmp(type, &quot;vars&quot;) == 0) || (strcmp(type, &quot;classes&quot;) == 0))</span>
+<span class="lineNum">    1574 </span>            :     {
+<span class="lineNum">    1575 </span><span class="lineCov">         60 :         return;</span>
+<span class="lineNum">    1576 </span>            :     }
+<span class="lineNum">    1577 </span>            : 
+<span class="lineNum">    1578 </span><span class="lineCov">   14929920 :     switch (status)</span>
+<span class="lineNum">    1579 </span>            :     {
+<span class="lineNum">    1580 </span>            :     case PROMISE_RESULT_CHANGE:
+<span class="lineNum">    1581 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Promise REPAIRED&quot;);</span>
+<span class="lineNum">    1582 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1583 </span>            : 
+<span class="lineNum">    1584 </span>            :     case PROMISE_RESULT_TIMEOUT:
+<span class="lineNum">    1585 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Promise TIMED-OUT&quot;);</span>
+<span class="lineNum">    1586 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1587 </span>            : 
+<span class="lineNum">    1588 </span>            :     case PROMISE_RESULT_WARN:
+<span class="lineNum">    1589 </span>            :     case PROMISE_RESULT_FAIL:
+<span class="lineNum">    1590 </span>            :     case PROMISE_RESULT_INTERRUPTED:
+<span class="lineNum">    1591 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Promise NOT KEPT!&quot;);</span>
+<span class="lineNum">    1592 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1593 </span>            : 
+<span class="lineNum">    1594 </span>            :     case PROMISE_RESULT_DENIED:
+<span class="lineNum">    1595 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Promise NOT KEPT - denied&quot;);</span>
+<span class="lineNum">    1596 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1597 </span>            : 
+<span class="lineNum">    1598 </span>            :     case PROMISE_RESULT_NOOP:
+<span class="lineNum">    1599 </span><span class="lineCov">         43 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Promise was KEPT&quot;);</span>
+<span class="lineNum">    1600 </span><span class="lineCov">         43 :         break;</span>
+<span class="lineNum">    1601 </span>            :     default:
+<span class="lineNum">    1602 </span><span class="lineCov">   14929877 :         return;</span>
+<span class="lineNum">    1603 </span>            :         break;
+<span class="lineNum">    1604 </span>            :     }
+<span class="lineNum">    1605 </span>            : 
+<span class="lineNum">    1606 </span><span class="lineCov">         43 :     Log(LOG_LEVEL_VERBOSE, &quot;P: END %s promise (%.30s...)\n&quot;, type, name);</span>
+<span class="lineNum">    1607 </span>            : }
+<span class="lineNum">    1608 </span>            : 
+<span class="lineNum">    1609 </span>            : /*********************************************************************/
+<span class="lineNum">    1610 </span>            : /* Type context                                                      */
+<a name="1611"><span class="lineNum">    1611 </span>            : /*********************************************************************/</a>
+<span class="lineNum">    1612 </span>            : 
+<span class="lineNum">    1613 </span><span class="lineCov">          6 : static int NewTypeContext(TypeSequence type)</span>
+<span class="lineNum">    1614 </span>            : {
+<span class="lineNum">    1615 </span>            : // get maxconnections
+<span class="lineNum">    1616 </span>            : 
+<span class="lineNum">    1617 </span><span class="lineCov">          6 :     switch (type)</span>
+<span class="lineNum">    1618 </span>            :     {
+<span class="lineNum">    1619 </span>            :     case TYPE_SEQUENCE_ENVIRONMENTS:
+<span class="lineNum">    1620 </span><span class="lineNoCov">          0 :         NewEnvironmentsContext();</span>
+<span class="lineNum">    1621 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1622 </span>            : 
+<span class="lineNum">    1623 </span>            :     case TYPE_SEQUENCE_FILES:
+<span class="lineNum">    1624 </span><span class="lineNoCov">          0 :         ConnCache_Init();</span>
+<span class="lineNum">    1625 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1626 </span>            : 
+<span class="lineNum">    1627 </span>            :     case TYPE_SEQUENCE_PROCESSES:
+<span class="lineNum">    1628 </span><span class="lineNoCov">          0 :         if (!LoadProcessTable(&amp;PROCESSTABLE))</span>
+<span class="lineNum">    1629 </span>            :         {
+<span class="lineNum">    1630 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Unable to read the process table - cannot keep processes: type promises&quot;);</span>
+<span class="lineNum">    1631 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">    1632 </span>            :         }
+<span class="lineNum">    1633 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1634 </span>            : 
+<span class="lineNum">    1635 </span>            :     case TYPE_SEQUENCE_STORAGE:
+<span class="lineNum">    1636 </span>            : #ifndef __MINGW32__                   // TODO: Run if implemented on Windows
+<span class="lineNum">    1637 </span><span class="lineNoCov">          0 :         if (SeqLength(GetGlobalMountedFSList()))</span>
+<span class="lineNum">    1638 </span>            :         {
+<span class="lineNum">    1639 </span><span class="lineNoCov">          0 :             DeleteMountInfo(GetGlobalMountedFSList());</span>
+<span class="lineNum">    1640 </span><span class="lineNoCov">          0 :             SeqClear(GetGlobalMountedFSList());</span>
+<span class="lineNum">    1641 </span>            :         }
+<span class="lineNum">    1642 </span>            : #endif /* !__MINGW32__ */
+<span class="lineNum">    1643 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1644 </span>            : 
+<span class="lineNum">    1645 </span>            :     default:
+<span class="lineNum">    1646 </span><span class="lineCov">          6 :         break;</span>
+<span class="lineNum">    1647 </span>            :     }
+<span class="lineNum">    1648 </span>            : 
+<span class="lineNum">    1649 </span><span class="lineCov">          6 :     return true;</span>
+<span class="lineNum">    1650 </span>            : }
+<span class="lineNum">    1651 </span>            : 
+<a name="1652"><span class="lineNum">    1652 </span>            : /*********************************************************************/</a>
+<span class="lineNum">    1653 </span>            : 
+<span class="lineNum">    1654 </span><span class="lineCov">          6 : static void DeleteTypeContext(EvalContext *ctx, TypeSequence type)</span>
+<span class="lineNum">    1655 </span>            : {
+<span class="lineNum">    1656 </span><span class="lineCov">          6 :     switch (type)</span>
+<span class="lineNum">    1657 </span>            :     {
+<span class="lineNum">    1658 </span>            :     case TYPE_SEQUENCE_ENVIRONMENTS:
+<span class="lineNum">    1659 </span><span class="lineNoCov">          0 :         DeleteEnvironmentsContext();</span>
+<span class="lineNum">    1660 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1661 </span>            : 
+<span class="lineNum">    1662 </span>            :     case TYPE_SEQUENCE_FILES:
+<span class="lineNum">    1663 </span><span class="lineNoCov">          0 :         ConnCache_Destroy();</span>
+<span class="lineNum">    1664 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1665 </span>            : 
+<span class="lineNum">    1666 </span>            :     case TYPE_SEQUENCE_PROCESSES:
+<span class="lineNum">    1667 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1668 </span>            : 
+<span class="lineNum">    1669 </span>            :     case TYPE_SEQUENCE_STORAGE:
+<span class="lineNum">    1670 </span><span class="lineNoCov">          0 :         DeleteStorageContext();</span>
+<span class="lineNum">    1671 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1672 </span>            : 
+<span class="lineNum">    1673 </span>            :     case TYPE_SEQUENCE_PACKAGES:
+<span class="lineNum">    1674 </span><span class="lineNoCov">          0 :         ExecuteScheduledPackages(ctx);</span>
+<span class="lineNum">    1675 </span><span class="lineNoCov">          0 :         CleanScheduledPackages();</span>
+<span class="lineNum">    1676 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1677 </span>            : 
+<span class="lineNum">    1678 </span>            :     default:
+<span class="lineNum">    1679 </span><span class="lineCov">          6 :         break;</span>
+<span class="lineNum">    1680 </span>            :     }
+<span class="lineNum">    1681 </span><span class="lineCov">          6 : }</span>
+<span class="lineNum">    1682 </span>            : 
+<span class="lineNum">    1683 </span>            : /**************************************************************/
+<span class="lineNum">    1684 </span>            : /* Thread context                                             */
+<span class="lineNum">    1685 </span>            : /**************************************************************/
+<span class="lineNum">    1686 </span>            : 
+<span class="lineNum">    1687 </span>            : #ifdef __MINGW32__
+<span class="lineNum">    1688 </span>            : 
+<span class="lineNum">    1689 </span>            : static PromiseResult ParallelFindAndVerifyFilesPromises(EvalContext *ctx, const Promise *pp)
+<span class="lineNum">    1690 </span>            : {
+<span class="lineNum">    1691 </span>            :     int background = PromiseGetConstraintAsBoolean(ctx, &quot;background&quot;, pp);
+<span class="lineNum">    1692 </span>            : 
+<span class="lineNum">    1693 </span>            :     if (background)
+<span class="lineNum">    1694 </span>            :     {
+<span class="lineNum">    1695 </span>            :         Log(LOG_LEVEL_VERBOSE, &quot;Background processing of files promises is not supported on Windows&quot;);
+<span class="lineNum">    1696 </span>            :     }
+<span class="lineNum">    1697 </span>            : 
+<span class="lineNum">    1698 </span>            :     return FindAndVerifyFilesPromises(ctx, pp);
+<span class="lineNum">    1699 </span>            : }
+<span class="lineNum">    1700 </span>            : 
+<a name="1701"><span class="lineNum">    1701 </span>            : #else /* !__MINGW32__ */</a>
+<span class="lineNum">    1702 </span>            : 
+<span class="lineNum">    1703 </span><span class="lineNoCov">          0 : static PromiseResult ParallelFindAndVerifyFilesPromises(EvalContext *ctx, const Promise *pp)</span>
+<span class="lineNum">    1704 </span>            : {
+<span class="lineNum">    1705 </span><span class="lineNoCov">          0 :     int background = PromiseGetConstraintAsBoolean(ctx, &quot;background&quot;, pp);</span>
+<span class="lineNum">    1706 </span><span class="lineNoCov">          0 :     pid_t child = 1;</span>
+<span class="lineNum">    1707 </span><span class="lineNoCov">          0 :     PromiseResult result = PROMISE_RESULT_SKIPPED;</span>
+<span class="lineNum">    1708 </span>            : 
+<span class="lineNum">    1709 </span><span class="lineNoCov">          0 :     if (background)</span>
+<span class="lineNum">    1710 </span>            :     {
+<span class="lineNum">    1711 </span><span class="lineNoCov">          0 :         if (CFA_BACKGROUND &lt; CFA_BACKGROUND_LIMIT)</span>
+<span class="lineNum">    1712 </span>            :         {
+<span class="lineNum">    1713 </span><span class="lineNoCov">          0 :             CFA_BACKGROUND++;</span>
+<span class="lineNum">    1714 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Spawning new process...&quot;);</span>
+<span class="lineNum">    1715 </span><span class="lineNoCov">          0 :             child = fork();</span>
+<span class="lineNum">    1716 </span>            : 
+<span class="lineNum">    1717 </span><span class="lineNoCov">          0 :             if (child == 0)</span>
+<span class="lineNum">    1718 </span>            :             {
+<span class="lineNum">    1719 </span><span class="lineNoCov">          0 :                 ALARM_PID = -1;</span>
+<span class="lineNum">    1720 </span>            : 
+<span class="lineNum">    1721 </span><span class="lineNoCov">          0 :                 result = PromiseResultUpdate(result, FindAndVerifyFilesPromises(ctx, pp));</span>
+<span class="lineNum">    1722 </span>            : 
+<span class="lineNum">    1723 </span><span class="lineNoCov">          0 :                 Log(LOG_LEVEL_VERBOSE, &quot;Exiting backgrounded promise&quot;);</span>
+<span class="lineNum">    1724 </span><span class="lineNoCov">          0 :                 PromiseRef(LOG_LEVEL_VERBOSE, pp);</span>
+<span class="lineNum">    1725 </span><span class="lineNoCov">          0 :                 _exit(EXIT_SUCCESS);</span>
+<span class="lineNum">    1726 </span>            :                 // TODO: need to solve this
+<span class="lineNum">    1727 </span>            :             }
+<span class="lineNum">    1728 </span>            :         }
+<span class="lineNum">    1729 </span>            :         else
+<span class="lineNum">    1730 </span>            :         {
+<span class="lineNum">    1731 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_VERBOSE, &quot;Promised parallel execution promised but exceeded the max number of promised background tasks, so serializing&quot;);</span>
+<span class="lineNum">    1732 </span><span class="lineNoCov">          0 :             background = 0;</span>
+<span class="lineNum">    1733 </span>            :         }
+<span class="lineNum">    1734 </span>            :     }
+<span class="lineNum">    1735 </span>            :     else
+<span class="lineNum">    1736 </span>            :     {
+<span class="lineNum">    1737 </span><span class="lineNoCov">          0 :         result = PromiseResultUpdate(result, FindAndVerifyFilesPromises(ctx, pp));</span>
+<span class="lineNum">    1738 </span>            :     }
+<span class="lineNum">    1739 </span>            : 
+<span class="lineNum">    1740 </span><span class="lineNoCov">          0 :     return result;</span>
+<span class="lineNum">    1741 </span>            : }
+<span class="lineNum">    1742 </span>            : 
+<span class="lineNum">    1743 </span>            : #endif /* !__MINGW32__ */
+<span class="lineNum">    1744 </span>            : 
+<a name="1745"><span class="lineNum">    1745 </span>            : /**************************************************************/</a>
+<span class="lineNum">    1746 </span>            : 
+<span class="lineNum">    1747 </span><span class="lineNoCov">          0 : static bool VerifyBootstrap(void)</span>
+<span class="lineNum">    1748 </span>            : {
+<span class="lineNum">    1749 </span><span class="lineNoCov">          0 :     if (NULL_OR_EMPTY(POLICY_SERVER))</span>
+<span class="lineNum">    1750 </span>            :     {
+<span class="lineNum">    1751 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Bootstrapping failed, no policy server is specified&quot;);</span>
+<span class="lineNum">    1752 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">    1753 </span>            :     }
+<span class="lineNum">    1754 </span>            : 
+<span class="lineNum">    1755 </span>            :     // we should at least have gotten promises.cf from the policy hub
+<span class="lineNum">    1756 </span>            :     {
+<span class="lineNum">    1757 </span>            :         char filename[CF_MAXVARSIZE];
+<span class="lineNum">    1758 </span><span class="lineNoCov">          0 :         snprintf(filename, sizeof(filename), &quot;%s/promises.cf&quot;, GetInputDir());</span>
+<span class="lineNum">    1759 </span><span class="lineNoCov">          0 :         MapName(filename);</span>
+<span class="lineNum">    1760 </span>            : 
+<span class="lineNum">    1761 </span>            :         struct stat sb;
+<span class="lineNum">    1762 </span><span class="lineNoCov">          0 :         if (stat(filename, &amp;sb) == -1)</span>
+<span class="lineNum">    1763 </span>            :         {
+<span class="lineNum">    1764 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR, &quot;Bootstrapping failed, no input file at '%s' after bootstrap&quot;, filename);</span>
+<span class="lineNum">    1765 </span><span class="lineNoCov">          0 :             return false;</span>
+<span class="lineNum">    1766 </span>            :         }
+<span class="lineNum">    1767 </span>            :     }
+<span class="lineNum">    1768 </span>            : 
+<span class="lineNum">    1769 </span>            :     // embedded failsafe.cf (bootstrap.c) contains a promise to start cf-execd (executed while running this cf-agent)
+<span class="lineNum">    1770 </span><span class="lineNoCov">          0 :     DeleteItemList(PROCESSTABLE);</span>
+<span class="lineNum">    1771 </span><span class="lineNoCov">          0 :     PROCESSTABLE = NULL;</span>
+<span class="lineNum">    1772 </span><span class="lineNoCov">          0 :     LoadProcessTable(&amp;PROCESSTABLE);</span>
+<span class="lineNum">    1773 </span>            : 
+<span class="lineNum">    1774 </span><span class="lineNoCov">          0 :     if (!IsProcessNameRunning(&quot;.*cf-execd.*&quot;))</span>
+<span class="lineNum">    1775 </span>            :     {
+<span class="lineNum">    1776 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Bootstrapping failed, cf-execd is not running&quot;);</span>
+<span class="lineNum">    1777 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">    1778 </span>            :     }
+<span class="lineNum">    1779 </span>            : 
+<span class="lineNum">    1780 </span><span class="lineNoCov">          0 :     Log(LOG_LEVEL_NOTICE, &quot;Bootstrap to '%s' completed successfully!&quot;, POLICY_SERVER);</span>
+<span class="lineNum">    1781 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">    1782 </span>            : }
+<span class="lineNum">    1783 </span>            : 
+<span class="lineNum">    1784 </span>            : /**************************************************************/
+<span class="lineNum">    1785 </span>            : /* Compliance comp                                            */
+<a name="1786"><span class="lineNum">    1786 </span>            : /**************************************************************/</a>
+<span class="lineNum">    1787 </span>            : 
+<span class="lineNum">    1788 </span><span class="lineCov">          1 : static int NoteBundleCompliance(const Bundle *bundle, int save_pr_kept, int save_pr_repaired, int save_pr_notkept, struct timespec start)</span>
+<span class="lineNum">    1789 </span>            : {
+<span class="lineNum">    1790 </span>            :     double delta_pr_kept, delta_pr_repaired, delta_pr_notkept;
+<span class="lineNum">    1791 </span><span class="lineCov">          1 :     double bundle_compliance = 0.0;</span>
+<span class="lineNum">    1792 </span>            :         
+<span class="lineNum">    1793 </span><span class="lineCov">          1 :     delta_pr_kept = (double) (PR_KEPT - save_pr_kept);</span>
+<span class="lineNum">    1794 </span><span class="lineCov">          1 :     delta_pr_notkept = (double) (PR_NOTKEPT - save_pr_notkept);</span>
+<span class="lineNum">    1795 </span><span class="lineCov">          1 :     delta_pr_repaired = (double) (PR_REPAIRED - save_pr_repaired);</span>
+<span class="lineNum">    1796 </span>            : 
+<span class="lineNum">    1797 </span><span class="lineCov">          1 :     Log(LOG_LEVEL_VERBOSE, &quot;\n&quot;);</span>
+<span class="lineNum">    1798 </span><span class="lineCov">          1 :     Log(LOG_LEVEL_VERBOSE, &quot;A: ...................................................&quot;);</span>
+<span class="lineNum">    1799 </span><span class="lineCov">          1 :     Log(LOG_LEVEL_VERBOSE, &quot;A: Bundle Accounting Summary for '%s' in namespace %s&quot;, bundle-&gt;name, bundle-&gt;ns);</span>
+<span class="lineNum">    1800 </span>            : 
+<span class="lineNum">    1801 </span><span class="lineCov">          1 :     if (delta_pr_kept + delta_pr_notkept + delta_pr_repaired &lt;= 0)</span>
+<span class="lineNum">    1802 </span>            :     {
+<span class="lineNum">    1803 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Zero promises executed for bundle '%s'&quot;, bundle-&gt;name);</span>
+<span class="lineNum">    1804 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;A: ...................................................&quot;);</span>
+<span class="lineNum">    1805 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_VERBOSE, &quot;\n&quot;);</span>
+<span class="lineNum">    1806 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1807 </span>            :     }
+<span class="lineNum">    1808 </span>            :     else
+<span class="lineNum">    1809 </span>            :     {
+<span class="lineNum">    1810 </span><span class="lineCov">          1 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Promises kept in '%s' = %.0lf&quot;, bundle-&gt;name, delta_pr_kept);</span>
+<span class="lineNum">    1811 </span><span class="lineCov">          1 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Promises not kept in '%s' = %.0lf&quot;, bundle-&gt;name, delta_pr_notkept);</span>
+<span class="lineNum">    1812 </span><span class="lineCov">          1 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Promises repaired in '%s' = %.0lf&quot;, bundle-&gt;name, delta_pr_repaired);</span>
+<span class="lineNum">    1813 </span>            :     
+<span class="lineNum">    1814 </span><span class="lineCov">          1 :         bundle_compliance = (delta_pr_kept + delta_pr_repaired) / (delta_pr_kept + delta_pr_notkept + delta_pr_repaired);</span>
+<span class="lineNum">    1815 </span>            : 
+<span class="lineNum">    1816 </span><span class="lineCov">          1 :         Log(LOG_LEVEL_VERBOSE, &quot;A: Aggregate compliance (promises kept/repaired) for bundle '%s' = %.1lf%%&quot;,</span>
+<span class="lineNum">    1817 </span>            :           bundle-&gt;name, bundle_compliance * 100.0);
+<span class="lineNum">    1818 </span>            : 
+<span class="lineNum">    1819 </span><span class="lineCov">          1 :         if (LogGetGlobalLevel() &gt;= LOG_LEVEL_INFO)</span>
+<span class="lineNum">    1820 </span>            :         {
+<span class="lineNum">    1821 </span>            :             char name[CF_MAXVARSIZE];
+<span class="lineNum">    1822 </span><span class="lineNoCov">          0 :             snprintf(name, CF_MAXVARSIZE, &quot;%s:%s&quot;, bundle-&gt;ns, bundle-&gt;name);</span>
+<span class="lineNum">    1823 </span><span class="lineNoCov">          0 :             EndMeasure(name, start);</span>
+<span class="lineNum">    1824 </span>            :         }
+<span class="lineNum">    1825 </span>            :         else
+<span class="lineNum">    1826 </span>            :         {
+<span class="lineNum">    1827 </span><span class="lineCov">          1 :             EndMeasure(NULL, start);</span>
+<span class="lineNum">    1828 </span>            :         }
+<span class="lineNum">    1829 </span><span class="lineCov">          1 :         Log(LOG_LEVEL_VERBOSE, &quot;A: ...................................................&quot;);</span>
+<span class="lineNum">    1830 </span><span class="lineCov">          1 :         Log(LOG_LEVEL_VERBOSE, &quot;\n&quot;);</span>
+<span class="lineNum">    1831 </span>            :     }
+<span class="lineNum">    1832 </span>            : 
+<span class="lineNum">    1833 </span>            :     // return the worst case for the bundle status
+<span class="lineNum">    1834 </span>            :     
+<span class="lineNum">    1835 </span><span class="lineCov">          1 :     if (delta_pr_notkept &gt; 0)</span>
+<span class="lineNum">    1836 </span>            :     {
+<span class="lineNum">    1837 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_FAIL;</span>
+<span class="lineNum">    1838 </span>            :     }
+<span class="lineNum">    1839 </span>            : 
+<span class="lineNum">    1840 </span><span class="lineCov">          1 :     if (delta_pr_repaired &gt; 0)</span>
+<span class="lineNum">    1841 </span>            :     {
+<span class="lineNum">    1842 </span><span class="lineNoCov">          0 :         return PROMISE_RESULT_CHANGE;</span>
+<span class="lineNum">    1843 </span>            :     }
+<span class="lineNum">    1844 </span>            : 
+<span class="lineNum">    1845 </span><span class="lineCov">          1 :     return PROMISE_RESULT_NOOP;</span>
+<span class="lineNum">    1846 </span>            : }
+<span class="lineNum">    1847 </span>            : 
+<a name="1848"><span class="lineNum">    1848 </span>            : #if defined(HAVE_AVAHI_CLIENT_CLIENT_H) &amp;&amp; defined(HAVE_AVAHI_COMMON_ADDRESS_H)</a>
+<span class="lineNum">    1849 </span>            : 
+<span class="lineNum">    1850 </span><span class="lineNoCov">          0 : static bool HasAvahiSupport(void)</span>
+<span class="lineNum">    1851 </span>            : {
+<span class="lineNum">    1852 </span><span class="lineNoCov">          0 :     return true;</span>
+<span class="lineNum">    1853 </span>            : }
+<a name="1854"><span class="lineNum">    1854 </span>            : </a>
+<span class="lineNum">    1855 </span>            : 
+<span class="lineNum">    1856 </span><span class="lineNoCov">          0 : static int AutomaticBootstrap(GenericAgentConfig *config)</span>
+<span class="lineNum">    1857 </span>            : {
+<span class="lineNum">    1858 </span><span class="lineNoCov">          0 :     List *foundhubs = NULL;</span>
+<span class="lineNum">    1859 </span><span class="lineNoCov">          0 :     int hubcount = ListHubs(&amp;foundhubs);</span>
+<span class="lineNum">    1860 </span>            :     int ret;
+<span class="lineNum">    1861 </span>            : 
+<span class="lineNum">    1862 </span><span class="lineNoCov">          0 :     switch(hubcount)</span>
+<span class="lineNum">    1863 </span>            :     {
+<span class="lineNum">    1864 </span>            :     case -1:
+<span class="lineNum">    1865 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Error while trying to find a Policy Server&quot;);</span>
+<span class="lineNum">    1866 </span><span class="lineNoCov">          0 :         ret = -1;</span>
+<span class="lineNum">    1867 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1868 </span>            :     case 0:
+<span class="lineNum">    1869 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;No hubs were found. Exiting.&quot;);</span>
+<span class="lineNum">    1870 </span><span class="lineNoCov">          0 :         ret = -1;</span>
+<span class="lineNum">    1871 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1872 </span>            :     case 1:
+<span class="lineNum">    1873 </span>            :     {
+<span class="lineNum">    1874 </span><span class="lineNoCov">          0 :         char *hostname = ((HostProperties*)foundhubs)-&gt;Hostname;</span>
+<span class="lineNum">    1875 </span><span class="lineNoCov">          0 :         char *ipaddr = ((HostProperties*)foundhubs)-&gt;IPAddress;</span>
+<span class="lineNum">    1876 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_NOTICE, &quot;Autodiscovered hub installed on hostname '%s', IP address '%s'&quot;,</span>
+<span class="lineNum">    1877 </span>            :             hostname, ipaddr);
+<span class="lineNum">    1878 </span>            : 
+<span class="lineNum">    1879 </span><span class="lineNoCov">          0 :         if (strlen(ipaddr) &lt; sizeof(POLICY_SERVER))</span>
+<span class="lineNum">    1880 </span>            :         {
+<span class="lineNum">    1881 </span><span class="lineNoCov">          0 :             config-&gt;agent_specific.agent.bootstrap_policy_server = xstrdup(ipaddr);</span>
+<span class="lineNum">    1882 </span><span class="lineNoCov">          0 :             ret = 0;</span>
+<span class="lineNum">    1883 </span>            :         }
+<span class="lineNum">    1884 </span>            :         else
+<span class="lineNum">    1885 </span>            :         {
+<span class="lineNum">    1886 </span><span class="lineNoCov">          0 :             Log(LOG_LEVEL_ERR,  &quot;Invalid autodiscovered hub IP address '%s'&quot;, ipaddr);</span>
+<span class="lineNum">    1887 </span><span class="lineNoCov">          0 :             ret = -1;</span>
+<span class="lineNum">    1888 </span>            :         }
+<span class="lineNum">    1889 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">    1890 </span>            :     }
+<span class="lineNum">    1891 </span>            :     default:
+<span class="lineNum">    1892 </span><span class="lineNoCov">          0 :         Log(LOG_LEVEL_ERR, &quot;Found more than one hub registered in the network. Please bootstrap manually using IP from the list below.&quot;);</span>
+<span class="lineNum">    1893 </span><span class="lineNoCov">          0 :         PrintList(foundhubs);</span>
+<span class="lineNum">    1894 </span><span class="lineNoCov">          0 :         ret = -1;</span>
+<span class="lineNum">    1895 </span>            :     };
+<span class="lineNum">    1896 </span>            : 
+<span class="lineNum">    1897 </span><span class="lineNoCov">          0 :     if (avahi_handle)</span>
+<span class="lineNum">    1898 </span>            :     {
+<span class="lineNum">    1899 </span>            :         /*
+<span class="lineNum">    1900 </span>            :          * This case happens when dlopen does not manage to open the library.
+<span class="lineNum">    1901 </span>            :          */
+<span class="lineNum">    1902 </span><span class="lineNoCov">          0 :         dlclose(avahi_handle);</span>
+<span class="lineNum">    1903 </span>            :     }
+<span class="lineNum">    1904 </span><span class="lineNoCov">          0 :     ListDestroy(&amp;foundhubs);</span>
+<span class="lineNum">    1905 </span>            : 
+<span class="lineNum">    1906 </span><span class="lineNoCov">          0 :     return ret;</span>
+<span class="lineNum">    1907 </span>            : }
+<span class="lineNum">    1908 </span>            : #else
+<span class="lineNum">    1909 </span>            : 
+<span class="lineNum">    1910 </span>            : static bool HasAvahiSupport(void)
+<span class="lineNum">    1911 </span>            : {
+<span class="lineNum">    1912 </span>            :     return false;
+<span class="lineNum">    1913 </span>            : }
+<span class="lineNum">    1914 </span>            : 
+<span class="lineNum">    1915 </span>            : static int AutomaticBootstrap(ARG_UNUSED GenericAgentConfig *config)
+<span class="lineNum">    1916 </span>            : {
+<span class="lineNum">    1917 </span>            :     ProgrammingError(&quot;Attempted automated bootstrap on a non-avahi build of CFEngine&quot;);
+<span class="lineNum">    1918 </span>            : }
+<span class="lineNum">    1919 </span>            : 
+<span class="lineNum">    1920 </span>            : #endif // Avahi
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

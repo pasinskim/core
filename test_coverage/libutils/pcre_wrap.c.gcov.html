@@ -1,0 +1,577 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - cfengine_tests.info - libutils/pcre_wrap.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">libutils</a> - pcre_wrap.c<span style="font-size: 80%;"> (source / <a href="pcre_wrap.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">cfengine_tests.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">234</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-16 15:16:38</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            :  * The original pcrs code came from ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/Contrib/pcrs-0.0.3-src.tar.gz
+<span class="lineNum">       4 </span>            : 
+<span class="lineNum">       5 </span>            :  * This is a rewrite of PCRS with the same API and behavior.
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            :  */
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #include &lt;platform.h&gt;
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : #include &lt;pcre_wrap.h&gt;
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : static int pcre_wrap_parse_perl_options(const char *optstring, int *flags);
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : static pcre_wrap_substitute *pcre_wrap_compile_replacement(const char *replacement, int trivialflag,
+<span class="lineNum">      18 </span>            :                                                            int capturecount, int *errptr);
+<a name="19"><span class="lineNum">      19 </span>            : </a>
+<span class="lineNum">      20 </span>            : // Retain the same error messages as PCRS
+<span class="lineNum">      21 </span><span class="lineNoCov">          0 : const char *pcre_wrap_strerror(const int error)</span>
+<span class="lineNum">      22 </span>            : {
+<span class="lineNum">      23 </span><span class="lineNoCov">          0 :     if (error &lt; 0)</span>
+<span class="lineNum">      24 </span>            :     {
+<span class="lineNum">      25 </span><span class="lineNoCov">          0 :         switch (error)</span>
+<span class="lineNum">      26 </span>            :         {
+<span class="lineNum">      27 </span>            :             /* Passed-through PCRE error: */
+<span class="lineNum">      28 </span><span class="lineNoCov">          0 :         case PCRE_ERROR_NOMEMORY:     return &quot;(pcre:) No memory&quot;;</span>
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            :             /* Shouldn't happen unless PCRE or PCRE_WRAP bug, or user messed with compiled job: */
+<span class="lineNum">      31 </span><span class="lineNoCov">          0 :         case PCRE_ERROR_NULL:         return &quot;(pcre:) NULL code or subject or ovector&quot;;</span>
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 :         case PCRE_ERROR_BADOPTION:    return &quot;(pcre:) Unrecognized option bit&quot;;</span>
+<span class="lineNum">      33 </span><span class="lineNoCov">          0 :         case PCRE_ERROR_BADMAGIC:     return &quot;(pcre:) Bad magic number in code&quot;;</span>
+<span class="lineNum">      34 </span><span class="lineNoCov">          0 :         case PCRE_ERROR_UNKNOWN_NODE: return &quot;(pcre:) Bad node in pattern&quot;;</span>
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            :             /* Can't happen / not passed: */
+<span class="lineNum">      37 </span><span class="lineNoCov">          0 :         case PCRE_ERROR_NOSUBSTRING:  return &quot;(pcre:) Fire in power supply&quot;; </span>
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 :         case PCRE_ERROR_NOMATCH:      return &quot;(pcre:) Water in power supply&quot;;</span>
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            :             /* PCRE_WRAP errors: */
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :         case PCRE_WRAP_ERR_NOMEM:          return &quot;(pcre_wrap:) No memory&quot;;</span>
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :         case PCRE_WRAP_ERR_CMDSYNTAX:      return &quot;(pcre_wrap:) Syntax error while parsing command&quot;;</span>
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :         case PCRE_WRAP_ERR_STUDY:          return &quot;(pcre_wrap:) PCRE error while studying the pattern&quot;;</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :         case PCRE_WRAP_ERR_BADJOB:         return &quot;(pcre_wrap:) Bad job - NULL job, pattern or substitute&quot;;</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :         case PCRE_WRAP_WARN_BADREF:        return &quot;(pcre_wrap:) Backreference out of range&quot;;</span>
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            :             /* What's that? */
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :         default:  return &quot;Unknown error&quot;;</span>
+<span class="lineNum">      49 </span>            :         }
+<span class="lineNum">      50 </span>            :     }
+<span class="lineNum">      51 </span>            :     /* error &gt;= 0: No error */
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 :     return &quot;(pcre_wrap:) Everything's just fine. Thanks for asking.&quot;;</span>
+<span class="lineNum">      53 </span>            : 
+<a name="54"><span class="lineNum">      54 </span>            : }</a>
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 : static int pcre_wrap_parse_perl_options(const char *options, int *flags)</span>
+<span class="lineNum">      57 </span>            : {
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :     int rc = 0;</span>
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :     *flags = 0;</span>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :     if (NULL == options)</span>
+<span class="lineNum">      62 </span>            :     {
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">      64 </span>            :     }
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :     size_t max = strlen(options);</span>
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     for (size_t i = 0; i &lt; max; i++)</span>
+<span class="lineNum">      68 </span>            :     {
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         switch(options[i])</span>
+<span class="lineNum">      70 </span>            :         {
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         case 'e': break; /* Nein! Jamais! Nunca! Well, maybe if you ask nicely... */</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         case 'g': *flags |= PCRE_WRAP_GLOBAL; break;</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         case 'i': rc |= PCRE_CASELESS; break;</span>
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         case 'm': rc |= PCRE_MULTILINE; break;</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :         case 'o': break;</span>
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :         case 's': rc |= PCRE_DOTALL; break;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :         case 'x': rc |= PCRE_EXTENDED; break;</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :         case 'U': rc |= PCRE_UNGREEDY; break;</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :         case 'T': *flags |= PCRE_WRAP_TRIVIAL; break;</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :         default: break;</span>
+<span class="lineNum">      81 </span>            :         }
+<span class="lineNum">      82 </span>            :     }
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :     return rc;</span>
+<span class="lineNum">      84 </span>            : 
+<a name="85"><span class="lineNum">      85 </span>            : }</a>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 : static pcre_wrap_substitute *pcre_wrap_compile_replacement(const char *replacement, int trivialflag, int capturecount, int *errptr)</span>
+<span class="lineNum">      88 </span>            : {
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     int refnum = 0;</span>
+<span class="lineNum">      90 </span>            :     char *text;
+<span class="lineNum">      91 </span>            :     pcre_wrap_substitute *rstruct;
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            :     /*
+<span class="lineNum">      94 </span>            :      * Sanity check
+<span class="lineNum">      95 </span>            :      */
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     if (NULL == replacement)</span>
+<span class="lineNum">      97 </span>            :     {
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         replacement = &quot;&quot;;</span>
+<span class="lineNum">      99 </span>            :     }
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     size_t length = strlen(replacement);</span>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :     rstruct = calloc(1, sizeof(pcre_wrap_substitute));</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     if (NULL == rstruct)</span>
+<span class="lineNum">     105 </span>            :     {
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         *errptr = PCRE_WRAP_ERR_NOMEM;</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     108 </span>            :     }
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :     text = calloc(1, length + 1);</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     if (NULL == text)</span>
+<span class="lineNum">     112 </span>            :     {
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :         free(rstruct);</span>
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         *errptr = PCRE_WRAP_ERR_NOMEM;</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     116 </span>            :     }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :     size_t textpos = 0;</span>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :     if (trivialflag)</span>
+<span class="lineNum">     121 </span>            :     {
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         text = memcpy(text, replacement, length + 1);</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         textpos = length;</span>
+<span class="lineNum">     124 </span>            :     }
+<span class="lineNum">     125 </span>            :     else // non-trivial search and replace
+<span class="lineNum">     126 </span>            :     {
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         int quoted = 0;</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :         size_t sourcepos = 0;</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         while (sourcepos &lt; length)</span>
+<span class="lineNum">     131 </span>            :         {
+<span class="lineNum">     132 </span>            :             /* Quoting */
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :             if (replacement[sourcepos] == '\\' &amp;&amp;</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :                 (!replacement[sourcepos+1] ||</span>
+<span class="lineNum">     135 </span>            :                  // especially exclude \1 through \9 backreferences
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :                  (replacement[sourcepos+1] &amp;&amp; !strchr(&quot;123456789&quot;, replacement[sourcepos+1]))))</span>
+<span class="lineNum">     137 </span>            :             {
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :                 if (quoted)</span>
+<span class="lineNum">     139 </span>            :                 {
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :                     text[textpos++] = replacement[sourcepos++];</span>
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :                     quoted = 0;</span>
+<span class="lineNum">     142 </span>            :                 }
+<span class="lineNum">     143 </span>            :                 else
+<span class="lineNum">     144 </span>            :                 {
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :                     if (replacement[sourcepos+1] &amp;&amp; strchr(&quot;tnrfae0&quot;, replacement[sourcepos+1]))</span>
+<span class="lineNum">     146 </span>            :                     {
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                         switch (replacement[++sourcepos])</span>
+<span class="lineNum">     148 </span>            :                         {
+<span class="lineNum">     149 </span>            :                         case 't':
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :                             text[textpos++] = '\t';</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     152 </span>            :                         case 'n':
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :                             text[textpos++] = '\n';</span>
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     155 </span>            :                         case 'r':
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                             text[textpos++] = '\r';</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     158 </span>            :                         case 'f':
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                             text[textpos++] = '\f';</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     161 </span>            :                         case 'a':
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                             text[textpos++] = 7;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     164 </span>            :                         case 'e':
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                             text[textpos++] = 27;</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     167 </span>            :                         case '0':
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :                             text[textpos++] = '\0';</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                             break;</span>
+<span class="lineNum">     170 </span>            :                         }
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                         sourcepos++;</span>
+<span class="lineNum">     172 </span>            :                     }
+<span class="lineNum">     173 </span>            :                     else
+<span class="lineNum">     174 </span>            :                     {
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                         quoted = 1;</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :                         sourcepos++;</span>
+<span class="lineNum">     177 </span>            :                     }
+<span class="lineNum">     178 </span>            :                 }
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     180 </span>            :             }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :             /* Backreferences */
+<span class="lineNum">     183 </span><span class="lineNoCov">          0 :             bool have_backslash = (replacement[sourcepos] == '\\');</span>
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :             bool have_dollar = (replacement[sourcepos] == '$');</span>
+<span class="lineNum">     185 </span><span class="lineNoCov">          0 :             if ( (have_backslash || have_dollar ) &amp;&amp;</span>
+<span class="lineNum">     186 </span><span class="lineNoCov">          0 :                  !quoted &amp;&amp; sourcepos &lt; length - 1)</span>
+<span class="lineNum">     187 </span>            :             {
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :                 char *symbol = NULL;</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :                 char symbols[] = &quot;'`+&amp;&quot;;</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                 rstruct-&gt;block_length[refnum] = textpos - rstruct-&gt;block_offset[refnum];</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :                 if (isdigit((int)replacement[sourcepos + 1])) // numeric backref</span>
+<span class="lineNum">     193 </span>            :                 {
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :                     while (sourcepos &lt; length &amp;&amp; isdigit((int)replacement[++sourcepos]))</span>
+<span class="lineNum">     195 </span>            :                     {
+<span class="lineNum">     196 </span><span class="lineNoCov">          0 :                         rstruct-&gt;backref[refnum] = rstruct-&gt;backref[refnum] * 10 + replacement[sourcepos] - 48;</span>
+<span class="lineNum">     197 </span>            :                     }
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :                     if (rstruct-&gt;backref[refnum] &gt; capturecount)</span>
+<span class="lineNum">     199 </span>            :                     {
+<span class="lineNum">     200 </span><span class="lineNoCov">          0 :                         *errptr = PCRE_WRAP_WARN_BADREF;</span>
+<span class="lineNum">     201 </span>            :                     }
+<span class="lineNum">     202 </span>            :                 }
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :                 else if (have_dollar &amp;&amp; NULL != (symbol = strchr(symbols, replacement[sourcepos + 1])))</span>
+<span class="lineNum">     204 </span>            :                 {
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                     if (*symbol == '+') /* $+ */</span>
+<span class="lineNum">     206 </span>            :                     {
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                         rstruct-&gt;backref[refnum] = capturecount;</span>
+<span class="lineNum">     208 </span>            :                     }
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :                     else if (*symbol == '&amp;') /* $&amp; */</span>
+<span class="lineNum">     210 </span>            :                     {
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :                         rstruct-&gt;backref[refnum] = 0;</span>
+<span class="lineNum">     212 </span>            :                     }
+<span class="lineNum">     213 </span>            :                     else /* $' or $` */
+<span class="lineNum">     214 </span>            :                     {
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :                         rstruct-&gt;backref[refnum] = PCRE_WRAP_MAX_SUBMATCHES + 1 - (symbol - symbols);</span>
+<span class="lineNum">     216 </span>            :                     }
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :                     sourcepos += 2;</span>
+<span class="lineNum">     218 </span>            :                 }
+<span class="lineNum">     219 </span>            :                 else // not a backref after all
+<span class="lineNum">     220 </span>            :                 {
+<span class="lineNum">     221 </span>            :                     goto plainchar;
+<span class="lineNum">     222 </span>            :                 }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                 if (rstruct-&gt;backref[refnum] &lt; PCRE_WRAP_MAX_SUBMATCHES + 2)</span>
+<span class="lineNum">     225 </span>            :                 {
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :                     rstruct-&gt;backref_count[rstruct-&gt;backref[refnum]]++;</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :                     rstruct-&gt;block_offset[++refnum] = textpos;</span>
+<span class="lineNum">     228 </span>            :                 }
+<span class="lineNum">     229 </span>            :                 else
+<span class="lineNum">     230 </span>            :                 {
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                     *errptr = PCRE_WRAP_WARN_BADREF;</span>
+<span class="lineNum">     232 </span>            :                 }
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     234 </span>            :             }
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            :           plainchar:
+<span class="lineNum">     237 </span>            :             /* Plain chars are copied */
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :             text[textpos++] = replacement[sourcepos++];</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :             quoted = 0;</span>
+<span class="lineNum">     240 </span>            :         }
+<span class="lineNum">     241 </span>            :     }
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     rstruct-&gt;text = text;</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     rstruct-&gt;backrefs = refnum;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     rstruct-&gt;block_length[refnum] = textpos - rstruct-&gt;block_offset[refnum];</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     return rstruct;</span>
+<a name="248"><span class="lineNum">     248 </span>            : }</a>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 : pcre_wrap_job *pcre_wrap_free_job(pcre_wrap_job *job)</span>
+<span class="lineNum">     251 </span>            : {
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :     if (NULL == job)</span>
+<span class="lineNum">     253 </span>            :     {
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     255 </span>            :     }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :     // grab the next node and destroy the current head
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :     pcre_wrap_job *next = job-&gt;next;</span>
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     if (NULL != job-&gt;pattern)</span>
+<span class="lineNum">     260 </span>            :     {
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         free(job-&gt;pattern);</span>
+<span class="lineNum">     262 </span>            :     }
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     if (NULL != job-&gt;hints)</span>
+<span class="lineNum">     265 </span>            :     {
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :         free(job-&gt;hints);</span>
+<span class="lineNum">     267 </span>            :     }
+<span class="lineNum">     268 </span>            : 
+<span class="lineNum">     269 </span><span class="lineNoCov">          0 :     if (NULL != job-&gt;substitute)</span>
+<span class="lineNum">     270 </span>            :     {
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :         if (NULL != job-&gt;substitute-&gt;text)</span>
+<span class="lineNum">     272 </span>            :         {
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :             free(job-&gt;substitute-&gt;text);</span>
+<span class="lineNum">     274 </span>            :         }
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         free(job-&gt;substitute);</span>
+<span class="lineNum">     276 </span>            :     }
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :     free(job);</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :     return next;</span>
+<a name="280"><span class="lineNum">     280 </span>            : }</a>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 : pcre_wrap_job *pcre_wrap_compile(const char *pattern, const char *substitute, const char *options, int *errptr)</span>
+<span class="lineNum">     283 </span>            : {
+<span class="lineNum">     284 </span>            :     int flags;
+<span class="lineNum">     285 </span>            :     int capturecount;
+<span class="lineNum">     286 </span>            :     const char *error;
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :     *errptr = 0;</span>
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :     if (pattern == NULL)</span>
+<span class="lineNum">     291 </span>            :     {
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         pattern = &quot;&quot;;</span>
+<span class="lineNum">     293 </span>            :     }
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :     if (substitute == NULL)</span>
+<span class="lineNum">     296 </span>            :     {
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         substitute = &quot;&quot;;</span>
+<span class="lineNum">     298 </span>            :     }
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :     pcre_wrap_job *newjob = calloc(1, sizeof(pcre_wrap_job));</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :     if (NULL == newjob)</span>
+<span class="lineNum">     302 </span>            :     {
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         *errptr = PCRE_WRAP_ERR_NOMEM;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     305 </span>            :     }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :     newjob-&gt;options = pcre_wrap_parse_perl_options(options, &amp;flags);</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :     newjob-&gt;flags = flags;</span>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :     newjob-&gt;pattern = pcre_compile(pattern, newjob-&gt;options, &amp;error, errptr, NULL);</span>
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :     if (NULL == newjob-&gt;pattern)</span>
+<span class="lineNum">     312 </span>            :     {
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :         pcre_wrap_free_job(newjob);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     315 </span>            :     }
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :     newjob-&gt;hints = pcre_study(newjob-&gt;pattern, 0, &amp;error);</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :     if (NULL != error)</span>
+<span class="lineNum">     319 </span>            :     {
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         *errptr = PCRE_WRAP_ERR_STUDY;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         pcre_wrap_free_job(newjob);</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     323 </span>            :     }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :     *errptr = pcre_fullinfo(newjob-&gt;pattern, newjob-&gt;hints, PCRE_INFO_CAPTURECOUNT, &amp;capturecount);</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :     if (0 &gt; *errptr)</span>
+<span class="lineNum">     327 </span>            :     {
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :         pcre_wrap_free_job(newjob);</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     330 </span>            :     }
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :     newjob-&gt;substitute = pcre_wrap_compile_replacement(substitute, newjob-&gt;flags &amp; PCRE_WRAP_TRIVIAL, capturecount, errptr);</span>
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :     if (NULL == newjob-&gt;substitute)</span>
+<span class="lineNum">     334 </span>            :     {
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :         pcre_wrap_free_job(newjob);</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     337 </span>            :     }
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :     return newjob;</span>
+<a name="340"><span class="lineNum">     340 </span>            : }</a>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 : int pcre_wrap_execute(pcre_wrap_job *job, char *subject, size_t subject_length, char **result, size_t *result_length)</span>
+<span class="lineNum">     343 </span>            : {
+<span class="lineNum">     344 </span>            :     int offsets[3 * PCRE_WRAP_MAX_SUBMATCHES],
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         max_matches = PCRE_WRAP_MAX_MATCH_INIT;</span>
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :     int offset = 0;</span>
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     int matches_found = 0;</span>
+<span class="lineNum">     348 </span>            :     size_t newsize;
+<span class="lineNum">     349 </span>            :     char *result_offset;
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :     int submatches = 0;</span>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :     if (job == NULL || job-&gt;pattern == NULL || job-&gt;substitute == NULL)</span>
+<span class="lineNum">     353 </span>            :     {
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         *result = NULL;</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :         return(PCRE_WRAP_ERR_BADJOB);</span>
+<span class="lineNum">     356 </span>            :     }
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :     pcre_wrap_match *matches = calloc(max_matches, sizeof(pcre_wrap_match));</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :     if (NULL == matches)</span>
+<span class="lineNum">     360 </span>            :     {
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         *result = NULL;</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         return(PCRE_WRAP_ERR_NOMEM);</span>
+<span class="lineNum">     363 </span>            :     }
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span>            :     // starting size, to be incremented hereafter
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :     newsize = subject_length;</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :     int current_match = 0;</span>
+<span class="lineNum">     369 </span>            :     while (TRUE)
+<span class="lineNum">     370 </span>            :     {
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         submatches = pcre_exec(job-&gt;pattern, job-&gt;hints, subject, (int)subject_length, offset, 0, offsets, 3 * PCRE_WRAP_MAX_SUBMATCHES);</span>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         if (submatches &lt;= 0)</span>
+<span class="lineNum">     374 </span>            :         {
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     376 </span>            :         }
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         job-&gt;flags |= PCRE_WRAP_SUCCESS;</span>
+<span class="lineNum">     379 </span><span class="lineNoCov">          0 :         matches[current_match].submatches = submatches;</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :         for (int submatch = 0; submatch &lt; submatches; submatch++)</span>
+<span class="lineNum">     382 </span>            :         {
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :             matches[current_match].submatch_offset[submatch] = offsets[2 * submatch];</span>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            :             /* compatibility note: Missing optional submatches have length -1-(-1)==0 */
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :             matches[current_match].submatch_length[submatch] = offsets[2 * submatch + 1] - offsets[2 * submatch]; </span>
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            :             /* reserve mem for *each* submatch reference! */
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :             newsize += matches[current_match].submatch_length[submatch] * job-&gt;substitute-&gt;backref_count[submatch];</span>
+<span class="lineNum">     390 </span>            :         }
+<span class="lineNum">     391 </span>            :         /* plus replacement text size minus match text size */
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         newsize += strlen(job-&gt;substitute-&gt;text) - matches[current_match].submatch_length[0]; </span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            :         /* plus the chunk before match */
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :         matches[current_match].submatch_offset[PCRE_WRAP_MAX_SUBMATCHES] = 0;</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :         matches[current_match].submatch_length[PCRE_WRAP_MAX_SUBMATCHES] = offsets[0];</span>
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :         newsize += offsets[0] * job-&gt;substitute-&gt;backref_count[PCRE_WRAP_MAX_SUBMATCHES];</span>
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span>            :         /* plus the chunk after match */
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         matches[current_match].submatch_offset[PCRE_WRAP_MAX_SUBMATCHES + 1] = offsets[1];</span>
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         matches[current_match].submatch_length[PCRE_WRAP_MAX_SUBMATCHES + 1] = subject_length - offsets[1] - 1;</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :         newsize += (subject_length - offsets[1]) * job-&gt;substitute-&gt;backref_count[PCRE_WRAP_MAX_SUBMATCHES + 1];</span>
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :         current_match++;</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :         if (current_match &gt;= max_matches) // extend the storage if needed</span>
+<span class="lineNum">     406 </span>            :         {
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :             max_matches = (int)(max_matches * PCRE_WRAP_MAX_MATCH_GROW);</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :             pcre_wrap_match *temp = realloc(matches, max_matches * sizeof(pcre_wrap_match));</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :             if (NULL == temp)</span>
+<span class="lineNum">     411 </span>            :             {
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 free(matches);</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :                 *result = NULL;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :                 return(PCRE_WRAP_ERR_NOMEM);</span>
+<span class="lineNum">     415 </span>            :             }
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :             matches = temp;</span>
+<span class="lineNum">     417 </span>            :         }
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :         // break if the search was not global
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         if (!(job-&gt;flags &amp; PCRE_WRAP_GLOBAL))</span>
+<span class="lineNum">     421 </span>            :         {
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     423 </span>            :         }
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            :         // skip empty matches
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         if (offsets[1] == offset)</span>
+<span class="lineNum">     427 </span>            :         {
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :             if ((size_t)offset &lt; subject_length)</span>
+<span class="lineNum">     429 </span>            :             {
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :                 offset++;</span>
+<span class="lineNum">     431 </span>            :             }
+<span class="lineNum">     432 </span>            :             else
+<span class="lineNum">     433 </span>            :             {
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     435 </span>            :             }
+<span class="lineNum">     436 </span>            :         }
+<span class="lineNum">     437 </span>            :         else // go to next match
+<span class="lineNum">     438 </span>            :         {
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :             offset = offsets[1];</span>
+<span class="lineNum">     440 </span>            :         }
+<span class="lineNum">     441 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :     if (submatches &lt; PCRE_ERROR_NOMATCH)</span>
+<span class="lineNum">     444 </span>            :     {
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :         free(matches);</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :         return submatches;</span>
+<span class="lineNum">     447 </span>            :     }
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :     matches_found = current_match;</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :     *result = malloc(newsize + 1); // caller will free this</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     if (*result == NULL)</span>
+<span class="lineNum">     452 </span>            :     {
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :         free(matches);</span>
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :         return PCRE_WRAP_ERR_NOMEM;</span>
+<span class="lineNum">     455 </span>            :     }
+<span class="lineNum">     456 </span>            :     else
+<span class="lineNum">     457 </span>            :     {
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :         (*result)[newsize] = '\0';</span>
+<span class="lineNum">     459 </span>            :     }
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :     offset = 0;</span>
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :     result_offset = *result;</span>
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span><span class="lineNoCov">          0 :     for (int matchpos = 0; matchpos &lt; matches_found; matchpos++)</span>
+<span class="lineNum">     465 </span>            :     {
+<span class="lineNum">     466 </span>            :         // start with the text before the match
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :         memcpy(result_offset, subject + offset, (size_t)matches[matchpos].submatch_offset[0] - offset); </span>
+<span class="lineNum">     468 </span><span class="lineNoCov">          0 :         result_offset += matches[matchpos].submatch_offset[0] - offset;</span>
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span>            :         // copy every segment
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         for (int segment = 0; segment &lt;= job-&gt;substitute-&gt;backrefs; segment++)</span>
+<span class="lineNum">     472 </span>            :         {
+<span class="lineNum">     473 </span>            :             // copy the segment's text
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :             memcpy(result_offset, job-&gt;substitute-&gt;text + job-&gt;substitute-&gt;block_offset[segment], job-&gt;substitute-&gt;block_length[segment]);</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :             result_offset += job-&gt;substitute-&gt;block_length[segment];</span>
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :             if (segment != job-&gt;substitute-&gt;backrefs</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                 &amp;&amp; job-&gt;substitute-&gt;backref[segment] &lt; PCRE_WRAP_MAX_SUBMATCHES + 2</span>
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :                 &amp;&amp; job-&gt;substitute-&gt;backref[segment] &lt; matches[matchpos].submatches</span>
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :                 &amp;&amp; matches[matchpos].submatch_length[job-&gt;substitute-&gt;backref[segment]] &gt; 0)</span>
+<span class="lineNum">     481 </span>            :             {
+<span class="lineNum">     482 </span>            :                 // copy the referenced submatch
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :                 memcpy(</span>
+<span class="lineNum">     484 </span>            :                     result_offset,
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :                     subject + matches[matchpos].submatch_offset[job-&gt;substitute-&gt;backref[segment]],</span>
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :                     matches[matchpos].submatch_length[job-&gt;substitute-&gt;backref[segment]]</span>
+<span class="lineNum">     487 </span>            :                     );
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :                 result_offset += matches[matchpos].submatch_length[job-&gt;substitute-&gt;backref[segment]];</span>
+<span class="lineNum">     489 </span>            :             }
+<span class="lineNum">     490 </span>            :         }
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :         offset =  matches[matchpos].submatch_offset[0] + matches[matchpos].submatch_length[0];</span>
+<span class="lineNum">     492 </span>            :     }
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span>            :     // copy the rest and finish
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :     memcpy(result_offset, subject + offset, subject_length - offset);</span>
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     *result_length = newsize;</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :     free(matches);</span>
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     return matches_found;</span>
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

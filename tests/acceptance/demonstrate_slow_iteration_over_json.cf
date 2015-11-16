@@ -1,0 +1,21 @@
+#!/var/cfengine/bin/cf-agent -K
+
+body common control
+{
+    bundlesequence => { "test"};
+}
+
+bundle agent test
+{
+  vars:
+      "data" data => readjson("$(this.promise_filename).json", "256000");
+      "key_list" slist => getindices("data");
+      "$(key_list)" slist => getvalues( "data[$(key_list)]" );
+
+  reports:
+    inform_mode::
+      "$(this.bundle) defined var $(key_list)";
+    DEBUG|DEBUG_test::
+      "$(this.bundle) var: $(key_list) = $($(key_list))";
+
+}
